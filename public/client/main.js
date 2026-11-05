@@ -46,6 +46,10 @@ const mobAngles = new Map();
 const gore = { corpses: [], splats: [] };
 const shakes = new Map();
 const fx = new Fx();
+const PAN_MS = 500;
+let specId = null;
+let camFocus = null;
+let pan = null;
 let lastFrameMs = 0;
 let effects = [];
 let denyUntil = 0;
@@ -71,6 +75,9 @@ function resetGame() {
   gore.splats = [];
   shakes.clear();
   fx.reset();
+  specId = null;
+  camFocus = null;
+  pan = null;
   effects = [];
   paused = false;
   heldRot = 0;
@@ -249,7 +256,7 @@ function tick() {
   if (mode !== 'game' || !latest) return;
   const me = myView(latest);
   if (!me) return;
-  const raw = paused ? { mx: 0, my: 0, fire: false } : input.sample();
+  const raw = paused || me.state === 'dead' ? { mx: 0, my: 0, fire: false } : input.sample();
   const aim = aimWorld();
   const inp = { seq: ++seq, mx: Math.sign(raw.mx), my: Math.sign(raw.my) };
   predictor.apply(inp, moveCtx(me));
@@ -267,9 +274,52 @@ input.onAction((a, down) => {
     return;
   }
   if (paused) return;
+  if (a === 'prev' || a === 'next') {
+    if (myView(latest)?.state === 'dead') cycleSpectate(a === 'next' ? 1 : -1);
+    return;
+  }
   if (a === 'r' && myView(latest)?.held === 'wall') heldRot ^= 1;
   conn.send({ t: 'act', a });
 });
+
+function watchable() {
+  return (latest?.players ?? []).filter((p) => p.id !== myId && p.state === 'alive' && !p.suspended);
+}
+
+function cycleSpectate(dir) {
+  const list = watchable();
+  if (!list.length) return;
+  const i = list.findIndex((p) => p.id === specId);
+  specId = list[(i + dir + list.length) % list.length].id;
+}
+
+function updateSpectate(me) {
+  if (me.state !== 'dead') {
+    specId = null;
+    return;
+  }
+  const list = watchable();
+  if (list.some((p) => p.id === specId)) return;
+  let best = null;
+  for (const p of list) if (!best || Math.hypot(p.x - me.x, p.y - me.y) < Math.hypot(best.x - me.x, best.y - me.y)) best = p;
+  specId = best?.id ?? null;
+}
+
+function focusCamera(now, target, key) {
+  if (camFocus !== key) {
+    if (camFocus !== null) pan = { x: cam.x, y: cam.y, start: now };
+    camFocus = key;
+  }
+  let { x, y } = target;
+  if (pan) {
+    const k = Math.min(1, (now - pan.start) / PAN_MS);
+    const e = k * k * (3 - 2 * k);
+    x = pan.x + (x - pan.x) * e;
+    y = pan.y + (y - pan.y) * e;
+    if (k >= 1) pan = null;
+  }
+  cam.follow(Math.round(x), Math.round(y));
+}
 
 function pause() {
   paused = true;
@@ -387,7 +437,9 @@ function frame(now) {
     };
     const i = players.findIndex((p) => p.id === myId);
     if (i >= 0) players[i] = me;
-    cam.follow(Math.round(me.x), Math.round(me.y));
+    updateSpectate(snapMe);
+    const watched = specId ? players.find((p) => p.id === specId) : null;
+    focusCamera(now, watched ?? me, watched ? specId : myId);
   }
   effects = effects.filter((e) => now - e.start < e.durMs);
   const pickTarget = me && mode === 'game' ? pickupTarget(me, latest.items) : null;
@@ -406,6 +458,7 @@ function frame(now) {
   renderHud(hctx, scale, offset, {
     snap: latest, balance, sprites, cam, me, players, status, tab, nowMs: now,
     hint: pickTarget ? balance.items[pickTarget.kind].name : null, fx,
+    spectating: specId ? players.find((p) => p.id === specId) ?? null : null,
     mouse: input.mouse, showCursor: mode === 'game' && !paused,
     deny: now < denyUntil,
     flash: flash && now - flash.start < FLASH_MS ? { ...flash, k: (now - flash.start) / FLASH_MS } : null,

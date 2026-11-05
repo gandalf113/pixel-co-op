@@ -32,6 +32,21 @@ function drawIcon(ctx, img, x, y, scale) {
 
 const ROMAN = ['I', 'II', 'III'];
 
+function drawEye(ctx, x, y, scale) {
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(x, y, 4 * scale + 1, 2.5 * scale + 1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e8e2d4';
+  ctx.beginPath();
+  ctx.ellipse(x, y, 4 * scale, 2.5 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#14120f';
+  ctx.beginPath();
+  ctx.arc(x, y, 1.5 * scale, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawUltBar(ctx, state, me, scale, fs, small) {
   const u = state.balance.ultimate;
   const now = state.nowMs;
@@ -127,6 +142,7 @@ export function renderHud(ctx, scale, offset, state) {
       const s = toScreen(p.x, p.y);
       const top = s.y - 12 * scale;
       text(ctx, p.nick, s.x, top - 4 * scale, { color: p.color, size: small, align: 'center' });
+      if (state.spectating?.id === p.id) drawEye(ctx, s.x + 12 * scale, top - 6 * scale, scale);
       if (p.id !== snap.you.id && balance.ultimate) {
         const tier = Math.min(3, Math.floor((p.ult ?? 0) / balance.ultimate.tierPoints));
         ctx.fillStyle = '#000';
@@ -200,7 +216,12 @@ export function renderHud(ctx, scale, offset, state) {
       sy += small + 4;
     }
 
-    if (me) {
+    if (me && me.state === 'dead') {
+      const who = state.spectating;
+      text(ctx, who ? `OBSERWUJESZ: ${who.nick}` : 'NIKT NIE ŻYJE', W / 2, PAD + fs * 4 + 12, { size: fs, align: 'center', color: who?.color ?? '#ff5a4a' });
+      text(ctx, 'wracasz w przerwie · klik / A / D: zmień', W / 2, PAD + fs * 5 + 16, { size: small, align: 'center' });
+      if (me.ultKind && balance.ultimate) drawUltBar(ctx, state, me, scale, fs, small);
+    } else if (me) {
       const bw = 60 * scale;
       bar(ctx, PAD, H - PAD - 6 * scale, bw, 6 * scale, me.hp / me.maxHp, me.hp / me.maxHp > 0.3 ? '#55b04a' : '#a8321f');
       text(ctx, String(Math.floor(me.hp)), PAD + bw / 2, H - PAD - 3 * scale, { size: small, align: 'center', base: 'middle' });

@@ -15,6 +15,13 @@ export class InputState {
       this.mouse.y = e.clientY;
     });
     addEventListener('blur', () => this.clear());
+    canvasEl.ownerDocument.addEventListener('mousedown', (e) => {
+      if (e.button === 0) this.#emit('prev', true);
+      else if (e.button === 2) this.#emit('next', true);
+    });
+    canvasEl.ownerDocument.addEventListener('contextmenu', (e) => {
+      if (!(e.target instanceof HTMLInputElement)) e.preventDefault();
+    });
   }
 
   #key(e, isDown) {
@@ -22,7 +29,11 @@ export class InputState {
     const code = e.code;
     if (code === 'Space' || code === 'Tab') e.preventDefault();
     if (code === 'Space') this.fire = isDown;
-    else if (code in MOVE) isDown ? this.down.add(code) : this.down.delete(code);
+    else if (code in MOVE) {
+      isDown ? this.down.add(code) : this.down.delete(code);
+      if (isDown && !e.repeat && code === 'KeyA') this.#emit('prev', true);
+      if (isDown && !e.repeat && code === 'KeyD') this.#emit('next', true);
+    }
     else if (code === 'Tab') {
       if (!(isDown && e.repeat)) this.#emit('tab', isDown);
     } else if (code in EDGE && isDown && !e.repeat) this.#emit(EDGE[code], true);
