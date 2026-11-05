@@ -236,6 +236,12 @@ function onEvent(e) {
     case 'hit':
       if (e.mob) playSfx('hit', e, tp);
       break;
+    case 'mobShot':
+      playSfx(e.kind === 'grenade' ? 'lob' : 'spit', e, tp);
+      break;
+    case 'spitHit':
+      playSfx('spitHit', e, tp);
+      break;
     case 'objHit': case 'destroyed': case 'explode': case 'pickup': case 'place':
     case 'drop': case 'down': case 'revive': case 'death':
     case 'droplet': case 'ff': case 'expire':
@@ -292,6 +298,12 @@ function onEvent(e) {
     }
     case 'hurt':
       fx.hurt(now, e, myId);
+      break;
+    case 'mobShot':
+      fx.mobShot(now, e);
+      break;
+    case 'spitHit':
+      fx.spitHit(now, e);
       break;
     case 'ff':
       fx.ff(now, e, myId, (id) => latest?.players.find((p) => p.id === id)?.nick ?? '?');
@@ -565,6 +577,7 @@ function frame(now) {
     cam, balance, sprites, frame: Math.floor(now / (1000 / 60)), players,
     mobs: lerpEntities(a.mobs, b.mobs, alpha, MOB_KEY),
     bullets: lerpEntities(a.bullets, b.bullets, alpha, BULLET_KEY),
+    mobBullets: lerpEntities(a.mobBullets ?? [], b.mobBullets ?? [], alpha, BULLET_KEY),
     items: b.items, myId, mobAngles, gore, seed: latest.seed,
     droplets: lerpEntities(a.droplets ?? [], b.droplets ?? [], alpha, BULLET_KEY),
     rockets: lerpEntities(a.rockets ?? [], b.rockets ?? [], alpha, BULLET_KEY),

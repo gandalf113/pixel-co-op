@@ -1,6 +1,6 @@
 import { buildField, nextStep } from './flowfield.js';
 import { damagePlayer } from './players.js';
-import { damageMob } from './combat.js';
+import { damageMob, lineClear, spawnMobBullet } from './combat.js';
 import { KIND, moveCircle, tileOf } from '../public/shared/world.js';
 
 const EPS = 1e-9;
@@ -147,6 +147,35 @@ function gnawFloor(world, mob, dt, hooks) {
   if (item.hp <= 0) hooks.onObjectDestroyed?.(item);
 }
 
+const KEEP_TOL_PX = 8;
+
+// Potwor dystansowy (V3-A-03/04): trzyma dystans, strzela do pozycji gracza z chwili strzalu (bez
+// przewidywania). Zwraca true, gdy sam zdecydowal o ruchu (stoi albo sie cofa); false = dalej zwykla
+// sciezka, wraz z atakowaniem obiektow na trasie.
+function updateRanged(world, mob, target, dt) {
+  const { tilePx } = world.rules;
+  const cfg = world.rules.balance.mobs[mob.type];
+  const rg = cfg.ranged;
+  const p = target.player;
+  const d = target.dist;
+  mob.shootCd = Math.max(0, (mob.shootCd ?? rg.intervalS * 0.5) - dt);
+  const clear = lineClear(world, mob.x, mob.y, p.x, p.y);
+  if (clear && mob.shootCd <= EPS && d <= rg.rangeTiles * tilePx) {
+    spawnMobBullet(world, mob, p.x, p.y);
+    mob.shootCd = rg.intervalS;
+  }
+  if (!clear || d > rg.keepTiles * tilePx + KEEP_TOL_PX) return false;
+  mob.angle = Math.atan2(p.y - mob.y, p.x - mob.x);
+  if (d < rg.keepTiles * tilePx - KEEP_TOL_PX) {
+    const speed = world.rules.mobSpeedPx(mob.type) * dt * (mob.slowLeft > 0 ? 0.5 : 1);
+    const a = mob.angle;
+    const pos = moveCircle(world.grid, mob.x, mob.y, cfg.radiusPx, -Math.cos(a) * speed, -Math.sin(a) * speed, tilePx);
+    mob.x = pos.x;
+    mob.y = pos.y;
+  }
+  return true;
+}
+
 function updateMob(world, mob, dt, hooks) {
   const { tilePx, balance } = world.rules;
   const cfg = balance.mobs[mob.type];
@@ -162,6 +191,7 @@ function updateMob(world, mob, dt, hooks) {
 
   const target = pickTarget(world, mob, stand);
   if (!target.player || target.dist <= cfg.radiusPx + playerR) return;
+  if (cfg.ranged && !target.down && updateRanged(world, mob, target, dt)) return;
   const tx = tileOf(mob.x, tilePx);
   const ty = tileOf(mob.y, tilePx);
   const { field, siege } = chooseField(world, mob, target.down, tx, ty);

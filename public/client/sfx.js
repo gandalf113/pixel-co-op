@@ -103,6 +103,23 @@ const RECIPES = {
     { t: 'sine', f0: 60, f1: 30, dur: 0.5, level: 0.6 },
     { n: 'white', dur: 0.5, lp: 500, level: 0.15, at: 0.1 },
   ], { rev: 'hall', wet: 1.1 }),
+  // Plujka: mokre "ptuu" — szum w górę + opadający ton z modulacją. Inny charakter niż suchy trzask karabinu.
+  spit: Object.assign([
+    { n: 'brown', dur: 0.1, lp: 500, lpTo: 1800, level: 0.5 },
+    { t: 'sine', f0: 420, f1: 130, dur: 0.12, level: 0.35, fm: { f: 38, depth: 90 } },
+    { n: 'white', dur: 0.03, bp: 2500, level: 0.12, at: 0.02 },
+  ], { rev: 'room', wet: 0.3 }),
+  // Granatnik: głuche "bump" moździerza i opadający gwizd.
+  lob: Object.assign([
+    { n: 'brown', dur: 0.14, lp: 400, level: 0.7 },
+    { t: 'sine', f0: 110, f1: 40, dur: 0.18, level: 0.6 },
+    { t: 'triangle', f0: 900, f1: 350, dur: 0.22, level: 0.12, at: 0.05 },
+  ], { rev: 'room', wet: 0.4 }),
+  // Plwocina trafia w ziemię/ścianę/gracza: mokry plask, bez "metalu" trafienia w potwora.
+  spitHit: [
+    { n: 'white', dur: 0.045, bp: 700, q: 1.2, level: 0.5 },
+    { t: 'sine', f0: 220, f1: 70, dur: 0.07, level: 0.3 },
+  ],
   pickup: [{ t: 'sine', f0: 440, f1: 880, dur: 0.08, level: 0.25 }],
   place: [
     { t: 'square', f0: 200, dur: 0.04, level: 0.22 },

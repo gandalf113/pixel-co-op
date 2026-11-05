@@ -4,7 +4,7 @@ import { composeWave, SpawnDirector } from './waves.js';
 import { createPlayer, updatePlayers, startBreakFor, allDown, setDropHeld, speedMultOf } from './players.js';
 import { updateUltimate, useUltimate } from './ultimate.js';
 import { updateMobs } from './mobs.js';
-import { fireWeapons, updateBullets, startReload } from './combat.js';
+import { fireWeapons, updateBullets, updateMobBullets, startReload } from './combat.js';
 import * as items from './items.js';
 import { Grid } from '../public/shared/world.js';
 
@@ -25,6 +25,7 @@ export class Game {
       players: new Map(),
       mobs: [],
       bullets: [],
+      mobBullets: [],
       items: new Map(),
       events: [],
       gore: { corpses: [], splats: [], scorches: [], rubble: [] },
@@ -72,6 +73,7 @@ export class Game {
     items.updateItems(w, dt);
     updateMobs(w, dt, this.mobHooks);
     updateBullets(w, dt, this.bulletHooks);
+    updateMobBullets(w, dt, this.bulletHooks);
     updateUltimate(w, dt);
     if (w.phase === 'wave') this.#spawn(dt);
 
@@ -186,6 +188,10 @@ export class Game {
       droplets: w.droplets.map((d) => [d.id, r1(d.x), r1(d.y)]),
       rockets: w.rockets.map((r) => [r.id, r1(r.x), r1(r.y), r1(Math.atan2(r.vy, r.vx))]),
       bullets: w.bullets.map((b) => [b.id, r1(b.x), r1(b.y)]),
+      // [id, x, y, rodzaj (0 plwocina, 1 granat), lx, ly (punkt upadku granatu), left (s do upadku)]
+      mobBullets: w.mobBullets.map((b) => b.kind === 'grenade'
+        ? [b.id, r1(b.x), r1(b.y), 1, r1(b.lx), r1(b.ly), r1(b.travelLeft / b.speedPx)]
+        : [b.id, r1(b.x), r1(b.y), 0, 0, 0, 0]),
       items: itemViews,
     };
   }

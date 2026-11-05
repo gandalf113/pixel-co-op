@@ -1,7 +1,7 @@
 import { damagePlayer } from './players.js';
 import { onMobKilled } from './items.js';
 import { spawnDroplets } from './ultimate.js';
-import { KIND, tileOf } from '../public/shared/world.js';
+import { KIND, tileOf, footprint, itemDef } from '../public/shared/world.js';
 import { rifleStats } from '../public/shared/weapon.js';
 
 const EPS = 1e-9;
@@ -87,7 +87,7 @@ export function mobHit(world, x, y, mob, angle, dmg, by = null) {
   addGore(world.gore.splats, [Math.round(x), Math.round(y)], world.rules.balance.gore.maxSplats);
 }
 
-function solidAlong(grid, x0, y0, dx, dy, tilePx) {
+export function solidAlong(grid, x0, y0, dx, dy, tilePx) {
   let tx = tileOf(x0, tilePx);
   let ty = tileOf(y0, tilePx);
   if (grid.kind(tx, ty) === KIND.WALL) return { t: 0, tx, ty };
@@ -192,4 +192,111 @@ function stepBullet(world, b, dt, hooks) {
 
 export function updateBullets(world, dt, hooks = {}) {
   world.bullets = world.bullets.filter((b) => stepBullet(world, b, dt, hooks));
+}
+
+// --- Pociski wrogow (V3-A-02) ---------------------------------------------------------------
+// Osobny byt: trafia graczy (pelne obrazenia, bez friendlyFire), omija potwory, nie da sie go zestrzelic
+// (pociski gracza w ogole go nie widza), staje na scianach i rani obiekty gracza. Granat jest "lobowany":
+// nie zahacza o graczy w locie, tylko detonuje na ziemi w punkcie ustalonym przy wystrzale.
+
+// Czy odcinek (x0,y0)-(x1,y1) nie przecina sciany (ta sama siatka co pociski gracza).
+export function lineClear(world, x0, y0, x1, y1) {
+  return !solidAlong(world.grid, x0, y0, x1 - x0, y1 - y0, world.rules.tilePx);
+}
+
+export function spawnMobBullet(world, mob, tx, ty) {
+  const { balance, tilePx } = world.rules;
+  const rg = balance.mobs[mob.type].ranged;
+  const angle = Math.atan2(ty - mob.y, tx - mob.x);
+  const ux = Math.cos(angle);
+  const uy = Math.sin(angle);
+  const x = mob.x + ux * balance.mobs[mob.type].radiusPx;
+  const y = mob.y + uy * balance.mobs[mob.type].radiusPx;
+  const lob = rg.blastTiles > 0;
+  let travel = rg.rangeTiles * tilePx;
+  if (lob) {
+    travel = Math.min(travel, Math.hypot(tx - x, ty - y));
+    const wall = solidAlong(world.grid, x, y, ux * travel, uy * travel, tilePx);
+    if (wall) travel *= wall.t;
+  }
+  const b = {
+    id: world.nextId(), mobType: mob.type, kind: lob ? 'grenade' : 'spit', x, y,
+    vx: ux * rg.projSpeedPx, vy: uy * rg.projSpeedPx, speedPx: rg.projSpeedPx,
+    travelLeft: travel, damage: world.rules.mobDamage(mob.type), objDamage: world.rules.mobObjDamage(mob.type),
+    lx: x + ux * travel, ly: y + uy * travel,
+  };
+  world.mobBullets.push(b);
+  world.events.push({ type: 'mobShot', id: mob.id, kind: b.kind, x, y, angle });
+  return b;
+}
+
+function explodeMobBullet(world, b, hooks) {
+  const { balance, tilePx } = world.rules;
+  const rg = balance.mobs[b.mobType].ranged;
+  const radius = rg.blastTiles * tilePx;
+  const edge = rg.edgeMult ?? 0.5;
+  const falloff = (d) => 1 - (1 - edge) * Math.min(1, d / radius);
+  for (const p of world.players.values()) {
+    const d = Math.hypot(p.x - b.x, p.y - b.y);
+    if (p.state === 'alive' && !p.suspended && d <= radius) damagePlayer(world, p, b.damage * falloff(d), 'grenade');
+  }
+  for (const item of [...world.items.values()]) {
+    if (item.state !== 'placed' || itemDef(item.kind)?.category !== 'hard' || !(item.hp > 0)) continue;
+    let d = Infinity;
+    for (const [tx, ty] of footprint(item.kind, item.tx, item.ty, item.rot)) {
+      d = Math.min(d, Math.hypot((tx + 0.5) * tilePx - b.x, (ty + 0.5) * tilePx - b.y));
+    }
+    if (d > radius) continue;
+    world.events.push({ type: 'objHit', id: item.id, x: b.x, y: b.y });
+    hooks.onWallHit?.(item, b.objDamage * falloff(d));
+  }
+  addGore(world.gore.scorches, [Math.round(b.x), Math.round(b.y), Math.round(radius)], balance.gore.maxScorches);
+  world.events.push({ type: 'explode', id: b.id, x: b.x, y: b.y, radiusPx: radius, mine: true, foe: true });
+}
+
+function stepMobBullet(world, b, dt, hooks) {
+  const { grid } = world;
+  const { tilePx, balance } = world.rules;
+  const speed = Math.hypot(b.vx, b.vy);
+  const len = Math.min(speed * dt, b.travelLeft);
+  const dx = (b.vx / speed) * len;
+  const dy = (b.vy / speed) * len;
+  let best = solidAlong(grid, b.x, b.y, dx, dy, tilePx);
+  if (best) best = { t: best.t, wall: best };
+  if (b.kind === 'spit') {
+    for (const p of world.players.values()) {
+      if (p.state !== 'alive' || p.suspended || p.invuln > 0) continue;
+      const t = circleAlong(b.x, b.y, dx, dy, p.x, p.y, balance.player.radiusPx);
+      if (t !== null && (!best || t < best.t)) best = { t, player: p };
+    }
+  }
+  if (best) {
+    b.x += dx * best.t;
+    b.y += dy * best.t;
+    if (b.kind === 'grenade') {
+      explodeMobBullet(world, b, hooks);
+    } else if (best.player) {
+      damagePlayer(world, best.player, b.damage, 'spit');
+      world.events.push({ type: 'spitHit', x: b.x, y: b.y, player: best.player.id });
+    } else {
+      const { tx, ty } = best.wall;
+      const item = grid.inside(tx, ty) ? world.items.get(grid.id(tx, ty)) : null;
+      if (item) {
+        world.events.push({ type: 'objHit', id: item.id, x: b.x, y: b.y });
+        hooks.onWallHit?.(item, b.objDamage);
+      }
+      world.events.push({ type: 'spitHit', x: b.x, y: b.y });
+    }
+    return false;
+  }
+  b.x += dx;
+  b.y += dy;
+  b.travelLeft -= len;
+  if (b.travelLeft > EPS) return true;
+  if (b.kind === 'grenade') explodeMobBullet(world, b, hooks);
+  return false;
+}
+
+export function updateMobBullets(world, dt, hooks = {}) {
+  world.mobBullets = world.mobBullets.filter((b) => stepMobBullet(world, b, dt, hooks));
 }

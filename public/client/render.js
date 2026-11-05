@@ -437,6 +437,46 @@ function drawRockets(ctx, view, ox, oy) {
   }
 }
 
+// Znacznik upadku granatu: strefa rażenia widoczna przez ostatnie markerS sekund lotu, wypełniająca się od środka.
+function drawLandingMarkers(ctx, view, ox, oy) {
+  const rg = Object.values(view.balance.mobs).find((m) => m.ranged?.blastTiles)?.ranged;
+  if (!rg) return;
+  const r = rg.blastTiles * view.balance.map.tilePx;
+  for (const [, , , kind, lx, ly, left] of view.mobBullets ?? []) {
+    if (kind !== 1 || left > rg.markerS) continue;
+    const k = 1 - Math.max(0, left) / rg.markerS;
+    const blink = (view.frame >> 2) & 1;
+    ctx.globalAlpha = 0.14 + 0.2 * k;
+    ctx.fillStyle = '#ff3a2a';
+    ctx.beginPath();
+    ctx.arc(Math.round(lx + ox), Math.round(ly + oy), r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.5 + 0.3 * blink;
+    ctx.fillStyle = '#ff6a3a';
+    ctx.beginPath();
+    ctx.arc(Math.round(lx + ox), Math.round(ly + oy), Math.max(1, r * k), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ring(ctx, Math.round(lx + ox), Math.round(ly + oy), r, blink ? '#ffd23a' : '#ff3a2a', 0.95);
+  }
+}
+
+// Pociski wrogow: wyraznie wieksze od 4x4 pocisku gracza, pulsuja i maja ciemny obrys.
+function drawMobBullets(ctx, view, ox, oy) {
+  for (const [id, x, y, kind] of view.mobBullets ?? []) {
+    const pulse = ((view.frame >> 2) + id) & 1;
+    const px = Math.round(x + ox);
+    const py = Math.round(y + oy);
+    const s = (kind === 1 ? 7 : 6) + pulse;
+    ctx.fillStyle = '#14120f';
+    ctx.fillRect(px - (s >> 1) - 1, py - (s >> 1) - 1, s + 2, s + 2);
+    ctx.fillStyle = kind === 1 ? '#b5652a' : '#8ea845';
+    ctx.fillRect(px - (s >> 1), py - (s >> 1), s, s);
+    ctx.fillStyle = kind === 1 ? (pulse ? '#ffd23a' : '#ff3a2a') : (pulse ? '#eaffb0' : '#b6ff3a');
+    ctx.fillRect(px - 1, py - 1, 3, 3);
+  }
+}
+
 function ring(ctx, x, y, r, color, alpha, fill = 0) {
   ctx.globalAlpha = alpha;
   ctx.strokeStyle = color;
@@ -505,11 +545,13 @@ export function renderWorld(ctx, view) {
   drawDroplets(ctx, view, ox, oy);
   drawItems(ctx, view, ox, oy);
   drawGhost(ctx, view, ox, oy);
+  drawLandingMarkers(ctx, view, ox, oy);
   drawMobs(ctx, view, ox, oy);
   drawPlayers(ctx, view, ox, oy);
   const bullet = view.sprites.get('bullet');
   for (const [, x, y] of view.bullets) drawCentered(ctx, bullet, x + ox, y + oy);
   drawRockets(ctx, view, ox, oy);
+  drawMobBullets(ctx, view, ox, oy);
   view.fx?.drawTop(ctx, ox, oy, view.nowMs, fxs, view.balance.map.tilePx);
   drawEffects(ctx, view, ox, oy);
   ctx.setTransform(1, 0, 0, 1, 0, 0);

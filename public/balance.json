@@ -16,7 +16,11 @@
   "mobs": {
     "slime":  { "hp": 30,  "damage": 8,  "objDamage": 5,  "wanderDeg": 50, "look": true,  "speedTiles": 2.5, "attackS": 1.0, "fromWave": 1, "drop": 0.25, "cost": 1,   "weight": 50, "radiusPx": 6 },
     "runner": { "hp": 20,  "damage": 6,  "objDamage": 3,  "wanderDeg": 15, "look": true,  "speedTiles": 6,   "attackS": 0.6, "fromWave": 2, "drop": 0.20, "cost": 1.5, "weight": 30, "radiusPx": 5 },
-    "brute":  { "hp": 150, "damage": 25, "objDamage": 50, "wanderDeg": 35, "look": false, "speedTiles": 1.8, "attackS": 1.5, "fromWave": 4, "drop": 0.50, "cost": 6,   "weight": 10, "radiusPx": 7, "siege": true }
+    "brute":  { "hp": 150, "damage": 25, "objDamage": 50, "wanderDeg": 35, "look": false, "speedTiles": 1.8, "attackS": 1.5, "fromWave": 4, "drop": 0.50, "cost": 6,   "weight": 10, "radiusPx": 7, "siege": true },
+    "spitter":   { "hp": 40, "damage": 12, "objDamage": 6, "wanderDeg": 30, "look": false, "speedTiles": 2.2, "attackS": 1.0, "fromWave": 6, "drop": 0.35, "cost": 3, "weight": 15, "radiusPx": 6,
+                   "ranged": { "keepTiles": 5, "rangeTiles": 7, "projSpeedPx": 250, "intervalS": 2 } },
+    "grenadier": { "hp": 60, "damage": 18, "objDamage": 10, "wanderDeg": 30, "look": false, "speedTiles": 2.0, "attackS": 1.0, "fromWave": 9, "drop": 0.40, "cost": 4, "weight": 8, "radiusPx": 7,
+                   "ranged": { "keepTiles": 5, "rangeTiles": 7, "projSpeedPx": 180, "intervalS": 3, "blastTiles": 1.5, "edgeMult": 0.5, "markerS": 0.7 } }
   },
   "mobAi": { "wanderNearTiles": 4, "wanderChangeMinS": 0.5, "wanderChangeMaxS": 1.5, "lookEveryMinS": 4, "lookEveryMaxS": 8, "lookMinS": 1, "lookMaxS": 2, "lookSpeedMult": 0.4, "fieldRebuildS": 0.5, "detourMax": 3, "downedTargetRangeTiles": 10, "wallCost": 4, "meleeReachPx": 2 },
   "waves": {
@@ -51,7 +55,7 @@
   "throw": { "rangeTiles": 4, "flightS": 0.5, "stunS": 0.5 },
   "ultimate": {
     "barMax": 300, "tierPoints": 100, "magnetTiles": 9, "magnetMinPx": 40, "magnetBoostPx": 380, "absorbPx": 6, "lifeS": 30, "scatterPx": 6,
-    "droplets": { "slime": 1, "runner": 1, "brute": 3 },
+    "droplets": { "slime": 1, "runner": 1, "brute": 3, "spitter": 2, "grenadier": 2 },
     "kinds": {
       "shockwave": { "name": "Fala uderzeniowa", "icon": "◎", "sprite": "ult_shockwave", "blurb": "Odpycha i rani potwory wokół ciebie.", "tiers": [
         { "radiusTiles": 4, "damage": 40, "knockbackTiles": 2, "stunS": 0, "desc": "promień 4, 40 obr., odrzut 2" },

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PALETTE, SPRITES } from '../public/client/sprites.js';
 
-const REQUIRED = ['player_0', 'player_1', 'player_down_0', 'player_down_1', 'slime_0', 'slime_1', 'runner_0', 'runner_1', 'brute_0', 'brute_1',
+const REQUIRED = ['player_0', 'player_1', 'player_down_0', 'player_down_1', 'slime_0', 'slime_1', 'runner_0', 'runner_1', 'brute_0', 'brute_1', 'spitter_0', 'spitter_1', 'grenadier_0', 'grenadier_1',
   'ground_0', 'ground_1', 'ground_2', 'wall', 'turret_0', 'turret_1', 'mine_0', 'mine_1',
   'item_wall', 'item_turret30', 'item_mine', 'bullet', 'crosshair'];
 

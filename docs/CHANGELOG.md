@@ -1,6 +1,7 @@
 # Changelog dokumentacji
 
 ## 0.24 - 2026-11-06
+- V3-C-13: karabin ciszej, poglos dluzszy (0.5-0.6 s) i z wyrazniejszym pre-delay (35-45 ms) — poglos ma wchodzic slyszalnie po czasie.
 - R57: partie glosowe jednak PROBKAMI o niskim bitrate, nie synteza formantowa. Dwie persony: charczacy koks i spokojny zabojca ("Another one cleared"). Generowane u nas na bo3serverze (pocket-tts / VoxCPM2), nie pobierane (V3-N-05..07).
 - Sekcja C2: diagnoza braku poglosu (normalize=true + limiter dociskajacy ogon + 14 ms dzwiek bez ogona) i naprawa (V3-C-09).
 - V3-C-10/11/12: karabin, przeladowanie i ULTIMATE przeprojektowane — konkretne recepty warstwowe zamiast dotychczasowych dwuwarstwowych.

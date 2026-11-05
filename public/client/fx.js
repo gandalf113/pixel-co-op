@@ -111,13 +111,24 @@ export class Fx {
     this.rings.push({ x: e.x, y: e.y, r: e.radiusPx, born: now });
     this.#burst(now, e.x, e.y, Math.floor(rand(8, 13)), { colors: ['#ff9a2a', '#7d766b', '#3b342d'], speed: 110, life: 0.45 });
     this.#burst(now, e.x, e.y, 3, { colors: ['#6a645b', '#4a4139'], speed: 6, life: 1, size: 3, rise: 10 });
-    for (const m of mobs) if (Math.hypot(m[2] - e.x, m[3] - e.y) <= e.radiusPx) this.mobFlash.set(m[0], now + 70);
+    // wybuch wroga nie rani potworow, wiec ich tez nie bieli
+    if (!e.foe) for (const m of mobs) if (Math.hypot(m[2] - e.x, m[3] - e.y) <= e.radiusPx) this.mobFlash.set(m[0], now + 70);
     if (e.mine) this.scorches.push([Math.round(e.x), Math.round(e.y), Math.round(e.radiusPx)]);
     if (this.scorches.length > 100) this.scorches.shift();
     if (me && !reducedMotion) {
       const d = Math.hypot(me.x - e.x, me.y - e.y) / tp;
       if (d < 12) this.shake = { until: now + 200, amp: 2 * (1 - d / 12) };
     }
+  }
+
+  mobShot(now, e) {
+    const a = e.angle ?? 0;
+    const colors = e.kind === 'grenade' ? ['#ff9a2a', '#7d766b', '#3b342d'] : ['#b6ff3a', '#8ea845', '#55682a'];
+    this.#burst(now, e.x + Math.cos(a) * 3, e.y + Math.sin(a) * 3, 5, { colors, speed: 40, life: 0.25 });
+  }
+
+  spitHit(now, e) {
+    this.#burst(now, e.x, e.y, Math.floor(rand(5, 8)), { colors: ['#b6ff3a', '#8ea845', '#55682a'], speed: 45, life: 0.3, settle: true });
   }
 
   mobDeath(now, e) {
