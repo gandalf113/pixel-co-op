@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.15 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.16 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -10,6 +10,8 @@ Wersja: 0.15 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | S2 | Odłącz internet (zostaw WLAN), uruchom i dołącz drugim PC | TECH-01, PRD-CON-01 | Działa identycznie |
 | S3 | Host pokazuje IP w lobby | TECH-04 | Adres zgodny z `ipconfig` |
 | S4 | Dołącz 3 klientów, start | PRD-SES-01..05 | Wszyscy widzą 4 postacie w różnych kolorach na środku mapy |
+| S5 | Lobby na oknie 1366 x 768 | PRD-SES-05 | 7 kafelków ultimate w jednym rzędzie z ikonami 32 x 32, brak paska przewijania, Start widoczny bez scrollowania |
+| S6 | HUD w grze | PRD-HUD-10 | Pasek ULTIMATE w lewym górnym rogu z ikoną i 3 segmentami; przy pełnym pulsuje i pokazuje `ULTI GOTOWE [F]` |
 
 ## 2. Sterowanie i kamera
 

@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.15 (2026-11-05)
+Wersja: 0.16 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -52,7 +52,7 @@ Poza MVP (później): boss, statystyki, dźwięk, mapy inne niż płaska (`07-BA
 | PRD-SES-02 | Dołączenie: gracz wpisuje adres hosta (IP:port) lub otwiera link w przeglądarce. Nie ma matchmakingu ani lobby w internecie. |
 | PRD-SES-03 | Liczba graczy: 1-4. Jeden gracz = też gra działa (do testów). |
 | PRD-SES-04 | Gracz podaje nick (max 12 znaków). Każdy gracz dostaje inny kolor (4 kolory: zielony, niebieski, żółty, różowy). |
-| PRD-SES-05 | Przed startem jest ekran lobby: lista graczy, trudność, wybór ULTIMATE per gracz (7 kafelków), przycisk "Start" u hosta (aktywny, gdy każdy wybrał ultimate). Reszta widzi "czekam na hosta". |
+| PRD-SES-05 | Przed startem jest ekran lobby: lista graczy, trudność, wybór ULTIMATE per gracz, przycisk "Start" u hosta (aktywny, gdy każdy wybrał ultimate). Reszta widzi "czekam na hosta". **Układ lobby** (R46): panel szeroki, min. 900 px na ekranie 1366 x 768, **bez przewijania pionowego**: 7 kafelków ultimate w **jednym rzędzie** (na węższym oknie 4 + 3), każdy kafelek z **ikoną 32 x 32 pixel-art** powiększoną 3x, nazwą i jednym zdaniem opisu; opis trzech progów pokazuje się po najechaniu / zaznaczeniu pod rzędem, nie w kafelku. Lista graczy i trudność po lewej, ultimate po prawej lub pod spodem, całość mieści się na 768 px wysokości. |
 | PRD-SES-06 | Dołączenie w trakcie gry (late join): **niedozwolone**. Po starcie sesja jest zamknięta, spóźniony gracz czeka na nową grę. Host po starcie przestaje przyjmować nowe połączenia (komunikat "gra w toku"). |
 | PRD-SES-07 | Rozłączenie gracza: jego postać znika, przedmiot, który trzymał, spada na ziemię. Gra toczy się dalej. Rozłączenie hosta = koniec sesji dla wszystkich z komunikatem. |
 
@@ -126,7 +126,7 @@ LOBBY -> START -> [PRZERWA 0 (krótka)] -> FALA 1 -> PRZERWA 1 -> FALA 2 -> PRZE
 | PRD-HUD-03 | Trzymany przedmiot: ikona + nazwa + (dla power-upów z czasem) czas działania (prawy dolny róg). Pusty slot = "nic". |
 | PRD-HUD-04 | Poziom broni (np. "BROŃ LV 2") obok HP, a obok licznik amunicji `18 / 30` (migający na czerwono przy 5 i mniej). |
 | PRD-HUD-11 | **Przeładunek jako kółko wokół postaci**: w trakcie przeładunku wokół własnej postaci (środek ekranu) rysowany jest **pierścień o promieniu ok. 14 px świata, wypełniający się zgodnie z ruchem wskazówek zegara od godziny 12** przez 1.5 s, w kolorze kości na ciemnym tle pierścienia, grubość 2 px. Po domknięciu pierścień błyska raz i znika. Bez napisu. Wokół sojusznika w trakcie przeładunku ten sam pierścień, cieńszy (1 px) i w jego kolorze, żeby zespół widział, kto nie strzela. Pierścień rysowany w warstwie świata (obraca się razem z kamerą, nie HUD). |
-| PRD-HUD-10 | Pasek ULTIMATE (3 segmenty) nad HP, ikona wybranego ultimate, kropka progu nad sojusznikami (`08-ULTIMATE.md`, ULT-HUD). |
+| PRD-HUD-10 | **Pasek ULTIMATE w lewym górnym rogu, w stylu paska super z bijatyk 16-bit** (R47): poziomy, długi (ok. 1/3 szerokości ekranu), gruby (10-12 px ekranu), z ikoną 32 x 32 wybranego ultimate po lewej, podzielony na **3 segmenty z wyraźnymi przerwami**, każdy wypełnia się od lewej; wypełniony segment świeci i ma animowany "połysk" przesuwający się co 2 s; pełny pasek pulsuje i obok pojawia się napis `ULTI GOTOWE [F]` w stylu bitmapowym. Pod paskiem licznik progu `I / II / III` rzymskimi. Pasek HP i broń zostają na dole (HUD-01, HUD-04). Kropka progu nad sojusznikami bez zmian (`08-ULTIMATE.md`, ULT-HUD). |
 | PRD-HUD-05 | Nad każdym graczem: nick w jego kolorze i mały pasek HP. Nad powalonym: ikona i licznik do śmierci. |
 | PRD-HUD-06 | Nad działkami i platformami: mały pasek pozostałego czasu. |
 | PRD-HUD-07 | Strzałki na krawędzi ekranu wskazujące sojuszników poza ekranem (kolor gracza). |

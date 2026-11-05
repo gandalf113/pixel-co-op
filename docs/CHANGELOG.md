@@ -1,5 +1,9 @@
 # Changelog dokumentacji
 
+## 0.16 - 2026-11-05
+- R46 lobby: szeroki panel, 7 ultimate w jednym rzedzie bez przewijania, ikony 32x32 (PRD-SES-05, ULT-HUD-03, S5). Ikony ult_* dodane do sprites.js.
+- R47 pasek ULTIMATE w lewym gornym rogu w stylu bijatyk 16-bit (PRD-HUD-10, ULT-HUD-01, S6).
+
 ## 0.15 - 2026-11-05
 - R42 dynamiczny zoom USUNIETY (psul rozgrywke); staly widok 560x315 zamiast 480x270 (PRD-MAP-05, PRD-MAP-07, C8).
 - R43 ULTIMATE laduje sie 5x szybciej (kropelka = 5 pkt). R44 magnes kropelek: 14 kafelkow, przyspiesza im blizej, zycie 30 s (08 sekcja 1-2, UL2, UL2b, UL3).
