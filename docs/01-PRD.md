@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.7 (2026-11-05)
+Wersja: 0.8 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -20,7 +20,7 @@ Jedno zdanie: **"Fala, przerwa, zbuduj, powtórz. Razem, na LAN-ie, bez internet
 | PRD-CON-02 | Multiplayer przez **WLAN**. Jeden komputer hostuje, reszta dołącza po adresie IP w sieci lokalnej. |
 | PRD-CON-03 | **Lightweight**: całość (gra + to, co trzeba, żeby hostować) mieści się w jednym katalogu, kopiowalnym między komputerami. Cel: poniżej 20 MB bez runtime'u. Zero instalatorów. |
 | PRD-CON-04 | Forma: **przeglądarkowa** (preferowana) lub natywna, o ile spełnia CON-03. Szczegóły w `04-TECH-ARCH.md`. |
-| PRD-CON-05 | **Pixel art generuje Claude**. Grafika powstaje z kodu lub jako pliki wygenerowane przez Claude. Żadnych assetów z internetu, żadnych paczek sprite'ów. |
+| PRD-CON-05 | **Pixel art generuje Claude**. Grafika powstaje z kodu lub jako pliki wygenerowane przez Claude. Żadnych assetów z internetu, żadnych paczek sprite'ów. Kierunek artystyczny: **brudne post-apo** (ziemia brązowo-szara, beton poobijany, potwory odrażające, nie "wesołe"). |
 | PRD-CON-06 | Widok z góry (top-down), postać gracza zawsze na środku ekranu. |
 
 ## 3. Zakres MVP
@@ -80,7 +80,8 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 | PRD-MAP-03 | Gracze spawnują się na środku mapy, obok siebie. |
 | PRD-MAP-04 | Kamera: postać lokalnego gracza zawsze na środku ekranu. Kamera nie zatrzymuje się na krawędzi mapy (poza mapą rysujemy "pustkę" / ciemność). |
 | PRD-MAP-05 | Skalowanie: render w natywnej rozdzielczości pixel-art (np. 320 x 180 lub 480 x 270) i powiększenie całkowitą krotnością do okna. Bez wygładzania (nearest neighbour). |
-| PRD-MAP-06 | Tło: podłoże z lekką wariacją kafelków (2-3 warianty), żeby ruch był widoczny. |
+| PRD-MAP-06 | Tło: brązowo-szara, spękana ziemia (klimat post-apo), 3 warianty kafelka, żeby ruch był widoczny. |
+| PRD-MAP-08 | **Dekoracje podłoża**: na ziemi losowo rozrzucone małe kamyki, kępki suchej trawy, pęknięcia, plamy, drobny złom. Wszystko **bezkolizyjne** (nie blokuje ruchu, pocisków, budowy, pathfindingu) i **losowane na nowo przy każdej grze** (seed z serwera, żeby wszyscy gracze widzieli to samo). Gęstość: ok. 1 dekoracja na 6-10 kafelków, bez nakładania. Rysowane między podłożem a przedmiotami. Sprite'y: `decor_*` w `sprites.js`. |
 | PRD-MAP-07 | **Dynamiczny zoom kamery** (feedback 2026-11-05): lokalna postać zostaje na środku, ale widok oddala się płynnie w miarę rozchodzenia się graczy, tak aby sojusznicy byli widoczni na ekranie. Zoom ograniczony do rozsądnego maksimum: skala od 1.0 (480 x 270 świata) do 0.5 (960 x 540 świata), zmiana płynna (lerp, ok. 1 s), bez skokow. Przy maksymalnym oddaleniu sojusznicy poza ekranem pokazywani są strzałkami na krawędzi (PRD-HUD-07). Zoom w pixel-art: skala całkowita lub renderowanie świata w wyższej rozdzielczości i skalowanie w dół nearest neighbour; developer wybiera, byle piksele zostały ostre. Zoom wraca do 1.0, gdy gracze są blisko. Gracz solo: zoom 1.0. |
 
 ## 7. Postać gracza

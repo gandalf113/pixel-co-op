@@ -1,6 +1,6 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.7 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.8 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
@@ -35,6 +35,8 @@ Wersja: 0.7 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr 
 | R28 | Rakieta | Nie niszczy fortyfikacji graczy | 2026-11-05 |
 | R29 | Ultimate vs boss | 0.5 obrazen, kontrola max 1 s | 2026-11-05 |
 | R30 | Niszczenie obiektów przez potwory | **W MVP, obowiązkowe.** Każdy potwór dotykający obiektu gracza na trasie powoli go niszczy; pathfinding wybiera obejście vs przegryzienie po koszcie (03 sekcja 1) | 2026-11-05 |
+| R31 | Kierunek artystyczny | Brudne post-apo: ziemia brązowo-szara, potwory odrażające, działko z góry, gracz jako człowiek z góry, ściana poobijana | 2026-11-05 |
+| R32 | Dekoracje podłoża | Kamyki, sucha trawa, pęknięcia, plamy, złom: bezkolizyjne, losowane przy każdej grze (PRD-MAP-08) | 2026-11-05 |
 | R26 | Kamera (po teście silnika) | Dynamiczny zoom-out w miarę rozchodzenia graczy do rozsądnego maksimum, dalej strzałki (PRD-MAP-07) | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu

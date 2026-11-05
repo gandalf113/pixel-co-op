@@ -1,5 +1,9 @@
 # Changelog dokumentacji
 
+## 0.8 - 2026-11-05
+- R31 kierunek artystyczny post-apo (PRD-CON-05, PRD-MAP-06). R32 dekoracje podloza bezkolizyjne, losowane per gra (PRD-MAP-08).
+- Sprite'y v2 na feat/mvp: public/client/sprites.js (29 sprite'ow, w tym 8 decor_*).
+
 ## 0.7 - 2026-11-05
 - R30: potwory MUSZA powoli niszczyc obiekty graczy (MVP). Nowa kolumna obrazen obiektom per potwor, pathfinding po koszcie, 3 stany pekniec, testy I20-I23 (03 sekcja 1, ITM-GEN-09, PRD MVP).
 
