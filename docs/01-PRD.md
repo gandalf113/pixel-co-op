@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.12 (2026-11-05)
+Wersja: 0.13 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -63,7 +63,7 @@ Poza MVP (później): boss, statystyki, dźwięk, mapy inne niż płaska (`07-BA
 | PRD-CTRL-01 | `W A S D` - ruch w 8 kierunkach. Ruch po skosie znormalizowany (nie szybszy niż prosto). |
 | PRD-CTRL-02 | **Celowanie myszką**: pozycja kursora względem postaci (która jest na środku ekranu) wyznacza kierunek celowania. Postać obraca się w stronę kursora. Celownik rysowany pod kursorem. |
 | PRD-CTRL-03 | `Spacja` - strzał w kierunku celowania (ręce puste). Przytrzymanie = ogień ciągły z cooldownem broni. **Z przedmiotem w rękach spacja rzuca** (patrz `02-ITEMS.md`). |
-| PRD-CTRL-04 | `E` - podnieś przedmiot z ziemi / odłóż trzymany. Dotyczy obu kategorii (`02-ITEMS.md`, sekcja 3). |
+| PRD-CTRL-04 | `E` - podnieś przedmiot z ziemi (puste ręce) / odłóż lub postaw trzymany (coś w rękach). Z przedmiotem w rękach `E` nigdy nie podnosi innego przedmiotu (ITM-GEN-11). Stawianie celuje najdalej w zasięgu w kierunku kursora, gdy kursor jest za daleko (ITM-PLACE-01). |
 | PRD-CTRL-05 | `R` - użyj trzymany przedmiot "używalny" (power-up), np. spawnuje platformę leczącą, działko, minę. Z hard objectem w rękach: obrót kawałka ściany o 90 stopni. |
 | PRD-CTRL-06 | Rzut (spacja z przedmiotem) **zawsze zadaje obrażenia** trafionemu potworowi. Wartości w `02-ITEMS.md`. |
 | PRD-CTRL-10 | `F` - użyj ULTIMATE (od progu I, `08-ULTIMATE.md`). |

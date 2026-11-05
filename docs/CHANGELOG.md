@@ -1,5 +1,9 @@
 # Changelog dokumentacji
 
+## 0.13 - 2026-11-05
+- R39 stawianie: kursor poza zasiegiem = ghost przyciagany do najdalszego dozwolonego kafelka w kierunku kursora, nie czerwony (ITM-PLACE-01, ITM-GEN-07, testy I4b-I4d).
+- R40 brak zamiany: E z przedmiotem w rekach zawsze odklada/stawia trzymany, nie podnosi innego (ITM-GEN-11, PRD-CTRL-04, test I4e).
+
 ## 0.12 - 2026-11-05
 - Po tescie: R36 pociski 450 px/s i rate 0.14 s (PRD-PLR-03, C7, C9); R37 przeladunek jako pierscien wokol postaci (PRD-HUD-11, C12); R38 podswietlenie przedmiotu do podniesienia (PRD-HUD-09, ITM-GEN-04, C11).
 

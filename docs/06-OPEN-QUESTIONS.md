@@ -1,6 +1,6 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.12 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.13 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
@@ -43,6 +43,8 @@ Wersja: 0.12 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr
 | R36 | Pociski i rate (po teście) | 450 px/s, co 0.14 s (ok. 7 strz./s); 600 i 10/s było ciut za szybko (PRD-PLR-03) | 2026-11-05 |
 | R37 | Wskaźnik przeładunku | Pierścień wokół postaci wypełniający się zgodnie z zegarem, nie pasek; cieńszy w kolorze gracza u sojuszników (PRD-HUD-11) | 2026-11-05 |
 | R38 | Podświetlenie przedmiotu | Najbliższy przedmiot w zasięgu E jest podświetlony pulsującym obrysem, dokładnie jeden, ten sam co wybierze serwer (PRD-HUD-09, ITM-GEN-04) | 2026-11-05 |
+| R39 | Celowanie przy stawianiu | Kursor za daleko = ghost i stawianie na najdalszym dozwolonym kafelku w kierunku kursora; czerwony tylko przy kolizji / braku widoczności / limicie (ITM-PLACE-01) | 2026-11-05 |
+| R40 | Brak zamiany | E z przedmiotem w rękach zawsze odkłada / stawia trzymany; nigdy nie podnosi innego (ITM-GEN-11); sekcja 3.3 skasowana | 2026-11-05 |
 | R26 | Kamera (po teście silnika) | Dynamiczny zoom-out w miarę rozchodzenia graczy do rozsądnego maksimum, dalej strzałki (PRD-MAP-07) | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu

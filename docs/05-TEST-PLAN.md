@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.12 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.13 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -61,7 +61,11 @@ Wersja: 0.12 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | I1 | Zabij 20 ślimaków na Normalnym | ITM-DROP-01, 02 | ok. 5 dropów (25%), obie kategorie się pojawiają w 3 falach |
 | I2 | E przy kawałku ściany | ITM 3.1 | Podniesiony nad głowę, prędkość 60%, spacja nie strzela |
 | I3 | E z trzymaną ścianą, kursor 1 kafelek obok | ITM 3.1, ITM-GEN-07 | Ghost zielony, po E ściana na siatce, blokuje gracza, potwory i pociski |
-| I4 | E z trzymaną ścianą, kursor na potworze / 5 kafelków dalej | ITM-GEN-07 | Ghost czerwony, nic się nie dzieje |
+| I4 | E z trzymaną ścianą, kursor na potworze 1 kafelek obok | ITM-GEN-07 | Ghost czerwony, nic się nie dzieje |
+| I4b | Trzymam ścianę, kursor 6 kafelków dalej na wolnym terenie | ITM-PLACE-01 | Ghost zielony na 2. kafelku od gracza w kierunku kursora; E stawia tam |
+| I4c | Trzymam ścianę, kursor 6 kafelków dalej, ale 2. kafelek zajęty przez postawioną ścianę | ITM-PLACE-01 | Ghost zielony na 1. kafelku (ostatni dozwolony przed przeszkodą) |
+| I4d | Trzymam ścianę, stoję przy murze i celuję w mur | ITM-PLACE-01 | Ghost czerwony (żaden kafelek na odcinku nie jest dozwolony) |
+| I4e | Trzymam ścianę, mina leży 0.5 kafelka ode mnie, E | ITM-GEN-11 | Ściana postawiona, mina dalej leży |
 | I5 | Spacja z trzymanym głazem w stronę potwora | ITM 3.1, ITM-H-02 | Potwór dostaje 30 obr. i stoi 0.5 s; głaz leży na ziemi, da się podnieść |
 | I6 | E przy postawionej ścianie | ITM-GEN-08 | Podnosi ją z powrotem |
 | I7 | R z działkiem 30 s w rękach | ITM 3.2, ITM-P-01 | Działko stoi, strzela do najbliższego potwora, pasek czasu nad nim, znika po 30 s (stoper) |
