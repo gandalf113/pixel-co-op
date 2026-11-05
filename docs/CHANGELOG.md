@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.19 - 2026-11-05
+- R50 startowe ruiny: 7 losowych scian wokol spawnu na rozny poziomie zniszczenia, z seedu gry (PRD-MAP-10, 02 sekcja 4, testy M1-M2).
+
 ## 0.18 - 2026-11-05
 - R49 tryb obserwatora po smierci: kamera na zywym sojuszniku, przelaczanie celu, HUD OBSERWUJESZ, powrot przy respawnie (PRD-PLR-10, HUD-05, testy F10-F13).
 

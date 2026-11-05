@@ -1,6 +1,6 @@
 # 02 - Przedmioty
 
-Wersja: 0.14 (2026-11-05)
+Wersja: 0.19 (2026-11-05)
 
 Logika akcji (sekcja 3) jest **zatwierdzona przez właścicieli produktu**. Statystyki w sekcjach 4-5 to wartości startowe do balansu, do strojenia po testach.
 
@@ -82,6 +82,7 @@ Zasady:
 - Potwory wybierają między obejściem a przegryzieniem na podstawie kosztu (HP obiektu / ich obrażenia obiektom). Każdy potwór dotykający obiektu na trasie atakuje go. Mur bez obrony pada w ciągu jednej fali; broniony trzyma. Szczegóły w `03`, sekcja 1.
 - Zniszczony hard object zawala się (animacja 0.4 s, odłamki, pył) i zostawia bezkolizyjne rumowisko. Nie zostawia dropu. Szczegóły PRD-FX-08.
 - Odkładanie: do 2 kafelków od gracza, nie przez ścianę; kursor dalej = stawianie na granicy zasięgu w kierunku kursora (ITM-PLACE-01).
+- Na start gry wokół spawnu stoi 7 losowych kawałków ściany na różnym poziomie zniszczenia (PRD-MAP-10). To zwykłe `wall` w stanie `POSTAWIONY` z obniżonym HP: można je podnieść (zachowują HP), przestawić, zniszczyć.
 
 ## 5. Power-upy
 
