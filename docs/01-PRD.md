@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.8 (2026-11-05)
+Wersja: 0.9 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -35,6 +35,7 @@ MVP to wersja, którą da się zagrać we 2-4 osoby na LAN-ie przez 15 minut i "
 - Drop przedmiotów z potworów: min. 1 hard object (kawałek ściany) i min. 2 power-upy (działko 30s, mina).
 - Podnoszenie / odkładanie / rzucanie (z obrażeniami) / używanie przedmiotów (E / E / Spacja / R).
 - Potwory powoli niszczą obiekty graczy (HP obiektów, pęknięcia, obrażenia per typ potwora).
+- Trupy potworów i krew zostają na ziemi (PRD-MAP-09).
 - Suwak trudności, 4 poziomy, wybierany przez hosta przed startem.
 - ULTIMATE: kropelki, wspólny pasek, 3 progi, 7 umiejętności do wyboru w lobby, użycie `F` (`08-ULTIMATE.md`).
 - HUD: HP, numer fali, odliczanie do następnej fali, trzymany przedmiot, pasek ULTIMATE.
@@ -82,6 +83,7 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 | PRD-MAP-05 | Skalowanie: render w natywnej rozdzielczości pixel-art (np. 320 x 180 lub 480 x 270) i powiększenie całkowitą krotnością do okna. Bez wygładzania (nearest neighbour). |
 | PRD-MAP-06 | Tło: brązowo-szara, spękana ziemia (klimat post-apo), 3 warianty kafelka, żeby ruch był widoczny. |
 | PRD-MAP-08 | **Dekoracje podłoża**: na ziemi losowo rozrzucone małe kamyki, kępki suchej trawy, pęknięcia, plamy, drobny złom. Wszystko **bezkolizyjne** (nie blokuje ruchu, pocisków, budowy, pathfindingu) i **losowane na nowo przy każdej grze** (seed z serwera, żeby wszyscy gracze widzieli to samo). Gęstość: ok. 1 dekoracja na 6-10 kafelków, bez nakładania. Rysowane między podłożem a przedmiotami. Sprite'y: `decor_*` w `sprites.js`. |
+| PRD-MAP-09 | **Trupy i krew**: zabity potwór zostawia na ziemi trupa (sprite per typ potwora, obrócony jak potwór w chwili śmierci) i plamę krwi pod nim. Trafienie potwora (bez zabicia) zostawia małą plamkę krwi. Wszystko **bezkolizyjne**, rysowane między dekoracjami a przedmiotami, **nie znika między falami**. Limit 300 trupów i 600 plam na mapie, powyżej najstarsze znikają (żeby nie zabić wydajności, PRD-PERF-01). Trup gracza: nie (gracz leży powalony albo respawnuje). Dane idą w snapshocie tylko przy zdarzeniu śmierci / trafienia (event `mobDeath`, `hit` z pozycją i kątem), klient trzyma listę lokalnie; dołączający po rozłączeniu dostaje pełną listę przy `resume`. |
 | PRD-MAP-07 | **Dynamiczny zoom kamery** (feedback 2026-11-05): lokalna postać zostaje na środku, ale widok oddala się płynnie w miarę rozchodzenia się graczy, tak aby sojusznicy byli widoczni na ekranie. Zoom ograniczony do rozsądnego maksimum: skala od 1.0 (480 x 270 świata) do 0.5 (960 x 540 świata), zmiana płynna (lerp, ok. 1 s), bez skokow. Przy maksymalnym oddaleniu sojusznicy poza ekranem pokazywani są strzałkami na krawędzi (PRD-HUD-07). Zoom w pixel-art: skala całkowita lub renderowanie świata w wyższej rozdzielczości i skalowanie w dół nearest neighbour; developer wybiera, byle piksele zostały ostre. Zoom wraca do 1.0, gdy gracze są blisko. Gracz solo: zoom 1.0. |
 
 ## 7. Postać gracza

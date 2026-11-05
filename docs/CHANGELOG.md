@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.9 - 2026-11-05
+- R33 trupy i krew: zabity potwor zostawia trupa i krew, trafienie plamke; bezkolizyjne, trwale, z limitami (PRD-MAP-09, 03 sekcja 1).
+
 ## 0.8 - 2026-11-05
 - R31 kierunek artystyczny post-apo (PRD-CON-05, PRD-MAP-06). R32 dekoracje podloza bezkolizyjne, losowane per gra (PRD-MAP-08).
 - Sprite'y v2 na feat/mvp: public/client/sprites.js (29 sprite'ow, w tym 8 decor_*).

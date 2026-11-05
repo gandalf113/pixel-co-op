@@ -1,6 +1,6 @@
 # 03 - Potwory, fale, trudność
 
-Wersja: 0.7 (2026-11-05)
+Wersja: 0.9 (2026-11-05)
 
 Liczby to **wartości startowe do balansu**. Zmieniamy je po testach (patrz `05-TEST-PLAN.md`, sekcja "Testy balansu"). Developer powinien trzymać je w jednym pliku konfiguracyjnym (np. `balance.json`), żeby dało się stroić bez grzebania w kodzie.
 
@@ -30,6 +30,7 @@ Zachowanie wspólne:
   - Trudność skaluje obrażenia obiektom tak samo jak obrażenia graczom (mnożnik z sekcji 4).
   - Obiekt atakowany pokazuje pęknięcia (3 stany wizualne: 100-66%, 66-33%, poniżej 33%) i trzęsie się przy ciosie, żeby gracze widzieli, gdzie mur pęka.
 - Potwory nie kolidują ze sobą sztywno (miękkie rozpychanie), żeby nie blokować się w korytarzach.
+- Po śmierci potwór zostawia trupa i krew na ziemi (PRD-MAP-09). Trup to dekoracja: nie blokuje, nie jest celem, nie dropuje nic więcej.
 
 ## 2. Skalowanie fal
 
