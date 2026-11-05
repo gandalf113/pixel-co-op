@@ -30,6 +30,84 @@ function drawIcon(ctx, img, x, y, scale) {
   ctx.drawImage(img, Math.round(x - (img.width * scale) / 2), Math.round(y - (img.height * scale) / 2), img.width * scale, img.height * scale);
 }
 
+const ROMAN = ['I', 'II', 'III'];
+
+function drawUltBar(ctx, state, me, scale, fs, small) {
+  const u = state.balance.ultimate;
+  const now = state.nowMs;
+  const W = ctx.canvas.width;
+  const icon = state.sprites.get(u.kinds[me.ultKind].sprite);
+  const iconPx = 16 * scale;
+  const x0 = PAD;
+  const y0 = PAD;
+  const tier = Math.min(3, Math.floor(me.ult / u.tierPoints));
+  const full = tier === 3;
+  const pulse = full ? 0.75 + 0.25 * Math.sin(now / 120) : 1;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x0 - 2, y0 - 2, iconPx + 4, iconPx + 4);
+  if (icon) ctx.drawImage(icon, x0, y0, iconPx, iconPx);
+  const bx = x0 + iconPx + 8;
+  const barW = Math.max(180, W / 3);
+  const h = 12;
+  const gap = 6;
+  const segW = (barW - gap * 2) / 3;
+  const by = y0 + iconPx / 2 - h / 2 - 6;
+  for (let i = 0; i < 3; i++) {
+    const sx = bx + i * (segW + gap);
+    const frac = Math.max(0, Math.min(1, (me.ult - i * u.tierPoints) / u.tierPoints));
+    ctx.fillStyle = '#000';
+    ctx.fillRect(sx - 2, by - 2, segW + 4, h + 4);
+    ctx.fillStyle = '#2a1f14';
+    ctx.fillRect(sx, by, segW, h);
+    const lit = i < tier;
+    ctx.globalAlpha = lit ? pulse : 1;
+    const g = ctx.createLinearGradient(0, by, 0, by + h);
+    g.addColorStop(0, lit ? '#fff3a0' : '#7fd6ff');
+    g.addColorStop(0.5, lit ? '#ffb000' : '#2f8fc8');
+    g.addColorStop(1, lit ? '#c25a00' : '#1d4f78');
+    ctx.fillStyle = g;
+    ctx.fillRect(sx, by, Math.round(segW * frac), h);
+    if (lit) {
+      const t = (now % 2000) / 2000;
+      const shine = sx + (segW + 20) * t - 10;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(sx, by, segW, h);
+      ctx.clip();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+      ctx.beginPath();
+      ctx.moveTo(shine, by + h);
+      ctx.lineTo(shine + 6, by);
+      ctx.lineTo(shine + 12, by);
+      ctx.lineTo(shine + 6, by + h);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = lit ? '#ffe07a' : '#5a4f44';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx - 0.5, by - 0.5, segW + 1, h + 1);
+  }
+  let rx = bx;
+  ROMAN.forEach((r, i) => {
+    const lit = i < tier;
+    text(ctx, r, rx, by + h + small + 4, { size: small, color: lit ? '#ffd23a' : '#5a4f44' });
+    ctx.font = `bold ${small}px monospace`;
+    rx += ctx.measureText(r).width + 8;
+    if (i < 2) {
+      text(ctx, '/', rx, by + h + small + 4, { size: small, color: '#5a4f44' });
+      rx += ctx.measureText('/').width + 8;
+    }
+  });
+  const ty = by + h + small + 4;
+  if (full) {
+    const blink = Math.floor(now / 300) % 2 === 0;
+    text(ctx, 'ULTI GOTOWE [F]', rx + 12, ty, { size: small, color: blink ? '#ffd23a' : '#ff7a2a' });
+  } else if (state.deny) {
+    text(ctx, 'ZA MAŁO', rx + 12, ty, { size: small, color: '#ff5a4a' });
+  }
+}
+
 export function renderHud(ctx, scale, offset, state) {
   const { snap, balance, sprites, cam, me } = state;
   const W = ctx.canvas.width;
@@ -134,24 +212,8 @@ export function renderHud(ctx, scale, offset, state) {
       text(ctx, `${me.ammo} / ${gun.magazine}`, PAD + bw + 10 + ctx.measureText(lvStr).width + 12, H - PAD - 3 * scale,
         { size: fs, base: 'middle', color: low ? '#ff5a4a' : '#e8e2d4' });
 
-      if (me.ultKind && balance.ultimate) {
-        const u = balance.ultimate;
-        const segW = 20 * scale;
-        const segH = 3 * scale;
-        const y = H - PAD - 6 * scale - segH - 4 * scale;
-        const tier = Math.min(3, Math.floor(me.ult / u.tierPoints));
-        const pulse = tier > 0 ? 0.65 + 0.35 * Math.sin(state.nowMs / 150) : 1;
-        for (let i = 0; i < 3; i++) {
-          const frac = (me.ult - i * u.tierPoints) / u.tierPoints;
-          ctx.globalAlpha = i < tier ? pulse : 1;
-          bar(ctx, PAD + i * (segW + 3), y, segW, segH, frac, i < tier ? TIER_COLORS[i + 1] : '#3f7f8f');
-          ctx.globalAlpha = 1;
-        }
-        const kind = u.kinds[me.ultKind];
-        text(ctx, `${kind.icon} [F]`, PAD + 3 * (segW + 3) + 6, y + segH / 2, { size: small, base: 'middle', color: tier > 0 ? TIER_COLORS[tier] : '#7d766b' });
-        if (state.deny) text(ctx, 'ZA MAŁO', PAD + 3 * (segW + 3) + 6, y - small, { size: small, color: '#ff5a4a' });
-        if (me.frenzyLeft > 0) text(ctx, `SZAŁ ${Math.ceil(me.frenzyLeft)} s`, W / 2, H - PAD - 40 * scale, { size: fs, align: 'center', color: '#ff5a4a' });
-      }
+      if (me.ultKind && balance.ultimate) drawUltBar(ctx, state, me, scale, fs, small);
+      if (me.frenzyLeft > 0) text(ctx, `SZAŁ ${Math.ceil(me.frenzyLeft)} s`, W / 2, H - PAD - 40 * scale, { size: fs, align: 'center', color: '#ff5a4a' });
 
       const held = me.held;
       const label = held ? balance.items[held].name : 'nic';

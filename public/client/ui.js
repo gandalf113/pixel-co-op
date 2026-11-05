@@ -42,17 +42,11 @@ export function showNickForm(onSubmit, initial = '') {
   input.focus();
 }
 
-function ultPicker(msg, ultimates, myId, onUlt) {
-  const mine = msg.players.find((p) => p.id === myId)?.ultKind;
-  return el('div', { className: 'ult-grid' }, ...Object.entries(ultimates).map(([kind, u]) =>
-    el('button', { className: `ult-tile${kind === mine ? ' sel' : ''}`, type: 'button', onclick: () => onUlt(kind) },
-      el('div', { className: 'ult-icon' }, u.icon),
-      el('div', { className: 'ult-name' }, u.name),
-      ...u.tiers.map((t, i) => el('div', { className: 'ult-tier' }, `${'I'.repeat(i + 1)}: ${t.desc}`)),
-    )));
+function tierLines(u) {
+  return u.tiers.map((t, i) => el('div', { className: 'ult-tier' }, el('b', {}, `${'I'.repeat(i + 1)}`), ` ${t.desc}`));
 }
 
-export function showLobby(msg, { difficulties, ultimates, myId, onUlt, onDifficulty, onStart }) {
+export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, onDifficulty, onStart }) {
   const level = msg.difficulty;
   const name = el('div', { className: 'diff-name' });
   const desc = el('div', { className: 'muted' });
@@ -67,19 +61,38 @@ export function showLobby(msg, { difficulties, ultimates, myId, onUlt, onDifficu
     onchange: (e) => onDifficulty(Number(e.target.value)),
   });
   const players = el('ul', {}, ...msg.players.map((p) => el('li', { style: { color: p.color } },
-    `${p.nick}${p.host ? ' (host)' : ''} · ${p.ultKind ? `${ultimates[p.ultKind].icon} ${ultimates[p.ultKind].name}` : 'wybiera ultimate…'}`)));
-  const allChosen = msg.players.every((p) => p.ultKind);
+    `${p.nick}${p.host ? ' (host)' : ''} · ${p.ultKind ? ultimates[p.ultKind].name : 'wybiera ultimate…'}`)));
   const addresses = msg.addresses?.length
     ? el('ul', {}, ...msg.addresses.map((a) => el('li', {}, a)))
     : el('div', { className: 'muted' }, 'brak adresów LAN');
-  show(el('div', { className: 'panel' },
+  const allChosen = msg.players.every((p) => p.ultKind);
+  const mine = msg.players.find((p) => p.id === myId)?.ultKind;
+  const detail = el('div', { className: 'ult-detail' });
+  const showDetail = (kind) => {
+    if (!kind) {
+      detail.replaceChildren(el('div', { className: 'muted' }, 'Wybierz ultimate, najedź, żeby zobaczyć progi.'));
+      return;
+    }
+    const u = ultimates[kind];
+    detail.replaceChildren(el('div', { className: 'ult-name' }, u.name), ...tierLines(u));
+  };
+  showDetail(mine);
+  const row = el('div', { className: 'ult-row' }, ...Object.entries(ultimates).map(([kind, u]) =>
+    el('button', {
+      className: `ult-tile${kind === mine ? ' sel' : ''}`, type: 'button',
+      onclick: () => onUlt(kind), onmouseenter: () => showDetail(kind), onmouseleave: () => showDetail(mine),
+    },
+    icons[kind] ? el('img', { className: 'ult-icon', src: icons[kind], alt: '' }) : null,
+    el('div', { className: 'ult-name' }, u.name),
+    el('div', { className: 'ult-blurb' }, u.blurb))));
+  show(el('div', { className: 'panel lobby' },
     el('h2', {}, 'LOBBY'),
-    el('label', {}, 'Gracze'), players,
-    el('label', {}, 'Dołącz z sieci LAN'), addresses,
-    el('label', {}, 'Trudność'), slider, name, desc,
-    el('label', {}, 'Twój ULTIMATE [F]'), ultPicker(msg, ultimates, myId, onUlt),
+    el('div', { className: 'lobby-top' },
+      el('div', {}, el('label', {}, 'Gracze'), players, el('label', {}, 'Dołącz z sieci LAN'), addresses),
+      el('div', {}, el('label', {}, 'Trudność'), slider, name, desc)),
+    el('label', {}, 'Twój ULTIMATE [F]'), row, detail,
     msg.youAreHost
-      ? el('button', { onclick: onStart, disabled: !allChosen, title: allChosen ? '' : 'Każdy musi wybrać ultimate' }, allChosen ? 'Start' : 'Start (czekam na wybór ultimate)')
+      ? el('button', { onclick: onStart, disabled: !allChosen }, allChosen ? 'Start' : 'Start (czekam na wybór ultimate)')
       : el('p', { className: 'muted' }, 'Czekam na hosta…'),
   ));
 }

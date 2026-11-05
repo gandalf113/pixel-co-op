@@ -83,6 +83,7 @@ function enterLobbyScreen(msg) {
   ui.showLobby(msg, {
     difficulties: balance.difficulty,
     ultimates: balance.ultimate.kinds,
+    icons: Object.fromEntries(Object.entries(balance.ultimate.kinds).map(([k, u]) => [k, sprites.get(u.sprite)?.toDataURL()])),
     myId,
     onUlt: (kind) => conn.send({ t: 'ult', kind }),
     onDifficulty: (level) => conn.send({ t: 'difficulty', level }),

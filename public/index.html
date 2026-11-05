@@ -23,12 +23,18 @@
     .panel td, .panel th { padding: 2px 12px 2px 0; text-align: left; }
     .muted { color: #7d766b; }
     .panel button:disabled { background: #5a4f44; cursor: default; }
-    .ult-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; max-height: 45vh; overflow-y: auto; }
-    .panel .ult-tile { margin: 0; padding: 6px 8px; text-align: left; background: #23211e; color: #e8e2d4; border: 2px solid #3b342d; font-size: 12px; }
+    .panel.lobby { width: min(1120px, 96vw); min-width: 0; padding: 18px 24px; }
+    .lobby-top { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .lobby-top label:first-child { margin-top: 0; }
+    .ult-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+    @media (max-width: 900px) { .ult-row { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .panel .ult-tile { margin: 0; padding: 6px; text-align: center; background: #23211e; color: #e8e2d4; border: 2px solid #3b342d; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .panel .ult-tile:hover { background: #2e2a25; }
     .panel .ult-tile.sel { border-color: #6fe0ff; background: #1d2a2e; }
-    .ult-icon { font-size: 22px; color: #6fe0ff; }
-    .ult-name { font-weight: bold; color: #d9b53a; margin-bottom: 2px; }
+    .ult-icon { width: 96px; height: 96px; max-width: 100%; image-rendering: pixelated; }
+    .ult-name { font-weight: bold; color: #d9b53a; }
+    .ult-blurb { color: #a39b8c; font-size: 11px; }
+    .ult-detail { min-height: 64px; margin-top: 8px; padding: 6px 10px; background: #1a1815; border: 1px solid #3b342d; font-size: 13px; }
     .ult-tier { color: #a39b8c; }
     .msg { color: #e8e2d4; font-size: 18px; }
   </style>

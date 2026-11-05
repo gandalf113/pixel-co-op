@@ -40,32 +40,32 @@
     "barMax": 300, "tierPoints": 100, "magnetTiles": 14, "magnetMinPx": 40, "magnetBoostPx": 700, "absorbPx": 6, "lifeS": 30, "scatterPx": 6,
     "droplets": { "slime": 1, "runner": 1, "brute": 3 },
     "kinds": {
-      "shockwave": { "name": "Fala uderzeniowa", "icon": "◎", "tiers": [
+      "shockwave": { "name": "Fala uderzeniowa", "icon": "◎", "sprite": "ult_shockwave", "blurb": "Odpycha i rani potwory wokół ciebie.", "tiers": [
         { "radiusTiles": 4, "damage": 40, "knockbackTiles": 2, "stunS": 0, "desc": "promień 4, 40 obr., odrzut 2" },
         { "radiusTiles": 6, "damage": 80, "knockbackTiles": 3, "stunS": 1, "desc": "promień 6, 80 obr., odrzut 3, ogłuszenie 1 s" },
         { "radiusTiles": 8, "damage": 150, "knockbackTiles": 4, "stunS": 2, "desc": "promień 8, 150 obr., odrzut 4, ogłuszenie 2 s" } ] },
-      "wall": { "name": "Mur awaryjny", "icon": "▦", "tiers": [
+      "wall": { "name": "Mur awaryjny", "icon": "▦", "sprite": "ult_wall", "blurb": "Stawia awaryjne ściany przed tobą.", "tiers": [
         { "count": 3, "hp": 80, "durationS": 30, "ring": false, "desc": "3 ściany przed tobą, 80 HP, 30 s" },
         { "count": 5, "hp": 150, "durationS": 45, "ring": false, "desc": "5 ścian, 150 HP, 45 s" },
         { "count": 8, "hp": 150, "durationS": 60, "ring": true, "desc": "okrąg 8 ścian wokół, 150 HP, 60 s" } ] },
-      "heal": { "name": "Uzdrowienie", "icon": "✚", "tiers": [
+      "heal": { "name": "Uzdrowienie", "icon": "✚", "sprite": "ult_heal", "blurb": "Leczy i podnosi sojuszników.", "tiers": [
         { "radiusTiles": 6, "hp": 40, "revive": false, "invulnS": 0, "desc": "+40 HP w promieniu 6" },
         { "radiusTiles": 6, "hp": 80, "revive": true, "invulnS": 0, "desc": "+80 HP, podnosi powalonych w zasięgu" },
         { "radiusTiles": 0, "hp": 9999, "revive": true, "invulnS": 3, "desc": "pełne HP wszystkim, podnosi, 3 s nietykalności" } ] },
-      "frenzy": { "name": "Szał", "icon": "⚡", "tiers": [
+      "frenzy": { "name": "Szał", "icon": "⚡", "sprite": "ult_rage", "blurb": "Chwilowo potężniejszy ogień.", "tiers": [
         { "durationS": 8, "damageMult": 2, "fireMult": 0.5, "pierce": 0, "triple": false, "speedMult": 1, "desc": "8 s: obrażenia x2, szybszy ogień" },
         { "durationS": 12, "damageMult": 2, "fireMult": 0.5, "pierce": 2, "triple": false, "speedMult": 1, "desc": "12 s: jak I + pociski przebijają" },
         { "durationS": 15, "damageMult": 2, "fireMult": 0.5, "pierce": 2, "triple": true, "speedMult": 1.3, "desc": "15 s: jak II + potrójny strzał + prędkość x1.3" } ] },
-      "widegun": { "name": "Działko szerokie", "icon": "◢", "tiers": [
+      "widegun": { "name": "Działko szerokie", "icon": "◢", "sprite": "ult_wide_cannon", "blurb": "Salwa stożkiem w stronę kursora.", "tiers": [
         { "coneDeg": 30, "rangeTiles": 8, "damage": 60, "throughWalls": false, "desc": "stożek 30°, zasięg 8, 60 obr." },
         { "coneDeg": 45, "rangeTiles": 10, "damage": 100, "throughWalls": false, "desc": "stożek 45°, zasięg 10, 100 obr." },
         { "coneDeg": 60, "rangeTiles": 12, "damage": 180, "throughWalls": true, "desc": "stożek 60°, zasięg 12, 180 obr., przez przeszkody" } ] },
-      "rocket": { "name": "Rakieta", "icon": "➶", "tiers": [
+      "rocket": { "name": "Rakieta", "icon": "➶", "sprite": "ult_rocket", "blurb": "Rakieta z wybuchem i podpaleniem.", "tiers": [
         { "count": 1, "radiusTiles": 2, "damage": 80, "burnS": 0, "burnDps": 0, "desc": "wybuch promień 2, 80 obr." },
         { "count": 1, "radiusTiles": 3, "damage": 150, "burnS": 3, "burnDps": 10, "desc": "promień 3, 150 obr., podpalenie 3 s" },
         { "count": 3, "radiusTiles": 3, "damage": 150, "burnS": 5, "burnDps": 10, "desc": "3 rakiety w wachlarzu, podpalenie 5 s" } ],
         "speedPx": 320, "rangeTiles": 10, "fanDeg": 15 },
-      "freeze": { "name": "Zamrożenie", "icon": "❄", "tiers": [
+      "freeze": { "name": "Zamrożenie", "icon": "❄", "sprite": "ult_freeze", "blurb": "Zamraża potwory w okolicy.", "tiers": [
         { "radiusTiles": 6, "durationS": 3, "vuln": 1, "slowS": 0, "desc": "potwory w promieniu 6 stoją 3 s" },
         { "radiusTiles": 10, "durationS": 5, "vuln": 1.5, "slowS": 0, "desc": "promień 10, 5 s, +50% obrażeń" },
         { "radiusTiles": 0, "durationS": 6, "vuln": 1.5, "slowS": 5, "desc": "cała mapa, 6 s, +50% obrażeń, potem spowolnienie" } ] }

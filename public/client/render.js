@@ -153,59 +153,6 @@ function silhouette(src, color) {
   return img;
 }
 
-function wallWear(sprites, stage) {
-  return baked(`wall_dmg_${stage}`, 16, 16, (c) => {
-    c.drawImage(sprites.get('wall'), 0, 0);
-    if (stage >= 1) c.drawImage(sprites.get('decor_crack_0'), 0, 0);
-    if (stage >= 3) c.drawImage(sprites.get('decor_crack_1'), 0, 0);
-    if (stage < 2) return;
-    let s = tileHash(stage, 99);
-    const rnd = () => ((s = tileHash(s, 7)) % 1000) / 1000;
-    const chipChance = stage === 2 ? 0.25 : 0.5;
-    for (let i = 0; i < 16; i++) {
-      for (const [x, y] of [[i, 0], [i, 15], [0, i], [15, i]]) {
-        if (rnd() < chipChance) c.clearRect(x, y, 1, 1);
-        if (stage === 3 && rnd() < 0.3) c.clearRect(x === 0 ? 1 : x === 15 ? 14 : x, y === 0 ? 1 : y === 15 ? 14 : y, 1, 1);
-      }
-    }
-    for (const [x, y] of [[0, 0], [15, 0], [0, 15], [15, 15]]) c.clearRect(x - 1, y - 1, 3, 3);
-    if (stage === 3) {
-      for (let i = 0; i < 3; i++) {
-        const hx = 3 + Math.floor(rnd() * 9);
-        const hy = 3 + Math.floor(rnd() * 9);
-        c.clearRect(hx, hy, 2, 2);
-        c.clearRect(hx + 1, hy - 1, 1, 1);
-      }
-    }
-  });
-}
-
-function rubbleSprite(variant) {
-  return baked(`rubble_${variant}`, 16, 16, (c) => {
-    let s = tileHash(variant, 41);
-    const rnd = () => ((s = tileHash(s, 13)) % 1000) / 1000;
-    const colors = ['#7d766b', '#58534b', '#4a4139', '#3b342d', '#8a826f'];
-    for (let i = 0; i < 18; i++) {
-      const x = Math.floor(1 + rnd() * 14);
-      const y = Math.floor(3 + rnd() * 12);
-      const w = 1 + Math.floor(rnd() * 3);
-      c.fillStyle = colors[Math.floor(rnd() * colors.length)];
-      c.fillRect(x, y, w, w > 2 ? 2 : w);
-    }
-  });
-}
-
-function wreckSprite(sprites) {
-  return baked('turret_wreck', 16, 16, (c) => {
-    c.filter = 'brightness(0.35) saturate(0.3)';
-    c.drawImage(sprites.get('turret_0'), 0, 0);
-    c.filter = 'none';
-    c.fillStyle = '#14120f';
-    c.fillRect(4, 6, 3, 2);
-    c.fillRect(9, 9, 2, 3);
-  });
-}
-
 function muzzleSprite(frame) {
   return baked(`muzzle_${frame}`, 8, 8, (c) => {
     if (frame === 0) {
@@ -231,21 +178,15 @@ export function fxSprites(sprites) {
     rubble(ctx, kind, tx, ty, rot, ox, oy) {
       const tp = 16;
       if (kind === 'turret30') {
-        ctx.drawImage(wreckSprite(sprites), tx * tp + ox, ty * tp + oy);
+        ctx.drawImage(sprites.get('turret_wreck'), tx * tp + ox, ty * tp + oy);
         return;
       }
-      for (const [x, y] of footprint(kind, tx, ty, rot)) ctx.drawImage(rubbleSprite(tileHash(x, y) % 2), x * tp + ox, y * tp + oy);
+      for (const [x, y] of footprint(kind, tx, ty, rot)) ctx.drawImage(sprites.get(`rubble_${tileHash(x, y) % 2}`), x * tp + ox, y * tp + oy);
     },
     collapse(ctx, c, k, ox, oy, tp) {
       const frame = Math.min(2, Math.floor(k * 3));
-      const img = c.kind === 'turret30' ? wreckSprite(sprites) : wallWear(sprites, 3);
-      const sq = [0.85, 0.6, 0.3][frame];
-      ctx.globalAlpha = 1 - frame * 0.3;
-      for (const [x, y] of c.tiles) {
-        const h = Math.round(tp * sq);
-        ctx.drawImage(img, x * tp + ox, y * tp + oy + (tp - h), tp, h);
-      }
-      ctx.globalAlpha = 1;
+      const img = sprites.get(c.kind === 'turret30' ? 'turret_wreck' : `wall_collapse_${frame}`);
+      for (const [x, y] of c.tiles) ctx.drawImage(img, x * tp + ox, y * tp + oy);
     },
     muzzle(ctx, x, y, a, frame) {
       drawCentered(ctx, muzzleSprite(frame), x, y, a);
@@ -295,7 +236,7 @@ function drawItems(ctx, view, ox, oy) {
         const stage = view.fx ? view.fx.wearStage(view.nowMs, it, frac, tp, center) : 0;
         const lit = it.id === view.highlightId;
         for (const [tx, ty] of footprint('wall', it.tx, it.ty, it.rot)) {
-          const img = stage ? wallWear(sprites, stage) : sprites.get('wall');
+          const img = sprites.get(stage ? `wall_dmg_${stage}` : 'wall');
           if (lit) outline(ctx, img, tx * tp + sx, ty * tp + oy - 1, view);
           ctx.drawImage(img, tx * tp + sx, ty * tp + oy - (lit ? 1 : 0));
         }
