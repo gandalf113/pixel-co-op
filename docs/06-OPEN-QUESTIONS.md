@@ -1,6 +1,6 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.19 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.20 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
@@ -55,6 +55,7 @@ Wersja: 0.19 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr
 | R48 | Wygląd kruszenia ścian | Więcej pęknięć, rogi zaokrąglają się i wykruszają rosnąco w 3 stanach (PRD-FX-08); sprite'y wall_dmg_1..3, wall_collapse_0..2, rubble_0/1, turret_wreck w sprites.js | 2026-11-05 |
 | R49 | Obserwator po śmierci | Po upływie licznika śmierci kamera śledzi żywego sojusznika, klik / A / D zmienia cel, napis OBSERWUJESZ, powrót na własną postać przy respawnie (PRD-PLR-10) | 2026-11-05 |
 | R50 | Startowe ruiny | 7 kawałków ściany losowo 4-9 kafelków od spawnu, losowa orientacja, każda na innym losowym poziomie zniszczenia, seed gry, zwykłe wall do podniesienia (PRD-MAP-10) | 2026-11-05 |
+| R51 | Reakcja ściany na cios | Jeden mikroruch 1 px w bok i z powrotem (2 klatki), bez wibracji; dotyczy ciosu potwora i trafienia pociskiem (FX-08, FX-02) | 2026-11-05 |
 | R26 | ~~Kamera (po teście silnika)~~ | ~~Dynamiczny zoom-out~~ **uchylone przez R42** | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu
