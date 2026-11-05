@@ -1,5 +1,10 @@
 # Changelog dokumentacji
 
+## 0.15 - 2026-11-05
+- R42 dynamiczny zoom USUNIETY (psul rozgrywke); staly widok 560x315 zamiast 480x270 (PRD-MAP-05, PRD-MAP-07, C8).
+- R43 ULTIMATE laduje sie 5x szybciej (kropelka = 5 pkt). R44 magnes kropelek: 14 kafelkow, przyspiesza im blizej, zycie 30 s (08 sekcja 1-2, UL2, UL2b, UL3).
+- R45 muzzle flash obowiazkowy (FX-06, X1b); FX-01 wzmocnione i test X1 blokujacy, bo po tescie trafien nadal nie widac.
+
 ## 0.14 - 2026-11-05
 - R41 sciany krusza sie wizualnie: 4 stany zuzycia (pekniecia, wyszczerbione krawedzie, dziury), odlamki, drganie, animacja zawalenia, rumowisko, dopiero potem znikaja (PRD-FX-08, ITM-GEN-09, 03 sekcja 1, testy X7-X9). Nowe sprite'y: wall_dmg_1/2/3, wall_collapse_0..2, rubble_0/1, turret_wreck.
 

@@ -1,6 +1,6 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.14 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.15 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
@@ -46,7 +46,11 @@ Wersja: 0.14 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr
 | R39 | Celowanie przy stawianiu | Kursor za daleko = ghost i stawianie na najdalszym dozwolonym kafelku w kierunku kursora; czerwony tylko przy kolizji / braku widoczności / limicie (ITM-PLACE-01) | 2026-11-05 |
 | R40 | Brak zamiany | E z przedmiotem w rękach zawsze odkłada / stawia trzymany; nigdy nie podnosi innego (ITM-GEN-11); sekcja 3.3 skasowana | 2026-11-05 |
 | R41 | Kruszenie ścian | 4 stany zużycia z pęknięciami i wyszczerbionymi krawędziami, odłamki przy zmianie stanu, animacja zawalenia 0.4 s, rumowisko; obiekt znika dopiero po animacji (PRD-FX-08) | 2026-11-05 |
-| R26 | Kamera (po teście silnika) | Dynamiczny zoom-out w miarę rozchodzenia graczy do rozsądnego maksimum, dalej strzałki (PRD-MAP-07) | 2026-11-05 |
+| R42 | Zoom kamery | **Dynamiczny zoom usunięty** (psuł rozgrywkę; uchyla R26). Stały widok 560 x 315, lekko dalej niż 480 x 270 (PRD-MAP-05, PRD-MAP-07) | 2026-11-05 |
+| R43 | Ładowanie ULTIMATE | 5x szybciej: kropelka = 5 punktów (08 sekcja 2) | 2026-11-05 |
+| R44 | Magnes kropelek | Zasięg 14 kafelków, prędkość rośnie kwadratowo im bliżej gracza, życie 30 s (ULT-07) | 2026-11-05 |
+| R45 | Muzzle flash i widoczne trafienia | Muzzle flash obowiązkowy (FX-06); FX-01 wzmocnione: pełna biel 3 klatki, odrzut, stożek krwi, liczba, hit marker na celowniku; test X1 blokujący | 2026-11-05 |
+| R26 | ~~Kamera (po teście silnika)~~ | ~~Dynamiczny zoom-out~~ **uchylone przez R42** | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu
 
