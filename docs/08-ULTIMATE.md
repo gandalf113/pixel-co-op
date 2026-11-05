@@ -1,6 +1,6 @@
 # 08 - ULTIMATE
 
-Wersja: 0.2 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
+Wersja: 0.3 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
 
 ## 1. Założenia (zatwierdzone)
 
@@ -12,20 +12,20 @@ Wersja: 0.2 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Zało�
 | ULT-04 | Pasek jest **trzystopniowy**: progi I / II / III. Użycie jest możliwe od progu I, siła efektu zależy od osiągniętego progu. Pasek zeruje się niezależnie od progu, z którego użyto. |
 | ULT-05 | Ultimate wybiera się **w lobby**, przed startem, na całą sesję. Dwóch graczy może wybrać ten sam. |
 | ULT-06 | Pasek **nie resetuje się** między falami. |
-| ULT-07 | Kropelki są **przyciągane magnesem** w promieniu 2 kafelków od gracza i **znikają po 20 s**. |
+| ULT-07 | Kropelki są **przyciągane magnesem o bardzo dużym zasięgu** (R44, po teście 2026-11-05): promień magnesu **14 kafelków**, prędkość przyciągania rośnie, im bliżej gracza: `v(d) = clamp(40 + 700 * (1 - d/R)^2, 40, 740)` px/s, gdzie `d` to odległość do najbliższego żywego gracza, `R` = 14 kafelków. Czyli na skraju zasięgu kropelka pełznie 40 px/s, przy 3 kafelkach leci ok. 450 px/s, tuż przy graczu 740. Kropelka wybiera najbliższego żywego gracza i zmienia cel, jeśli inny stanie się bliższy. Znika po **30 s**, jeśli nikt jej nie zebrał (praktycznie tylko, gdy wszyscy są dalej niż 14 kafelków). Pochłonięcie w promieniu 6 px od środka gracza. |
 
 ## 2. Kropelki i pasek
 
 | Element | Wartość |
 |---|---|
 | Kropelki per potwór | Ślimak 1, Biegacz 1, Osiłek 3, Plujka 2, Rój 1 (każdy z trójki), Boss 15 |
-| Wartość kropelki | 1 punkt (Łatwy 1.3, Trudny 0.85, Koszmar 0.7) |
+| Wartość kropelki | **5 punktów** (R43, po teście 2026-11-05: 1 punkt ładował 5 razy za wolno). Łatwy 6.5, Trudny 4.25, Koszmar 3.5 |
 | Pasek | 300 punktów. Próg I = 100, II = 200, III = 300 |
 | Wygląd kropelki | 6 x 6 px, jasny, pulsujący; lot do gracza 0.3 s po wejściu w promień magnesu |
 | Powalony / martwy gracz | Pasek ładuje się dalej (zbierają inni). Nie może użyć, dopóki leży |
 | Rozłączony gracz | Jego pasek znika razem z nim |
 
-Przy standardowej fali na Normalnym: fala 1 to ok. 17 potworów = ok. 17-20 punktów, fala 5 to ok. 60-70 punktów. Próg I po ok. 3 falach, pełny pasek ok. fali 6-7 bez używania. Boss daje skok o 15. Do strojenia po testach.
+Przy standardowej fali na Normalnym: fala 1 to ok. 17 potworów = ok. 85-100 punktów (próg I w trakcie fali 1), fala 2 dobija do II, pełny pasek ok. fali 3 bez używania. Potem każda fala to 1-2 pełne paski do rozdysponowania. Boss daje skok o 75. Do strojenia po testach.
 
 ## 3. Sterowanie i HUD
 
@@ -70,8 +70,9 @@ Zasady szczegółowe:
 | # | Test | Wymóg | Oczekiwane |
 |---|---|---|---|
 | UL1 | Gracz A zbiera 10 kropelek, gracz B stoi w kącie | ULT-02 | Obaj mają +10 punktów |
-| UL2 | Kropelka 3 kafelki od gracza, potem 2 | ULT-07 | Nie leci, potem leci do gracza |
-| UL3 | Kropelka leży 20 s | ULT-07 | Znika |
+| UL2 | Kropelka 13 kafelków od gracza, gracz stoi | ULT-07 | Pełznie w stronę gracza, przyspiesza wyraźnie w ostatnich 4 kafelkach, dociera w ok. 8-10 s |
+| UL2b | Zabij 20 ślimaków w fali 1 na Normalnym | sekcja 2 | Pasek ok. 100 punktów, próg I osiągnięty w trakcie fali 1 |
+| UL3 | Kropelka 16 kafelków od wszystkich graczy przez 30 s | ULT-07 | Nie rusza się, znika po 30 s |
 | UL4 | `F` przy 99 punktach | ULT-CTRL-01 | Sygnał "za mało", nic się nie dzieje |
 | UL5 | `F` przy 100 (próg I), 200 (II), 300 (III) | ULT-04 | Efekt wg kolumny progu, pasek = 0, paski innych bez zmian |
 | UL6 | Fala uderzeniowa III przy 10 ślimakach i sojuszniku w zasięgu | U-01 | Ślimaki martwe (150 > HP), sojusznik 0 obrażeń |
