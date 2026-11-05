@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createSfx, MAX_VOICES } from '../public/client/sfx.js';
+import { createSfx, MAX_VOICES, MIN_GAP_MS } from '../public/client/sfx.js';
 
 // Atrapa Web Audio: liczy węzły i zapamiętuje, co zapisano w parametrach.
 function makeCtx() {
@@ -149,7 +149,7 @@ test('pogłos: nic przed unlock(), bufory IR liczone raz, szyna kończy w master
   assert.equal(ctx.created.filter((n) => n.kind === 'convolver').length, 0);
   sfx.unlock();
   const conv = ctx.created.filter((n) => n.kind === 'convolver');
-  assert.equal(conv.length, 2);
+  assert.equal(conv.length, 3); // room, gun, hall
   const makeup = conv[0].to[0];
   assert.ok(conv.every((c) => c.buffer && c.to[0] === makeup), 'wet przez wspólny makeup');
   // Wet kończy w masterze (głośność steruje pogłosem), ale przez WŁASNY, łagodny limiter —
@@ -163,13 +163,13 @@ test('pogłos: nic przed unlock(), bufory IR liczone raz, szyna kończy w master
     assert.ok(dryLimiter && dryLimiter !== wetGuard, 'wet ma własny limiter, nie ten od toru suchego');
     if (wetGuard.threshold) assert.ok(wetGuard.threshold.value > -24, 'limiter wet łagodniejszy');
   }
-  assert.ok(conv[1].buffer.len > conv[0].buffer.len * 3, 'hala dłuższa niż pokój');
+  assert.ok(conv[2].buffer.len > conv[0].buffer.len * 3, 'hala dłuższa niż pokój');
   const buffers = () => ctx.created.filter((n) => n.kind === 'buffer').length;
   const n = buffers();
   for (let i = 0; i < 4; i++) { clock.t += 1000; sfx.play('shot'); sfx.play('explode'); }
   assert.equal(buffers(), n);
   sfx.unlock();
-  assert.equal(ctx.created.filter((x) => x.kind === 'convolver').length, 2);
+  assert.equal(ctx.created.filter((x) => x.kind === 'convolver').length, 3);
 });
 
 test('pogłos: strzał dostaje mało wet, wybuch dużo, dźwięk bez szyny nic', () => {
@@ -219,13 +219,13 @@ test('przeładowanie: cztery zdarzenia rozłożone w podanym czasie, wbicie najg
   }
 });
 
-test('pogłos: normalize=false, pre-delay 12/35 ms, IR skalowane do szczytu', () => {
+test('pogłos: normalize=false, pre-delay 12/40/35 ms, IR skalowane do szczytu', () => {
   const { ctx, sfx } = setup();
   sfx.unlock();
   const conv = ctx.created.filter((n) => n.kind === 'convolver');
   assert.ok(conv.every((c) => c.normalize === false));
   const delays = ctx.created.filter((n) => n.kind === 'delay');
-  assert.deepEqual(delays.map((d) => d.delayTime.value), [0.012, 0.035]);
+  assert.deepEqual(delays.map((d) => d.delayTime.value), [0.012, 0.04, 0.035]);
   assert.ok(delays.every((d, i) => d.to.includes(conv[i])));
 });
 
@@ -324,4 +324,58 @@ test('dźwięki obrażeń istnieją i różnią się od trafienia potwora', asyn
   const { clock, sfx } = setup();
   sfx.unlock();
   for (const n of ['hurtMe', 'hurtMeLow', 'hurtAlly']) { clock.t += 100; assert.equal(sfx.play(n, { own: n !== 'hurtAlly' }), true); }
+});
+
+// V3-C-13: karabin ciszej, osobna szyna z dłuższym ogonem i wyraźnym pre-delay.
+test('karabin: osobna szyna, IR między pokojem a halą, pre-delay 35-45 ms', async () => {
+  const { REVERB_S, PREDELAY_S } = await import('../public/client/sfx.js');
+  const { ctx, clock, sfx } = setup();
+  sfx.unlock();
+  const conv = ctx.created.filter((n) => n.kind === 'convolver');
+  const delays = ctx.created.filter((n) => n.kind === 'delay');
+  const [room, gun, hall] = conv;
+  assert.ok(gun.buffer.len > room.buffer.len && gun.buffer.len < hall.buffer.len, 'IR strzału: dłuższy niż pokój, krótszy niż hala');
+  assert.ok(REVERB_S.gun >= 0.5 && REVERB_S.gun <= 0.6);
+  const pre = delays.find((d) => d.to.includes(gun)).delayTime.value;
+  assert.ok(pre >= 0.035 && pre <= 0.045, `pre-delay strzału ${pre}`);
+  assert.equal(PREDELAY_S.gun, pre);
+  // strzał rzeczywiście trafia na tę szynę, a nie na pokój
+  clock.t += 1000;
+  const before = ctx.gains.length;
+  sfx.play('shot');
+  const send = ctx.gains[before].to.find((t) => t.kind === 'gain' && t !== ctx.gains[0]);
+  assert.ok(delays.find((d) => d.to.includes(gun)) && send.to.includes(delays.find((d) => d.to.includes(gun))), 'strzał -> szyna gun');
+});
+
+test('karabin: suma poziomów warstw wyraźnie niższa niż przed V3-C-13 (2.33)', () => {
+  const { ctx, clock, sfx } = setup();
+  sfx.unlock();
+  clock.t += 1000;
+  // poziom warstwy = cel linearRamp na jej obwiedni; przechwytujemy go w atrapie
+  const levels = [];
+  const orig = ctx.createGain;
+  ctx.createGain = () => {
+    const n = orig();
+    n.gain.linearRampToValueAtTime = (v) => levels.push(v);
+    return n;
+  };
+  assert.equal(sfx.play('shot'), true);
+  assert.equal(levels.length, 5, 'pięć warstw');
+  const sum = levels.reduce((a, b) => a + b, 0);
+  assert.ok(sum <= 2.33 * 0.72, `suma ${sum} musi być <= 1.68 (>= 28% ciszej niż 2.33)`);
+  assert.ok(sum >= 1.0, 'ale nie wyzerowana');
+});
+
+test('nowe recepty swiata istnieja i graja; dwa w odstepie < MIN_GAP_MS to jeden glos', () => {
+  for (const name of ['reveal', 'ninjaTele', 'ninjaCharge', 'split']) {
+    const { clock, sfx } = setup();
+    sfx.unlock();
+    assert.equal(sfx.play(name, { dist: 3, x: 100, camX: 0, viewW: 400 }), true, name);
+    assert.equal(sfx.voices, 1);
+    clock.t += MIN_GAP_MS - 1;
+    assert.equal(sfx.play(name), false, `${name}: seria`);
+    assert.equal(sfx.voices, 1);
+    clock.t += 2;
+    assert.equal(sfx.play(name), true);
+  }
 });

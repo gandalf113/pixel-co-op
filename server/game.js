@@ -7,6 +7,8 @@ import { updateMobs } from './mobs.js';
 import { fireWeapons, updateBullets, updateMobBullets, startReload } from './combat.js';
 import * as items from './items.js';
 import { Grid } from '../public/shared/world.js';
+import { mobView } from '../public/shared/mobview.js';
+import { makeMob, killsLeftIn } from './mobspawn.js';
 
 const INPUT_QUEUE_MAX = 4;
 const r1 = (v) => (typeof v === 'number' ? Math.round(v * 10) / 10 : v ?? null);
@@ -181,10 +183,11 @@ export class Game {
       wave: w.wave,
       breakLeft: r1(w.phase === 'break' ? Math.max(0, this.breakLeft) : 0),
       readyLock: this.readyLock,
-      mobsLeft: w.mobs.length + (this.director?.pending ?? 0),
+      mobsLeft: this.#mobsLeft(),
       you: { id, ackSeq: me?.ackSeq ?? 0 },
       players: [...w.players.values()].map((p) => this.#playerView(p)),
-      mobs: w.mobs.map((m) => [m.id, m.type, r1(m.x), r1(m.y), r1(m.hp), r1(m.maxHp), m.stun > 0 ? 1 : 0, m.frozen > 0 ? 1 : 0, m.burnLeft > 0 ? 1 : 0]),
+      // [id, typ, x, y, hp, maxHp, stun, frozen, burn, kat, invul, telegraf (dlugosc trajektorii w px albo 0)]
+      mobs: w.mobs.map((m) => mobView(m, r1)),
       droplets: w.droplets.map((d) => [d.id, r1(d.x), r1(d.y)]),
       rockets: w.rockets.map((r) => [r.id, r1(r.x), r1(r.y), r1(Math.atan2(r.vy, r.vx))]),
       bullets: w.bullets.map((b) => [b.id, r1(b.x), r1(b.y)]),
@@ -231,14 +234,16 @@ export class Game {
     const w = this.world;
     const positions = [];
     for (const p of w.players.values()) if (p.state !== 'dead' && !p.suspended) positions.push({ x: p.x, y: p.y });
-    for (const s of this.director.update(dt, w.mobs.length, positions)) {
-      const hp = w.rules.mobHp(s.type, w.wave);
-      const r = w.rules.balance.mobs[s.type].radiusPx;
-      const { tilesW, tilesH, tilePx } = w.rules.balance.map;
-      const x = Math.min(tilesW * tilePx - r, Math.max(r, s.x));
-      const y = Math.min(tilesH * tilePx - r, Math.max(r, s.y));
-      w.mobs.push({ id: w.nextId(), type: s.type, x, y, hp, maxHp: hp, stun: 0, attackCd: 0 });
-    }
+    for (const s of this.director.update(dt, w.mobs.length, positions)) makeMob(w, s.type, s.x, s.y);
+  }
+
+  // Zabicia do zrobienia: kolejka spawnu plus zywe potwory, kazdy razem ze swoim przyszlym potomstwem (tank).
+  #mobsLeft() {
+    const rules = this.world.rules;
+    let n = 0;
+    for (const m of this.world.mobs) n += killsLeftIn(rules, m.type);
+    for (const t of this.director?.queue ?? []) n += killsLeftIn(rules, t);
+    return n;
   }
 
   #checkReady() {

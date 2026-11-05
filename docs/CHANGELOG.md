@@ -9,7 +9,7 @@
 - Sekcja N: krotkie partie glosowe 16-bit (RELOADING!, przechwalki po fali) — trzy drogi do zbadania, rekomendacja: synteza formantowa.
 
 ## 0.23 - 2026-11-05
-- PRD-FX-09: reakcja na obrazenia gracza (blysk, winieta, wstrzas, mignieciе paska HP, obrys przy niskim HP, dzwiek) — FX-03 pokrywal wylacznie friendly fire.
+- PRD-FX-09: reakcja na obrazenia gracza (blysk, winieta, wstrzas, migniecie paska HP, obrys przy niskim HP, dzwiek) — FX-03 pokrywal wylacznie friendly fire.
 - Punkt M (V3-M-01..05): brak JAKIEJKOLWIEK reakcji na obrazenia gracza — damagePlayer wysyla zdarzenie tylko dla friendly fire, wiec cios potwora i mina nie daja ani blysku, ani dzwieku. Do PRD jako FX-09.
 - V3-C-07: przeladowanie slychac — trzyczesciowa wymiana magazynka na caly czas reloadu, wlasne glosniej i bez tlumienia (stara recepta "dwa kliki po 8 ms" ginela w serii).
 - V3-C-06: poglos — lekki na karabinie, dlugi na wybuchach, przez ConvolverNode z generowana odpowiedzia impulsowa (bez plikow IR).

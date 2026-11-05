@@ -1,6 +1,7 @@
 import { DECOR_SPRITES } from './sprites.js';
 import { footprint, itemDef, setItemDefs } from '../shared/world.js';
 import { rifleStats } from '../shared/weapon.js';
+import { MV, wearStageOf } from '../shared/mobview.js';
 
 export const VIEW_W = 560;
 export const VIEW_H = 315;
@@ -293,19 +294,65 @@ function drawItems(ctx, view, ox, oy) {
   }
 }
 
-function drawMobs(ctx, view, ox, oy) {
+// Nazwa sprite'a potwora: klatka animacji, a dla `wear` (tank) dodatkowo stan zuzycia liczony z hp/maxHp.
+export function mobSpriteName(cfg, type, frame, hp, maxHp) {
+  const stage = cfg.wear && maxHp > 0 ? wearStageOf(hp / maxHp) : 0;
+  return stage ? `${type}_${frame}_dmg_${stage}` : `${type}_${frame}`;
+}
+
+// Telegraf szarzy (ninja): pas trajektorii na ziemi, widoczny dla wszystkich; kat i dlugosc pochodza ze snapshotu,
+// wiec to dokladnie ta linia, po ktorej potem poleci.
+function drawTelegraphs(ctx, view, ox, oy) {
+  for (const m of view.mobs) {
+    const len = m[MV.tele];
+    if (!(len > 0)) continue;
+    const r = view.balance.mobs[m[MV.type]].radiusPx;
+    const blink = (view.frame >> 2) & 1;
+    ctx.save();
+    ctx.translate(Math.round(m[MV.x] + ox), Math.round(m[MV.y] + oy));
+    ctx.rotate(m[MV.angle]);
+    ctx.globalAlpha = 0.16 + 0.12 * blink;
+    ctx.fillStyle = '#ff3a2a';
+    ctx.fillRect(0, -r, len, r * 2);
+    ctx.globalAlpha = 0.55 + 0.35 * blink;
+    ctx.fillRect(0, -1, len, 2);
+    ctx.fillRect(len - 2, -r, 2, r * 2);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+}
+
+export function drawMobs(ctx, view, ox, oy) {
   const { sprites, frame } = view;
   for (const m of view.mobs) {
-    const [id, type, x, y, , , stunned, frozen, burning] = m;
-    const angle = view.mobAngles?.get(id) ?? 0;
+    const [id, type, x, y, hp, maxHp, stunned, frozen, burning] = m;
+    const invul = m[MV.invul];
+    const angle = m[MV.angle] ?? 0;
     const flip = Math.abs(angle) > Math.PI / 2;
+    const cfg = view.balance.mobs[type];
     if (stunned && !frozen) ctx.globalAlpha = (frame >> 2) & 1 ? 0.5 : 1;
     const k = view.fx ? view.fx.knock(id, view.nowMs) : { x: 0, y: 0 };
-    let img = sprites.get(`${type}_${frozen ? 0 : ((frame >> 3) + id) & 1}`);
+    let img = sprites.get(mobSpriteName(cfg, type, frozen ? 0 : ((frame >> 3) + id) & 1, hp, maxHp));
     if (view.fx && view.nowMs < (view.fx.mobFlash.get(id) ?? 0)) img = silhouette(img, '#ffffff');
+    if (invul) {
+      // nietykalny: sam zarys (biala poswiata dookola) i ledwo widoczne wnetrze
+      const sil = silhouette(img, '#c9c2b4');
+      ctx.globalAlpha = 0.3 + 0.1 * ((frame >> 3) & 1);
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) drawCentered(ctx, sil, x + ox + k.x + dx, y + oy + k.y + dy, angle, flip);
+      ctx.globalAlpha = 0.22;
+    }
     drawCentered(ctx, img, x + ox + k.x, y + oy + k.y, angle, flip);
     ctx.globalAlpha = 1;
-    const r = view.balance.mobs[type].radiusPx + 1;
+    const r = cfg.radiusPx + 1;
+    if (img && img.height > 16 && !invul && hp < maxHp) {
+      const bw = Math.round(img.width * 0.6);
+      const bx = Math.round(x + ox - bw / 2);
+      const by = Math.round(y + oy - img.height / 2 - 3);
+      ctx.fillStyle = '#14120f';
+      ctx.fillRect(bx - 1, by - 1, bw + 2, 4);
+      ctx.fillStyle = hp / maxHp > 0.3 ? '#a8321f' : '#d9b53a';
+      ctx.fillRect(bx, by, Math.max(1, Math.round(bw * Math.max(0, hp / maxHp))), 2);
+    }
     if (frozen) {
       ctx.fillStyle = 'rgba(140, 220, 255, 0.35)';
       ctx.strokeStyle = 'rgba(190, 240, 255, 0.9)';
@@ -500,6 +547,10 @@ function drawEffects(ctx, view, ox, oy) {
     const x = e.x + ox;
     const y = e.y + oy;
     const fade = 1 - k;
+    if (e.kind === 'reveal') {
+      ring(ctx, x, y, 6 + 22 * k, '#e8e2d4', fade, 0.35);
+      continue;
+    }
     if (e.kind === 'explode') {
       ring(ctx, x, y, e.radiusPx * (0.4 + 0.6 * k), '#ff9a2a', fade, 0.5);
       continue;
@@ -546,6 +597,7 @@ export function renderWorld(ctx, view) {
   drawItems(ctx, view, ox, oy);
   drawGhost(ctx, view, ox, oy);
   drawLandingMarkers(ctx, view, ox, oy);
+  drawTelegraphs(ctx, view, ox, oy);
   drawMobs(ctx, view, ox, oy);
   drawPlayers(ctx, view, ox, oy);
   const bullet = view.sprites.get('bullet');

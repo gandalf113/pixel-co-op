@@ -251,7 +251,7 @@ tylko w kodzie.
 | ID | Wymóg |
 |---|---|
 | V3-M-01 | **Zdarzenie `hurt` przy kazdym obrazeniu gracza**, niezaleznie od zrodla (`mob`, `ff`, `mine`, pocisk potwora): `id`, `amount`, `source`, pozycja. `ff` zostaje osobno, bo niesie informacje, kto strzelil. |
-| V3-M-02 | **Reakcja u trafionego**: czerwony blysk sylwetki, winieta ekranu (jest juz `vignetteUntil` w `fx.js`, dzis uzywana tylko przy `ff`), **wstrzas kamery** proporcjonalny do obrazen (wylaczony przy `prefers-reduced-motion`, PRD-FX-07), **mignieciе paska HP** i liczba utraconych HP. Przy HP ponizej 30% dodatkowo staly, pulsujacy obrys ekranu - gracz ma czuc, ze jest o krok od powalenia. |
+| V3-M-02 | **Reakcja u trafionego**: czerwony blysk sylwetki, winieta ekranu (jest juz `vignetteUntil` w `fx.js`, dzis uzywana tylko przy `ff`), **wstrzas kamery** proporcjonalny do obrazen (wylaczony przy `prefers-reduced-motion`, PRD-FX-07), **migniecie paska HP** i liczba utraconych HP. Przy HP ponizej 30% dodatkowo staly, pulsujacy obrys ekranu - gracz ma czuc, ze jest o krok od powalenia. |
 | V3-M-03 | **Reakcja u pozostalych**: sylwetka trafionego sojusznika blyska czerwono (mechanizm `playerFlash` juz istnieje dla `ff`, wystarczy go wpiac w `hurt`). |
 | V3-M-04 | **Dzwiek obrazen**: osobny dla "oberwales ty" i "oberwal sojusznik", wyraznie inny niz trafienie potwora. Przy niskim HP wariant bardziej alarmowy. |
 | V3-M-05 | Dopisac do PRD jako **PRD-FX-09** (obrazenia gracza), bo dzis FX-03 pokrywa wylacznie friendly fire. |

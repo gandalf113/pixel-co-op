@@ -65,7 +65,7 @@ export class SnapshotBuffer {
   }
 }
 
-function lerpAngle(a, b, t) {
+export function lerpAngle(a, b, t) {
   let d = (b - a) % (2 * Math.PI);
   if (d > Math.PI) d -= 2 * Math.PI;
   if (d < -Math.PI) d += 2 * Math.PI;

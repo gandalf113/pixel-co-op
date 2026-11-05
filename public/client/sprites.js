@@ -1,5 +1,7 @@
 // Pixel art wygenerowany przez Claude (TECH-05). Styl: brudne post-apo. '.' = przezroczysty,
 // 'P' = kolor gracza, 'Q' = ten sam kolor przyciemniony (podmieniane w bakeSprites).
+import { tankRows, tankWear, stalkerRows, ninjaRows } from './bigsprites.js';
+
 export const PALETTE = {
   '.': null,
   P: '#5ec85e',
@@ -27,6 +29,11 @@ export const PALETTE = {
   L: '#55682a',
   n: '#23211e',
   w: '#8a7a4a',
+  B: '#8c7a62', // mięso tanka: jasny, średni, ciemny ton (zmieniają kolor wraz z utratą HP)
+  b: '#6a5a48',
+  d: '#463a2e',
+  N: '#56688a', // siniaki tanka
+  e: '#34405c',
 };
 
 export const SPRITES = {
@@ -1244,6 +1251,14 @@ export const SPRITES = {
     '....K....',
   ],
 };
+
+// Duże sylwetki (V3-A-01): skradający się i ninja 32x32, tank 64x64 (+ trzy stany zużycia, jak ściana).
+for (const f of [0, 1]) {
+  SPRITES[`stalker_${f}`] = stalkerRows(f);
+  SPRITES[`ninja_${f}`] = ninjaRows(f);
+  SPRITES[`tank_${f}`] = tankRows(f);
+  for (const stage of [1, 2, 3]) SPRITES[`tank_${f}_dmg_${stage}`] = tankWear(SPRITES[`tank_${f}`], stage);
+}
 
 // Warianty pochodne: kamienne pęknięcia głazu (3 stany zużycia, jak ściana) i oznaczenie czasu na ikonie działka.
 function mark(rows, points) {

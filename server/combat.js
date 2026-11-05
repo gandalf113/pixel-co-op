@@ -1,6 +1,7 @@
 import { damagePlayer } from './players.js';
 import { onMobKilled } from './items.js';
 import { spawnDroplets } from './ultimate.js';
+import { spawnSplit } from './mobspawn.js';
 import { KIND, tileOf, footprint, itemDef } from '../public/shared/world.js';
 import { rifleStats } from '../public/shared/weapon.js';
 
@@ -59,7 +60,7 @@ export function fireWeapons(world, dt) {
 }
 
 export function damageMob(world, mob, damage, killerId) {
-  if (!world.mobs.includes(mob)) return;
+  if (!world.mobs.includes(mob) || mob.invul) return;
   mob.hp -= mob.frozen > 0 ? damage * (mob.vuln ?? 1) : damage;
   if (mob.hp <= 0) killMob(world, mob, killerId);
 }
@@ -75,6 +76,7 @@ export function killMob(world, mob, killerId) {
   addGore(world.gore.corpses, [mob.type, Math.round(mob.x), Math.round(mob.y), Math.round(a * 100) / 100], world.rules.balance.gore.maxCorpses);
   spawnDroplets(world, mob);
   onMobKilled(world, mob, killerId);
+  if (world.rules.balance.mobs[mob.type].split) spawnSplit(world, mob);
 }
 
 export function addGore(list, entry, max) {
@@ -132,7 +134,7 @@ function firstHit(world, b, dx, dy) {
   const wall = solidAlong(grid, b.x, b.y, dx, dy, tilePx);
   if (wall) best = { t: wall.t, wall };
   for (const mob of world.mobs) {
-    if (b.passed?.has(mob.id)) continue;
+    if (mob.invul || b.passed?.has(mob.id)) continue;
     const t = circleAlong(b.x, b.y, dx, dy, mob.x, mob.y, balance.mobs[mob.type].radiusPx);
     if (t !== null && (!best || t < best.t)) best = { t, mob };
   }

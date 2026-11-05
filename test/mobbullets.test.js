@@ -91,7 +91,7 @@ test('pocisk gracza nie zestrzeliwuje pocisku wroga', () => {
 test('Plujka: liczby z MOB-04', () => {
   const s = balance.mobs.spitter;
   assert.deepEqual([s.hp, s.damage, s.objDamage, s.speedTiles, s.fromWave, s.drop, s.cost, s.weight], [40, 12, 6, 2.2, 6, 0.35, 3, 15]);
-  assert.deepEqual([s.ranged.projSpeedPx, s.ranged.rangeTiles, s.ranged.intervalS, s.ranged.keepTiles], [250, 7, 2, 5]);
+  assert.deepEqual([s.ranged.projSpeedPx, s.ranged.rangeTiles, s.ranged.intervalS, s.ranged.keepTiles], [160, 7, 2, 5]);
   for (const t of Object.keys(balance.mobs)) assert.ok(balance.ultimate.droplets[t] >= 1, t);
   assert.equal(balance.ultimate.droplets.spitter, 2);
   assert.equal(balance.ultimate.droplets.grenadier, 2);
@@ -216,7 +216,9 @@ test('marker upadku: snapshot niesie punkt i czas do upadku granatu', () => {
   assert.equal(s0[3], 1);
   assert.ok(near(s0[4], Math.round(p.x * 10) / 10, 0.11));
   const total = s0[6];
-  assert.ok(total > 0.3 && total < 0.6, String(total));
+  // Czas lotu liczymy z balansu, zeby strojenie predkosci pocisku nie wywracalo testu.
+  const want = (5 * T) / balance.mobs.grenadier.ranged.projSpeedPx;
+  assert.ok(Math.abs(total - want) < 0.12, `${total} vs ${want}`);
   updateMobBullets(w, 0.2, hooks());
   assert.ok(g.snapshot(1).mobBullets[0][6] < total - 0.15);
 });

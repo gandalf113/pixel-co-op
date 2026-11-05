@@ -332,7 +332,7 @@ function firstBodyHit(world, item, x0, y0, x1, y1) {
     const hy = y0 + (y1 - y0) * t;
     if (Math.hypot(cx - hx, cy - hy) <= r && (!best || t < best.t)) best = { t, x: hx, y: hy, ...hit };
   };
-  for (const m of world.mobs) consider(m.x, m.y, balance.mobs[m.type].radiusPx, { mob: m });
+  for (const m of world.mobs) if (!m.invul) consider(m.x, m.y, balance.mobs[m.type].radiusPx, { mob: m });
   if (isHard(world, item)) {
     for (const p of world.players.values()) {
       if (p.id === item.flight.thrower || p.state !== 'alive' || p.suspended) continue;

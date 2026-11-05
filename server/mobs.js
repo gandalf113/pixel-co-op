@@ -1,6 +1,6 @@
-import { buildField, nextStep } from './flowfield.js';
+import { buildField, nextStep, sizeBlocked } from './flowfield.js';
 import { damagePlayer } from './players.js';
-import { damageMob, lineClear, spawnMobBullet } from './combat.js';
+import { damageMob, lineClear, spawnMobBullet, solidAlong } from './combat.js';
 import { KIND, moveCircle, tileOf } from '../public/shared/world.js';
 
 const EPS = 1e-9;
@@ -25,7 +25,33 @@ export function buildMobFields(world) {
     standSiege: buildField(grid, stand, wallCost),
     down: buildField(grid, down, null),
     downSiege: buildField(grid, down, wallCost),
+    bm: null,
+    sources: { stand, down },
+    sized: new Map(),
   };
+}
+
+// Pola dla potworow wiekszych niz polowa kafelka (V3-A-01): te same cele, ale kafelki, w ktorych cialo sie
+// nie miesci, sa nieprzechodnie (a w polu oblezniczym liczone jak sciana). Budowane leniwie, raz na przebudowe.
+function fieldsFor(world, r) {
+  const f = world.mobFields;
+  if (r <= world.rules.tilePx / 2) return f;
+  let s = f.sized.get(r);
+  if (!s) {
+    const bm = sizeBlocked(world.grid, r, world.rules.tilePx);
+    const { wallCost } = world.rules.balance.mobAi;
+    const { stand, down } = f.sources;
+    const { grid } = world;
+    s = {
+      bm,
+      stand: buildField(grid, stand, null, bm),
+      standSiege: buildField(grid, stand, wallCost, bm),
+      down: buildField(grid, down, null, bm),
+      downSiege: buildField(grid, down, wallCost, bm),
+    };
+    f.sized.set(r, s);
+  }
+  return s;
 }
 
 function refreshFields(world, dt) {
@@ -59,14 +85,42 @@ function pickTarget(world, mob, stand) {
 }
 
 function chooseField(world, mob, isDownTarget, tx, ty) {
-  const f = world.mobFields;
+  const f = fieldsFor(world, world.rules.balance.mobs[mob.type].radiusPx);
   const normal = isDownTarget ? f.down : f.stand;
   const siege = isDownTarget ? f.downSiege : f.standSiege;
-  if (world.rules.balance.mobs[mob.type].siege) return { field: siege, siege: true };
+  const bm = f.bm ?? null;
+  if (world.rules.balance.mobs[mob.type].siege) return { field: siege, siege: true, bm };
   const idx = ty * world.grid.w + tx;
-  const v = normal[idx];
-  if (v === Infinity || v > world.rules.balance.mobAi.detourMax * siege[idx]) return { field: siege, siege: true };
-  return { field: normal, siege: false };
+  let v = normal[idx];
+  // stoimy na kafelku, w ktorym cialo sie nie miesci (np. tuz po spawnie): wartosc bierzemy od najlepszego sasiada
+  if (v === Infinity && bm?.[idx]) {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = tx + dx;
+      const ny = ty + dy;
+      if (world.grid.inside(nx, ny)) v = Math.min(v, normal[ny * world.grid.w + nx] + 1);
+    }
+  }
+  if (v === Infinity || v > world.rules.balance.mobAi.detourMax * siege[idx]) return { field: siege, siege: true, bm };
+  return { field: normal, siege: false, bm };
+}
+
+// Najblizsza sciana/dzialko, ktora nie pozwala cialu o promieniu r wejsc na kafelek (nx, ny).
+function blockerNear(world, r, nx, ny) {
+  const { grid } = world;
+  const span = Math.ceil(r / world.rules.tilePx) + 1;
+  let best = null;
+  let bestD = Infinity;
+  for (let j = -span; j <= span; j++) {
+    for (let i = -span; i <= span; i++) {
+      if (!grid.inside(nx + i, ny + j) || !grid.isSolid(nx + i, ny + j)) continue;
+      const d = i * i + j * j;
+      if (d < bestD) {
+        bestD = d;
+        best = [nx + i, ny + j];
+      }
+    }
+  }
+  return best;
 }
 
 function resolveStep(grid, tx, ty, step) {
@@ -176,26 +230,146 @@ function updateRanged(world, mob, target, dt) {
   return true;
 }
 
+// Skradajacy sie (V3-A-05): cykl ukrycie / jawnosc. W ukryciu jest nietykalny (`mob.invul`, czytany przez
+// combat.js i snapshot) i okrazca gracza stycznie. Zwraca true, gdy sam zdecydowal o ruchu.
+function stealthTick(world, mob, dt) {
+  const sc = world.rules.balance.mobs[mob.type].stealth;
+  const s = (mob.stealth ??= {
+    hide: true, left: rand(world.rng, sc.hideMinS, sc.hideMaxS), dir: world.rng() < 0.5 ? 1 : -1,
+  });
+  mob.invul = s.hide;
+  s.left -= dt;
+  if (s.left <= 0) {
+    s.hide = !s.hide;
+    s.left += s.hide ? rand(world.rng, sc.hideMinS, sc.hideMaxS) : rand(world.rng, sc.openMinS, sc.openMaxS);
+    if (s.hide) s.dir = world.rng() < 0.5 ? 1 : -1;
+    mob.invul = s.hide;
+    if (!s.hide) world.events.push({ type: 'reveal', id: mob.id, x: mob.x, y: mob.y });
+  }
+}
+
+function stealthStep(world, mob, stand, dt) {
+  const { tilePx } = world.rules;
+  const s = mob.stealth;
+  if (!s.hide || !stand.player) return false;
+  const a = Math.atan2(stand.player.y - mob.y, stand.player.x - mob.x) + (s.dir * Math.PI) / 2;
+  const step = world.rules.mobSpeedPx(mob.type) * dt * (mob.slowLeft > 0 ? 0.5 : 1);
+  const pos = moveCircle(world.grid, mob.x, mob.y, world.rules.balance.mobs[mob.type].radiusPx, Math.cos(a) * step, Math.sin(a) * step, tilePx);
+  // zablokowany sciana - krazymy w druga strone zamiast stac
+  if (Math.hypot(pos.x - mob.x, pos.y - mob.y) < step * 0.3) s.dir = -s.dir;
+  mob.x = pos.x;
+  mob.y = pos.y;
+  mob.angle = a;
+  return true;
+}
+
+function distToSegment(px, py, x0, y0, x1, y1) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const l2 = dx * dx + dy * dy;
+  const t = l2 < EPS ? 0 : Math.max(0, Math.min(1, ((px - x0) * dx + (py - y0) * dy) / l2));
+  return Math.hypot(px - (x0 + dx * t), py - (y0 + dy * t));
+}
+
+// Ninja (V3-A-07): wandering -> telegraf -> szarza. Trajektoria (kat, dlugosc) jest ustalana RAZ, w chwili
+// telegrafu, i nie sledzi gracza. Zwraca true, gdy sam zdecydowal o ruchu (telegraf, szarza); w wanderingu
+// false = zwykle chodzenie.
+function ninjaStep(world, mob, stand, dt, hooks) {
+  const { tilePx } = world.rules;
+  const cfg = world.rules.balance.mobs[mob.type];
+  const cc = cfg.charge;
+  const n = (mob.ninja ??= { phase: 'wander', left: rand(world.rng, cc.wanderMinS, cc.wanderMaxS) });
+  if (n.phase === 'wander') {
+    mob.tele = 0;
+    n.left -= dt;
+    if (n.left > 0 || !stand.player) return false;
+    const p = stand.player;
+    const ang = Math.atan2(p.y - mob.y, p.x - mob.x);
+    const ux = Math.cos(ang);
+    const uy = Math.sin(ang);
+    let len = Math.min(cc.maxTiles * tilePx, stand.dist + cc.overshootTiles * tilePx);
+    const wall = solidAlong(world.grid, mob.x, mob.y, ux * len, uy * len, tilePx);
+    n.wall = null;
+    if (wall) {
+      len = Math.max(0, len * wall.t - cfg.radiusPx);
+      n.wall = { tx: wall.tx, ty: wall.ty };
+    }
+    if (len < cfg.radiusPx) {
+      n.left = rand(world.rng, cc.wanderMinS, cc.wanderMaxS);
+      return false;
+    }
+    Object.assign(n, { phase: 'telegraph', left: cc.telegraphS, ang, len, done: 0, hit: new Set() });
+    mob.angle = ang;
+    mob.tele = len;
+    world.events.push({ type: 'ninjaTele', id: mob.id, x: mob.x, y: mob.y });
+    return true;
+  }
+  mob.angle = n.ang;
+  if (n.phase === 'telegraph') {
+    n.left -= dt;
+    if (n.left <= 0) {
+      n.phase = 'charge';
+      mob.tele = 0;
+      world.events.push({ type: 'ninjaCharge', id: mob.id, x: mob.x, y: mob.y });
+    }
+    return true;
+  }
+  const step = Math.min(cc.speedTiles * tilePx * dt, n.len - n.done);
+  const { x: x0, y: y0 } = mob;
+  const pos = moveCircle(world.grid, x0, y0, cfg.radiusPx, Math.cos(n.ang) * step, Math.sin(n.ang) * step, tilePx);
+  mob.x = pos.x;
+  mob.y = pos.y;
+  const moved = Math.hypot(pos.x - x0, pos.y - y0);
+  n.done += moved;
+  const reach = cfg.radiusPx + world.rules.balance.player.radiusPx;
+  for (const p of world.players.values()) {
+    if (!isStand(p) || n.hit.has(p.id) || distToSegment(p.x, p.y, x0, y0, pos.x, pos.y) > reach) continue;
+    n.hit.add(p.id);
+    damagePlayer(world, p, world.rules.mobDamage(mob.type), 'mob');
+  }
+  if (n.done < n.len - 1e-6 && moved >= step * 0.5) return true;
+  if (n.wall) {
+    const item = world.items.get(world.grid.id(n.wall.tx, n.wall.ty));
+    if (item && item.hp > 0) {
+      item.hp -= world.rules.mobObjDamage(mob.type);
+      world.events.push({ type: 'objHit', id: item.id });
+      if (item.hp <= 0) hooks.onObjectDestroyed?.(item);
+    }
+  }
+  n.phase = 'wander';
+  n.left = rand(world.rng, cc.wanderMinS, cc.wanderMaxS);
+  return true;
+}
+
 function updateMob(world, mob, dt, hooks) {
   const { tilePx, balance } = world.rules;
   const cfg = balance.mobs[mob.type];
   const playerR = balance.player.radiusPx;
   mob.attackCd = Math.max(0, mob.attackCd - dt);
   gnawFloor(world, mob, dt, hooks);
+  if (cfg.stealth) stealthTick(world, mob, dt);
 
   const stand = nearest(world, mob, isStand);
-  if (stand.player && stand.dist <= cfg.radiusPx + playerR + balance.mobAi.meleeReachPx && mob.attackCd <= EPS) {
+  // ninja bije tylko szarza, skradajacy sie nie bije w ukryciu
+  const melee = !cfg.charge && !mob.invul;
+  if (melee && stand.player && stand.dist <= cfg.radiusPx + playerR + balance.mobAi.meleeReachPx && mob.attackCd <= EPS) {
     damagePlayer(world, stand.player, world.rules.mobDamage(mob.type), 'mob');
     mob.attackCd = cfg.attackS;
   }
 
   const target = pickTarget(world, mob, stand);
-  if (!target.player || target.dist <= cfg.radiusPx + playerR) return;
+  if (!target.player) return;
+  if (cfg.charge && ninjaStep(world, mob, stand, dt, hooks)) return;
+  if (cfg.stealth && stealthStep(world, mob, stand, dt)) return;
+  if (target.dist <= cfg.radiusPx + playerR) {
+    mob.angle = Math.atan2(target.player.y - mob.y, target.player.x - mob.x);
+    return;
+  }
   if (cfg.ranged && !target.down && updateRanged(world, mob, target, dt)) return;
   const tx = tileOf(mob.x, tilePx);
   const ty = tileOf(mob.y, tilePx);
-  const { field, siege } = chooseField(world, mob, target.down, tx, ty);
-  const raw = nextStep(field, world.grid, tx, ty, siege ? balance.mobAi.wallCost : null);
+  const { field, siege, bm } = chooseField(world, mob, target.down, tx, ty);
+  const raw = nextStep(field, world.grid, tx, ty, siege ? balance.mobAi.wallCost : null, bm);
   const speed = world.rules.mobSpeedPx(mob.type) * dt * (mob.slowLeft > 0 ? 0.5 : 1);
   if (!raw) {
     moveToward(world, mob, target.player.x, target.player.y, Math.min(speed, target.dist - cfg.radiusPx - playerR));
@@ -206,8 +380,17 @@ function updateMob(world, mob, dt, hooks) {
     attackObject(world, mob, nx, ny, hooks);
     return;
   }
-  let gx = (nx + 0.5) * tilePx;
-  let gy = (ny + 0.5) * tilePx;
+  // ciało nie miesci sie na kolejnym kafelku (zwezenie): niszczymy to, co je blokuje, zamiast sie tam wciskac
+  if (bm?.[ny * world.grid.w + nx]) {
+    const b = blockerNear(world, cfg.radiusPx, nx, ny);
+    if (b) {
+      attackObject(world, mob, b[0], b[1], hooks);
+      return;
+    }
+  }
+  const gi = ny * world.grid.w + nx;
+  let gx = (nx + 0.5) * tilePx + (bm ? bm.ox[gi] : 0);
+  let gy = (ny + 0.5) * tilePx + (bm ? bm.oy[gi] : 0);
   const w = updateWander(world, mob, dt);
   if (target.dist > balance.mobAi.wanderNearTiles * tilePx) {
     const look = w.lookLeft > 0;

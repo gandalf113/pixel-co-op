@@ -11,9 +11,24 @@ Liczby to **wartości startowe do balansu**. Zmieniamy je po testach (patrz `05-
 | MOB-01 | **Ślimak** (slime) | 30 | 8 | 5 | 2.5 | wręcz, co 1 s | 1 | 25% | Mięso armatnie. Powolny. |
 | MOB-02 | **Biegacz** | 20 | 6 | 3 | 6 | wręcz, co 0.6 s | 2 | 20% | Szybki, słaby. Omija fortyfikacje, szuka dziur. |
 | MOB-03 | **Osiłek** | 150 | 25 | 50 | 1.8 | wręcz, co 1.5 s | 4 | 50% | Niszczy fortyfikacje. Priorytet: hard objecty na drodze. |
-| MOB-04 | **Plujka** | 40 | 12 | 6 (pocisk) | 2.2 | pocisk 250 px/s, zasięg 7 kaf., co 2 s | 6 | 35% | Trzyma dystans 5 kafelków. Pocisku nie da się zestrzelić. Pocisk NIE przechodzi przez ściany. Celowo wolniejszy niż pociski graczy, żeby dało się uskoczyć. |
+| MOB-04 | **Plujka** | 40 | 12 | 6 (pocisk) | 2.2 | pocisk **160 px/s** (R58, 2026-11-06: 250 bylo za szybkie, nie dalo sie uskoczyc), zasięg 7 kaf., co 2 s | 6 | 35% | Trzyma dystans 5 kafelków. Pocisku nie da się zestrzelić. Pocisk NIE przechodzi przez ściany. Celowo wolniejszy niż pociski graczy, żeby dało się uskoczyć. |
 | MOB-05 | **Rój** (3 małe naraz) | 10 x 3 | 4 | 2 | 4 | wręcz, co 0.8 s | 8 | 10% każdy | Spawnuje się trójkami. Przechodzi przez kolce bez obrażeń? Nie: otrzymuje. |
 | MOB-06 | **Boss** | 1200 | 40 | 100 | 1.5 | wręcz co 2 s (obszar 2 kaf.) + co 10 s wzywa 4 ślimaki | co 5 fal (5, 10, 15...) | 100% x3 | Niszczy ściany jednym ciosem (100 obr. ścianom). Niewrażliwy na klatkę. Pasek HP na górze ekranu. |
+
+### 1b. Potwory z Backlogu V3 (zaimplementowane 2026-11-06)
+
+Pelne opisy zachowan: `10-BACKLOG-V3.md` punkt A. Tu sa liczby, bo to jest tabela prawdy dla balansu.
+
+| ID | Nazwa | HP | Obr. | Obr. obiektom | Predkosc | Atak | Od fali | Drop | Koszt | Waga | Kropelki |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| MOB-07 | **Granatnik** (64 px sylwetki nie ma, 16 px) | 60 | 18 (wybuch) | 10 | 2.0 | lob 110 px/s, zasieg 10 kaf., co 3 s, wybuch 1.5 kaf. (50% na krawedzi), marker upadku 0.7 s | 9 | 40% | 4 | 8 | 2 |
+| MOB-08 | **Skradajacy sie** (32 x 32) | 45 | 14 | 6 | 3.2 | wrecz co 1 s; cykl ukrycie 4-6 s / jawny 3-4 s, w ukryciu **nietykalny** i okraza gracza stycznie | 7 | 35% | 3 | 12 | 2 |
+| MOB-09 | **Ninja** (32 x 32) | 70 | 22 | 8 | - | wandering 1-2 s -> telegraf 0.6 s -> szarza 10 kaf./s po **ustalonej** trajektorii, jedno trafienie na szarze | 8 | 45% | 4 | 8 | 3 |
+| MOB-10 | **Tank** (64 x 64) | 600 | 30 | 60 | 1.2 | wrecz; zmienia kolor w 4 progach HP; po smierci **rozpada sie na runnerow** (5/6/8/9 wg trudnosci) | 10 | 60% | 8 | 6 | 5 |
+
+- Granatnik i Plujka strzelaja **wolniej niz pociski gracza** (450 px/s) celowo: 160 i 110 px/s. Uskok ma byc realna odpowiedzia, a nie loteria (R58).
+- Potomstwo tanka powstaje poza kolejka spawnu, wiec `mobsLeft` liczy kazdego potwora **razem z jego przyszlym potomstwem**, a fala nie konczy sie, poki runnery zyja.
+- Potwory 32 i 64 px wymagaja pathfindingu swiadomego szerokosci: kafelek jest przechodni tylko wtedy, gdy cialo potwora sie w nim miesci. Inaczej duzy potwor stoi w przejsciu i drga.
 
 Zachowanie wspólne:
 

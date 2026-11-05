@@ -9,17 +9,18 @@ const DETUNE = 0.07;
 const FLOOR = 0.0001; // exponentialRamp nie znosi zera
 export const OWN_BOOST = 1.6; // własne przeładowanie: informacja taktyczna, ma przebić walkę
 export const RELOAD_FALLBACK_S = 1.5;
-// Długości ogonów pogłosu (s): "klaps pomieszczenia" i wybuch w hali.
-export const REVERB_S = { room: 0.25, hall: 1.3 };
+// Długości ogonów pogłosu (s): "klaps pomieszczenia", osobna szyna karabinu (V3-C-13) i wybuch w hali.
+export const REVERB_S = { room: 0.25, gun: 0.55, hall: 1.3 };
 // Pre-delay przed konwolwerem (s): bez niego ogon zlewa się z transjentem (V3-C-09).
-export const PREDELAY_S = { room: 0.012, hall: 0.035 };
+// Szyna karabinu: 40 ms, bo dopiero od ok. 35 ms ucho slyszy odbicie jako osobne zdarzenie.
+export const PREDELAY_S = { room: 0.012, gun: 0.04, hall: 0.035 };
 export const IR_PEAK = 0.4; // normalize=false: skalę IR ustalamy sami
 export const WET_MAKEUP = 1; // szyna wet ma wlasny, lagodny limiter — nie ten od dzwiekow suchych
 export const PAN_MAX = 0.85;
 
 // Warstwy: n = szum (white/brown), t = ton. `at` = przesunięcie w sekundach.
 // Opcje: lp/hp/bp (+ lpTo = przesuw lowpassa, q/lpQ = dobroć), a = czas narastania (s, domyślnie 2 ms),
-// tail = dodatkowy zanik po `dur`. Poziomy to ułamek pełnej skali przed masterem.
+// bpTo = przesuw bandpassa, tail = dodatkowy zanik po `dur`. Poziomy to ułamek pełnej skali przed masterem.
 
 // Przeładowanie (V3-C-11): cztery zdarzenia rozłożone na faktyczny czas `s` (maleje z poziomem broni).
 // Sumy poziomów: zatrzask 0.3, wysunięcie 0.25, wbicie 0.8 (najgłośniejsze), zamek 0.67.
@@ -69,12 +70,13 @@ const RECIPES = {
   // rev/wet: do której szyny pogłosu i ile sygnału tam wysłać (ułamek głośności dźwięku)
   // Karabin (V3-C-10): transjent / body / dół / mechanika / własny ogon.
   shot: Object.assign([
-    { n: 'white', dur: 0.008, hp: 3000, level: 0.9 },
-    { n: 'white', dur: 0.035, bp: 1200, q: 1.5, lp: 4000, lpTo: 900, level: 0.6 },
-    { t: 'sine', f0: 160, f1: 45, dur: 0.06, level: 0.5 },
-    { t: 'square', f0: 2500, dur: 0.003, level: 0.15 },
-    { n: 'white', dur: 0.18, lp: 1200, level: 0.18, at: 0.025 },
-  ], { rev: 'room', wet: 0.45 }),
+    // V3-C-13: poziomy -30% (suma 2.33 -> 1.631), osobna szyna `gun`; wet 0.45 -> 0.5, zeby ogon sie przebil
+    { n: 'white', dur: 0.008, hp: 3000, level: 0.63 },
+    { n: 'white', dur: 0.035, bp: 1200, q: 1.5, lp: 4000, lpTo: 900, level: 0.42 },
+    { t: 'sine', f0: 160, f1: 45, dur: 0.06, level: 0.35 },
+    { t: 'square', f0: 2500, dur: 0.003, level: 0.105 },
+    { n: 'white', dur: 0.18, lp: 1200, level: 0.126, at: 0.025 },
+  ], { rev: 'gun', wet: 0.5 }),
   cannon: Object.assign([
     { n: 'white', dur: 0.02, lp: 1800, level: 0.55 },
     { t: 'square', f0: 150, f1: 40, dur: 0.06, level: 0.28, lp: 1800 },
@@ -120,6 +122,28 @@ const RECIPES = {
     { n: 'white', dur: 0.045, bp: 700, q: 1.2, level: 0.5 },
     { t: 'sine', f0: 220, f1: 70, dur: 0.07, level: 0.3 },
   ],
+  // Wyjscie ze stealthu: krotki, jasny, dwutonowy "ping" z szumem — ma wyrwac wzrok, nie przypominac trafienia.
+  reveal: Object.assign([
+    { n: 'white', dur: 0.05, bp: 3200, q: 2, level: 0.35 },
+    { t: 'square', f0: 1500, dur: 0.06, level: 0.16 },
+    { t: 'square', f0: 2250, dur: 0.1, level: 0.16, at: 0.06 },
+  ], { rev: 'room', wet: 0.3 }),
+  // Telegraf ninji: narastajacy swist (bandpass jedzie w gore) — "zaraz tne".
+  ninjaTele: [
+    { n: 'white', dur: 0.5, a: 0.45, tail: 0.02, bp: 600, q: 4, level: 0.3 },
+    { t: 'sawtooth', f0: 500, f1: 2400, dur: 0.5, a: 0.45, tail: 0.02, lp: 700, lpTo: 4500, lpQ: 5, level: 0.14 },
+  ],
+  // Szarza: ostry swist ciecia, filtr spada w dol.
+  ninjaCharge: Object.assign([
+    { n: 'white', dur: 0.16, bp: 5000, bpTo: 1200, q: 3, level: 0.5 },
+    { n: 'white', dur: 0.012, hp: 4000, level: 0.35 },
+  ], { rev: 'room', wet: 0.2 }),
+  // Rozpad tanka: gluche, niskie pekniecie, dluzsze i nizsze niz death/hit.
+  split: Object.assign([
+    { n: 'brown', dur: 0.45, lp: 500, lpTo: 90, level: 0.8 },
+    { t: 'sine', f0: 70, f1: 28, dur: 0.5, level: 0.8, tail: 0.1 },
+    { n: 'white', dur: 0.03, bp: 400, level: 0.4, at: 0.05 },
+  ], { rev: 'hall', wet: 0.6 }),
   pickup: [{ t: 'sine', f0: 440, f1: 880, dur: 0.08, level: 0.25 }],
   place: [
     { t: 'square', f0: 200, dur: 0.04, level: 0.22 },
@@ -360,7 +384,13 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
       }
     }
     if (l.hp) filt('highpass', l.hp);
-    if (l.bp) filt('bandpass', l.bp, l.q);
+    if (l.bp) {
+      const b = filt('bandpass', l.bp, l.q);
+      if (l.bpTo) {
+        b.frequency.setValueAtTime(l.bp * pitch, t);
+        b.frequency.exponentialRampToValueAtTime(l.bpTo * pitch, t + l.dur);
+      }
+    }
     tip.connect(out);
     src.stop(end + 0.02);
     return end;

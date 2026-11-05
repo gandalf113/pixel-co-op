@@ -2,6 +2,7 @@ import { COLORS } from '../shared/protocol.js';
 import { buildGrid, footprint, placeTarget, setItemDefs, itemDef, itemLimitReached } from '../shared/world.js';
 import { Fx, LOW_HP } from './fx.js';
 import { rifleStats } from '../shared/weapon.js';
+import { MV, MOB_KEY } from '../shared/mobview.js';
 import { Connection, stored } from './net.js';
 import { InputState } from './input.js';
 import { Predictor, SnapshotBuffer, lerpEntities } from './predict.js';
@@ -13,7 +14,6 @@ import { createSfx } from './sfx.js';
 
 const ENDED_MSG_MS = 2500;
 const PLAYER_KEY = { id: 'id', x: 'x', y: 'y', angle: 'angle' };
-const MOB_KEY = { id: 0, x: 2, y: 3 };
 const BULLET_KEY = { id: 0, x: 1, y: 2 };
 
 const worldCanvas = document.getElementById('world');
@@ -47,7 +47,6 @@ let tickTimer = null;
 let lobbyDelayUntil = 0;
 let lobbyTimer = null;
 const itemRot = new Map();
-const mobAngles = new Map();
 const gore = { corpses: [], splats: [] };
 const shakes = new Map();
 const fx = new Fx();
@@ -117,7 +116,6 @@ function resetGame() {
   grid = null;
   buffer.clear();
   itemRot.clear();
-  mobAngles.clear();
   gore.corpses = [];
   gore.splats = [];
   shakes.clear();
@@ -288,7 +286,7 @@ function onEvent(e) {
       fx.destroyed(now, e, e.kind === 'wall' ? footprint('wall', e.tx, e.ty, e.rot) : [[e.tx, e.ty]], tp);
       break;
     case 'explode':
-      fx.explode(now, e, predictor?.pos, tp, latest?.mobs ?? []);
+      fx.explode(now, e, predictor?.pos, tp, (latest?.mobs ?? []).filter((m) => !m[MV.invul]));
       break;
     case 'shot': {
       const shooter = latest?.players.find((p) => p.id === e.id);
@@ -317,11 +315,23 @@ function onEvent(e) {
       flash = { color, start: now, strong: e.id === myId };
       break;
     }
-    case 'mobDeath':
+    case 'reveal':
+      effects.push({ kind: 'reveal', x: e.x, y: e.y, start: now, durMs: 350 });
+      fx.mobFlash.set(e.id, now + 140);
+      break;
+    case 'mobDeath': {
       pushCapped(gore.splats, [Math.round(e.x), Math.round(e.y), 1], max.maxSplats);
+      // duza sylwetka = wieksza kaluza: dodatkowe plamy rozrzucone w obrebie ciala
+      const rr = balance.mobs[e.mobType]?.radiusPx ?? 0;
+      for (let i = 0; i < Math.floor(rr / 6); i++) {
+        const a = Math.random() * Math.PI * 2;
+        const d = Math.random() * rr * 0.8;
+        pushCapped(gore.splats, [Math.round(e.x + Math.cos(a) * d), Math.round(e.y + Math.sin(a) * d), 1], max.maxSplats);
+      }
       pushCapped(gore.corpses, [e.mobType, Math.round(e.x), Math.round(e.y), e.a], max.maxCorpses);
       fx.mobDeath(now, e);
       break;
+    }
   }
 }
 
@@ -352,13 +362,6 @@ function onSnap(snap) {
   buffer.push(snap, performance.now());
   grid = buildGrid(balance.map.tilesW, balance.map.tilesH, snap.items);
   for (const it of snap.items) itemRot.set(it.id, it.rot ?? 0);
-  if (prev) {
-    const before = new Map(prev.mobs.map((m) => [m[0], m]));
-    for (const m of snap.mobs) {
-      const p = before.get(m[0]);
-      if (p && (p[2] !== m[2] || p[3] !== m[3])) mobAngles.set(m[0], Math.atan2(m[3] - p[3], m[2] - p[2]));
-    }
-  }
   const me = myView(snap);
   if (me) predictor.reconcile(me, snap.you.ackSeq, moveCtx(me));
 }
@@ -505,7 +508,7 @@ function ghostFor(me, snap, players, aim) {
   const { tilePx } = balance.map;
   const circles = [];
   for (const p of players) if (p.state !== 'dead' && !p.suspended) circles.push({ x: p.x, y: p.y, r: balance.player.radiusPx });
-  for (const m of snap.mobs) circles.push({ x: m[2], y: m[3], r: balance.mobs[m[1]].radiusPx });
+  for (const m of snap.mobs) circles.push({ x: m[MV.x], y: m[MV.y], r: balance.mobs[m[MV.type]].radiusPx });
   const rot = itemDef(me.held)?.rotatable ? heldRot : 0;
   const t = placeTarget({
     grid, kind: me.held, rot, playerX: me.x, playerY: me.y, aimX: aim.x, aimY: aim.y, circles, tilePx,
@@ -578,7 +581,7 @@ function frame(now) {
     mobs: lerpEntities(a.mobs, b.mobs, alpha, MOB_KEY),
     bullets: lerpEntities(a.bullets, b.bullets, alpha, BULLET_KEY),
     mobBullets: lerpEntities(a.mobBullets ?? [], b.mobBullets ?? [], alpha, BULLET_KEY),
-    items: b.items, myId, mobAngles, gore, seed: latest.seed,
+    items: b.items, myId, gore, seed: latest.seed,
     droplets: lerpEntities(a.droplets ?? [], b.droplets ?? [], alpha, BULLET_KEY),
     rockets: lerpEntities(a.rockets ?? [], b.rockets ?? [], alpha, BULLET_KEY),
     effects, shakes, nowMs: now, pxScale: scale, fx,
