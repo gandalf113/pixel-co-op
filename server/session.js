@@ -2,12 +2,26 @@ import { randomUUID } from 'node:crypto';
 import { Game } from './game.js';
 import { COLORS, sanitizeNick } from '../public/shared/protocol.js';
 
+// Ile musi trwać partia i ile realnych inputów musi przyjść, żeby zaliczyć ją
+// jako FAKTYCZNĄ rozgrywkę, a nie wejście na stronę, skanera albo odbicie.
+const REAL_PLAY = { minSeconds: 60, minInputs: 200 };
+
 export class Session {
-  constructor({ balance, addresses = [], seed = 1, makeToken = randomUUID }) {
+  constructor({
+    balance, addresses = [], seed = 1, makeToken = randomUUID,
+    code = null, hostPolicy = 'local', telemetry = null, onEmpty = null,
+    realPlay = REAL_PLAY, now = () => Date.now(),
+  }) {
     this.balance = balance;
     this.addresses = addresses;
     this.seed = seed;
     this.makeToken = makeToken;
+    this.code = code;
+    this.hostPolicy = hostPolicy;
+    this.telemetry = telemetry;
+    this.onEmpty = onEmpty;
+    this.realPlay = realPlay;
+    this.now = now;
     this.players = [];
     this.byConn = new Map();
     this.hostToken = null;
@@ -16,6 +30,12 @@ export class Session {
     this.nextId = 1;
     this.snapAcc = 0;
     this.resultsSent = false;
+    this.createdAt = now();
+    this.gamesPlayed = 0;
+    this.realGamesPlayed = 0;
+    this.gameId = null;
+    this.gameInputs = 0;
+    this.endEmitted = true;
   }
 
   connect() {}
@@ -46,6 +66,24 @@ export class Session {
     this.#drop(conn, false);
   }
 
+  // Zamknięcie pokoju z zewnątrz (GC pustych pokoi, zamykanie serwera).
+  close(reason = 'closed') {
+    this.#endGameTelemetry(reason);
+    this.#emit('room_close', {
+      durationS: Math.round((this.now() - this.createdAt) / 1000),
+      games: this.gamesPlayed,
+      realGames: this.realGamesPlayed,
+    });
+  }
+
+  get playerCount() {
+    return this.players.length;
+  }
+
+  get connectedCount() {
+    return this.byConn.size;
+  }
+
   tick(dt) {
     const g = this.game;
     if (!g) return;
@@ -72,8 +110,37 @@ export class Session {
     }
     if (g.phase === 'over' && !this.resultsSent) {
       this.resultsSent = true;
+      this.#endGameTelemetry('over');
       this.#broadcast({ t: 'results', ...g.results() });
     }
+  }
+
+  #emit(type, data = {}) {
+    this.telemetry?.event(type, { room: this.code, ...data });
+  }
+
+  #endGameTelemetry(reason) {
+    const g = this.game;
+    if (!g || this.endEmitted) return;
+    this.endEmitted = true;
+    const res = g.results();
+    const durationS = Math.round(res.timeS);
+    const real = durationS >= this.realPlay.minSeconds && this.gameInputs >= this.realPlay.minInputs;
+    this.gamesPlayed++;
+    if (real) this.realGamesPlayed++;
+    this.#emit('game_end', {
+      gameId: this.gameId,
+      reason,
+      durationS,
+      wave: res.wave,
+      difficulty: this.difficulty,
+      inputs: this.gameInputs,
+      realPlay: real,
+      players: res.players.map((p) => ({
+        pid: this.players.find((q) => q.nick === p.nick)?.pid ?? null,
+        nick: p.nick, kills: p.kills, downs: p.downs ?? 0, ultsUsed: p.ultsUsed ?? 0, ultKind: p.ultKind ?? null,
+      })),
+    });
   }
 
   #hello(conn, msg) {
@@ -93,13 +160,18 @@ export class Session {
       return;
     }
     if (this.game) return this.#reject(conn, 'Gra w toku');
-    if (this.players.length >= this.balance.session.maxPlayers) return this.#reject(conn, 'Serwer pełny');
+    if (this.players.length >= this.balance.session.maxPlayers) return this.#reject(conn, this.code ? 'Pokój pełny' : 'Serwer pełny');
     const nick = sanitizeNick(msg.nick);
     if (nick === null) return this.#reject(conn, 'Nieprawidłowy nick');
-    const p = { id: `p${this.nextId++}`, token: this.makeToken(), nick, conn, isLocal: !!conn.isLocal, graceLeft: null };
+    const p = {
+      id: `p${this.nextId++}`, token: this.makeToken(), nick, conn,
+      isLocal: !!conn.isLocal, graceLeft: null,
+      pid: conn.pid ?? null, joinedAt: this.now(),
+    };
     this.players.push(p);
     this.byConn.set(conn, p);
-    if (this.hostToken === null && p.isLocal) this.hostToken = p.token;
+    if (this.hostToken === null && (this.hostPolicy === 'first' || p.isLocal)) this.hostToken = p.token;
+    this.#emit('join', { pid: p.pid, nick: p.nick, ipHash: conn.ipHash ?? null, players: this.players.length });
     this.#welcome(p);
     this.#broadcastLobby();
   }
@@ -110,7 +182,7 @@ export class Session {
   }
 
   #welcome(p) {
-    p.conn.send({ t: 'welcome', id: p.id, token: p.token, balance: this.balance });
+    p.conn.send({ t: 'welcome', id: p.id, token: p.token, room: this.code, balance: this.balance });
     if (this.game) p.conn.send({ t: 'gore', ...this.game.world.gore });
   }
 
@@ -121,6 +193,7 @@ export class Session {
   #input(p, m) {
     if (!this.game || !Number.isInteger(m.seq) || m.seq <= 0) return;
     if (!Number.isFinite(m.aimX) || !Number.isFinite(m.aimY)) return;
+    this.gameInputs++;
     this.game.queueInput(p.id, {
       seq: m.seq,
       mx: Math.sign(Number(m.mx)) || 0,
@@ -159,6 +232,14 @@ export class Session {
     });
     this.snapAcc = 0;
     this.resultsSent = false;
+    this.gameId = `${this.code ?? 'lan'}-${this.now().toString(36)}-${this.gamesPlayed}`;
+    this.gameInputs = 0;
+    this.endEmitted = false;
+    this.#emit('game_start', {
+      gameId: this.gameId,
+      difficulty: this.difficulty,
+      players: this.players.map((q) => ({ pid: q.pid, nick: q.nick, ultKind: q.ultKind })),
+    });
   }
 
   #toLobby(p) {
@@ -167,13 +248,17 @@ export class Session {
   }
 
   #backToLobby() {
+    this.#endGameTelemetry('aborted');
     this.game = null;
     this.players = this.players.filter((q) => q.conn);
     for (const q of this.players) q.graceLeft = null;
-    if (!this.players.some((q) => q.token === this.hostToken)) {
-      this.hostToken = this.players.find((q) => q.isLocal)?.token ?? null;
-    }
+    if (!this.players.some((q) => q.token === this.hostToken)) this.hostToken = this.#pickHost();
     this.#broadcastLobby();
+  }
+
+  #pickHost() {
+    if (this.hostPolicy === 'first') return this.players[0]?.token ?? null;
+    return this.players.find((q) => q.isLocal)?.token ?? null;
   }
 
   #drop(conn, immediate) {
@@ -183,8 +268,10 @@ export class Session {
     p.conn = null;
     if (!this.game) {
       this.players = this.players.filter((q) => q !== p);
+      this.#leaveTelemetry(p);
       this.#releaseHost(p);
       this.#broadcastLobby();
+      this.#checkEmpty();
     } else if (immediate) {
       this.#removeFromGame(p);
     } else {
@@ -193,19 +280,47 @@ export class Session {
     }
   }
 
+  #leaveTelemetry(p) {
+    this.#emit('leave', {
+      pid: p.pid, nick: p.nick,
+      playedS: Math.round((this.now() - p.joinedAt) / 1000),
+      players: this.players.length,
+    });
+  }
+
   #releaseHost(p) {
-    if (this.#isHost(p)) this.hostToken = this.players.find((q) => q.isLocal)?.token ?? null;
+    if (this.#isHost(p)) {
+      this.hostToken = this.#pickHost();
+      this.#announceHost();
+    }
+  }
+
+  #announceHost() {
+    for (const q of this.players) q.conn?.send({ t: 'host', youAreHost: this.#isHost(q) });
   }
 
   #removeFromGame(p) {
     const wasHost = this.#isHost(p);
     this.game.remove(p.id);
     this.players = this.players.filter((q) => q !== p);
+    this.#leaveTelemetry(p);
+    // W trybie pokoi gra toczy się dalej — host zostaje przekazany dalej.
+    // W trybie LAN wyjście hosta kończy sesję (host trzyma serwer).
+    if (wasHost && this.hostPolicy === 'first' && this.players.length) {
+      this.hostToken = this.#pickHost();
+      this.#announceHost();
+      return;
+    }
     if (wasHost) {
       this.hostToken = null;
       this.#broadcast({ t: 'ended', reason: 'Host opuścił grę' });
       this.#backToLobby();
     }
+    this.#checkEmpty();
+  }
+
+  #checkEmpty() {
+    if (this.players.length === 0) this.onEmpty?.(this);
   }
 
   #broadcast(obj) {
@@ -216,7 +331,8 @@ export class Session {
     const players = this.players.map((p, i) => ({ id: p.id, nick: p.nick, color: COLORS[i], host: this.#isHost(p), ultKind: p.ultKind ?? null }));
     for (const p of this.players) {
       p.conn?.send({
-        t: 'lobby', players, difficulty: this.difficulty, addresses: this.addresses, youAreHost: this.#isHost(p),
+        t: 'lobby', players, difficulty: this.difficulty, addresses: this.addresses,
+        room: this.code, youAreHost: this.#isHost(p),
       });
     }
   }

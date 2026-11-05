@@ -154,7 +154,7 @@ export class Game {
     return {
       wave: this.world.wave,
       timeS: this.overAt ?? this.world.time,
-      players: this.roster.map((p) => ({ nick: p.nick, color: p.color, kills: p.kills })),
+      players: this.roster.map((p) => ({ nick: p.nick, color: p.color, kills: p.kills, downs: p.downs ?? 0, ultsUsed: p.ultsUsed ?? 0, ultKind: p.ultKind ?? null })),
     };
   }
 

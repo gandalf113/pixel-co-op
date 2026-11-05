@@ -30,6 +30,8 @@ let predictor = null;
 let myId = null;
 let nick = stored('nick') ?? '';
 let isHost = false;
+let serverMode = 'lan';
+let leaderboard = null;
 let mode = 'nick';
 let status = 'idle';
 let paused = false;
@@ -59,10 +61,26 @@ const FLASH_MS = 300;
 let scale = 1;
 const offset = { x: 0, y: 0 };
 
-function join(n) {
+function roomFromUrl() {
+  const code = new URL(location.href).searchParams.get('r');
+  return code ? code.trim().toUpperCase() : null;
+}
+
+function setUrlRoom(code) {
+  const url = new URL(location.href);
+  if (code) url.searchParams.set('r', code);
+  else url.searchParams.delete('r');
+  history.replaceState(null, '', url);
+}
+
+function showJoin() {
+  ui.showJoinForm({ nick, room: roomFromUrl() ?? '', rooms: serverMode === 'rooms', leaderboard }, join);
+}
+
+function join(n, room = null) {
   nick = n;
   ui.showMessage('Łączę…');
-  conn.connect(n);
+  conn.connect(n, serverMode === 'rooms' ? room : null);
 }
 
 function resetGame() {
@@ -100,8 +118,12 @@ function enterLobbyScreen(msg) {
 
 function onMessage(msg) {
   switch (msg.t) {
+    case 'host':
+      isHost = msg.youAreHost;
+      break;
     case 'welcome':
       myId = msg.id;
+      if (msg.room) setUrlRoom(msg.room);
       balance = msg.balance;
       sprites ??= bakeSprites(document, COLORS);
       predictor ??= new Predictor(balance);
@@ -130,7 +152,8 @@ function onMessage(msg) {
     case 'results':
       mode = 'results';
       paused = false;
-      ui.showResults(msg, isHost, () => conn.send({ t: 'toLobby' }));
+      ui.showResults(msg, isHost, () => conn.send({ t: 'toLobby' }), leaderboard);
+      void refreshLeaderboard();
       break;
     case 'ended':
       lobbyDelayUntil = performance.now() + ENDED_MSG_MS;
@@ -212,7 +235,7 @@ function onStatus(s, reason) {
   resetGame();
   ui.showMessage(reason ?? 'Odrzucono');
   setTimeout(() => {
-    if (mode === 'nick') ui.showNickForm(join, nick);
+    if (mode === 'nick') showJoin();
   }, ENDED_MSG_MS);
 }
 
@@ -332,7 +355,8 @@ function pause() {
       mode = 'nick';
       status = 'idle';
       resetGame();
-      ui.showNickForm(join, nick);
+      setUrlRoom(null);
+      showJoin();
     },
   });
 }
@@ -465,8 +489,29 @@ function frame(now) {
   });
 }
 
+async function refreshLeaderboard() {
+  try {
+    const res = await fetch('/api/leaderboard', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && Array.isArray(data.runs)) leaderboard = data;
+  } catch {
+    leaderboard = null;
+  }
+}
+
+async function boot() {
+  try {
+    const res = await fetch('/healthz', { cache: 'no-store' });
+    if (res.ok) serverMode = (await res.json()).mode ?? 'lan';
+  } catch {}
+  await refreshLeaderboard();
+  const url = roomFromUrl();
+  if (nick && stored('token') && (serverMode !== 'rooms' || url === stored('room'))) join(nick, url);
+  else showJoin();
+}
+
 addEventListener('resize', resize);
 resize();
 requestAnimationFrame(frame);
-if (nick && stored('token')) join(nick);
-else ui.showNickForm(join, nick);
+boot();

@@ -19,6 +19,7 @@ To repo trzyma **dokumentację produktu**. Podział ról:
 | [docs/06-OPEN-QUESTIONS.md](docs/06-OPEN-QUESTIONS.md) | Decyzje do podjęcia i rzeczy czekające na doprecyzowanie |
 | [docs/07-BACKLOG-V2.md](docs/07-BACKLOG-V2.md) | Backlog V2: boss, dźwięk, mapy, statystyki |
 | [docs/08-ULTIMATE.md](docs/08-ULTIMATE.md) | ULTIMATE (w MVP): shiny droplets, wspólny pasek, 3 progi, 7 umiejętności, testy |
+| [docs/09-HOSTING.md](docs/09-HOSTING.md) | Tryb hostowany: pokoje, telemetria faktycznego użycia, leaderboard (opcjonalny, domyślnie wyłączony) |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Historia zmian w dokumentacji |
 
 ## Jak czytać

@@ -29,17 +29,84 @@ export function showMessage(text) {
   show(el('div', { className: 'panel msg' }, text));
 }
 
-export function showNickForm(onSubmit, initial = '') {
-  const input = el('input', { type: 'text', maxLength: 12, value: initial, placeholder: 'nick', autofocus: true });
+const DIFF_NAMES = ['łatwy', 'normalny', 'trudny', 'koszmar'];
+
+// Leaderboard przychodzi z serwera statystyk (wyniki liczy symulacja serwerowa,
+// klient nie ma jak ich podrobić). Brak danych = panel się nie pokazuje.
+export function leaderboardPanel(data) {
+  if (!data || (!data.runs?.length && !data.players?.length)) return null;
+  const body = el('div', {});
+  const tabs = el('div', { className: 'lb-tabs' });
+  const render = (which) => {
+    for (const b of tabs.children) b.classList.toggle('sel', b.dataset.k === which);
+    if (which === 'runs') {
+      body.replaceChildren(el('table', { className: 'lb' },
+        el('tr', {}, el('th', {}, '#'), el('th', {}, 'Fala'), el('th', {}, 'Czas'), el('th', {}, 'Zab.'), el('th', {}, 'Poziom'), el('th', {}, 'Gracze')),
+        ...data.runs.map((r, i) => el('tr', {},
+          el('td', {}, String(i + 1)),
+          el('td', {}, String(r.wave)),
+          el('td', {}, formatTime(r.timeS)),
+          el('td', {}, String(r.kills)),
+          el('td', { className: 'muted' }, DIFF_NAMES[r.difficulty - 1] ?? '?'),
+          el('td', {}, (r.players ?? []).join(', '))))));
+    } else {
+      body.replaceChildren(el('table', { className: 'lb' },
+        el('tr', {}, el('th', {}, '#'), el('th', {}, 'Gracz'), el('th', {}, 'Zab.'), el('th', {}, 'Partie'), el('th', {}, 'Najd. fala')),
+        ...(data.players ?? []).map((r, i) => el('tr', {},
+          el('td', {}, String(i + 1)),
+          el('td', {}, r.nick),
+          el('td', {}, String(r.kills)),
+          el('td', {}, String(r.games)),
+          el('td', {}, String(r.bestWave))))));
+    }
+  };
+  for (const [k, label] of [['runs', 'Przebiegi'], ['players', 'Gracze']]) {
+    const btn = el('button', { type: 'button', className: 'lb-tab', onclick: () => render(k) }, label);
+    btn.dataset.k = k;
+    tabs.append(btn);
+  }
+  render('runs');
+  return el('div', { className: 'lb-wrap' }, el('label', {}, 'Leaderboard'), tabs, body);
+}
+
+export function roomLink(code) {
+  const url = new URL(location.href);
+  url.hash = '';
+  url.search = `?r=${code}`;
+  return url.toString();
+}
+
+// Tryb LAN: samo pole nicku (jedna sesja na serwer).
+// Tryb hostowany: nick + kod pokoju; puste pole = nowy pokój.
+export function showJoinForm({ nick = '', room = '', rooms = false, leaderboard = null }, onSubmit) {
+  const nickInput = el('input', { type: 'text', maxLength: 12, value: nick, placeholder: 'nick', autofocus: true });
+  const codeInput = el('input', { type: 'text', maxLength: 8, value: room, placeholder: 'puste = nowy pokój', className: 'code' });
+  const error = el('div', { className: 'muted' });
+  const submit = (code) => {
+    const n = nickInput.value.trim();
+    if (!n) return;
+    onSubmit(n, code);
+  };
   const form = el('form', {
     onsubmit: (e) => {
       e.preventDefault();
-      const nick = input.value.trim();
-      if (nick) onSubmit(nick);
+      submit(rooms ? codeInput.value.trim().toUpperCase() || null : null);
     },
-  }, el('h1', {}, 'LAN CO-OP'), el('label', {}, 'Twój nick'), input, el('button', { type: 'submit' }, 'Dołącz'));
-  show(el('div', { className: 'panel' }, form));
-  input.focus();
+  },
+  el('h1', {}, 'PIXEL CO-OP'),
+  el('label', {}, 'Twój nick'), nickInput,
+  rooms ? el('label', {}, 'Kod pokoju') : null,
+  rooms ? codeInput : null,
+  el('button', { type: 'submit' }, rooms ? 'Dołącz / nowy pokój' : 'Dołącz'),
+  error);
+  const board = leaderboardPanel(leaderboard);
+  show(el('div', { className: `panel${board ? ' wide' : ''}` }, form, board));
+  nickInput.focus();
+  return { error: (text) => { error.textContent = text ?? ''; } };
+}
+
+export function showNickForm(onSubmit, initial = '') {
+  return showJoinForm({ nick: initial }, (nick) => onSubmit(nick));
 }
 
 function tierLines(u) {
@@ -62,9 +129,22 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
   });
   const players = el('ul', {}, ...msg.players.map((p) => el('li', { style: { color: p.color } },
     `${p.nick}${p.host ? ' (host)' : ''} · ${p.ultKind ? ultimates[p.ultKind].name : 'wybiera ultimate…'}`)));
-  const addresses = msg.addresses?.length
-    ? el('ul', {}, ...msg.addresses.map((a) => el('li', {}, a)))
-    : el('div', { className: 'muted' }, 'brak adresów LAN');
+  const link = msg.room ? roomLink(msg.room) : null;
+  const copy = link
+    ? el('button', {
+      type: 'button', className: 'copy',
+      onclick: (e) => {
+        navigator.clipboard?.writeText(link);
+        e.target.textContent = 'skopiowano';
+        setTimeout(() => { e.target.textContent = 'kopiuj link'; }, 1500);
+      },
+    }, 'kopiuj link')
+    : null;
+  const addresses = link
+    ? el('div', {}, el('div', { className: 'room-code' }, msg.room), el('div', { className: 'muted' }, link), copy)
+    : msg.addresses?.length
+      ? el('ul', {}, ...msg.addresses.map((a) => el('li', {}, a)))
+      : el('div', { className: 'muted' }, 'brak adresów LAN');
   const allChosen = msg.players.every((p) => p.ultKind);
   const mine = msg.players.find((p) => p.id === myId)?.ultKind;
   const detail = el('div', { className: 'ult-detail' });
@@ -88,7 +168,7 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
   show(el('div', { className: 'panel lobby' },
     el('h2', {}, 'LOBBY'),
     el('div', { className: 'lobby-top' },
-      el('div', {}, el('label', {}, 'Gracze'), players, el('label', {}, 'Dołącz z sieci LAN'), addresses),
+      el('div', {}, el('label', {}, 'Gracze'), players, el('label', {}, msg.room ? 'Zaproś' : 'Dołącz z sieci LAN'), addresses),
       el('div', {}, el('label', {}, 'Trudność'), slider, name, desc)),
     el('label', {}, 'Twój ULTIMATE [F]'), row, detail,
     msg.youAreHost
@@ -107,12 +187,16 @@ export function showPause({ onResume, onFullscreen, onLeave }) {
   ));
 }
 
-export function showResults(results, isHost, onLobby) {
-  const rows = results.players.map((p) => el('tr', {}, el('td', { style: { color: p.color } }, p.nick), el('td', {}, String(p.kills))));
+export function showResults(results, isHost, onLobby, leaderboard = null) {
+  const rows = results.players.map((p) => el('tr', {},
+    el('td', { style: { color: p.color } }, p.nick),
+    el('td', {}, String(p.kills)),
+    el('td', {}, String(p.downs ?? 0))));
   show(el('div', { className: 'panel' },
     el('h2', {}, 'KONIEC GRY'),
     el('p', {}, `Fala: ${results.wave} · czas: ${formatTime(results.timeS)}`),
-    el('table', {}, el('tr', {}, el('th', {}, 'Gracz'), el('th', {}, 'Zabójstwa')), ...rows),
+    el('table', {}, el('tr', {}, el('th', {}, 'Gracz'), el('th', {}, 'Zabójstwa'), el('th', {}, 'Upadki')), ...rows),
+    leaderboardPanel(leaderboard),
     isHost ? el('button', { onclick: onLobby }, 'Do lobby') : el('p', { className: 'muted' }, 'Czekam na hosta…'),
   ));
 }

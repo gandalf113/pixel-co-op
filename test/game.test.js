@@ -93,8 +93,8 @@ test('game over when all downed (F7)', () => {
   assert.equal(res.wave, 1);
   assert.ok(near(res.timeS, g.world.time));
   assert.deepEqual(res.players, [
-    { nick: 'Ala', color: 0, kills: 0 },
-    { nick: 'Bob', color: 1, kills: 0 },
+    { nick: 'Ala', color: 0, kills: 0, downs: 0, ultsUsed: 0, ultKind: null },
+    { nick: 'Bob', color: 1, kills: 0, downs: 0, ultsUsed: 0, ultKind: null },
   ]);
   const t = g.world.time;
   g.tick(DT);

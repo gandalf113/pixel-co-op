@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.21 - 2026-11-05
+- 09-HOSTING: tryb hostowany (pokoje z kodem, telemetria faktycznej rozgrywki, leaderboard). Domyslnie wylaczony, TECH-01 dla trybu LAN bez zmian.
+
 ## 0.20 - 2026-11-05
 - R51 sciana przy ciosie: jeden mikroruch 1 px lewo-prawo zamiast wibracji (FX-08, FX-02, 03 sekcja 1, X7).
 

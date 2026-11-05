@@ -217,6 +217,7 @@ export function useUltimate(world, p) {
   const kindCfg = ult(world).kinds[p.ultKind];
   const c = kindCfg.tiers[tier - 1];
   p.ult = 0;
+  p.ultsUsed = (p.ultsUsed ?? 0) + 1;
   switch (p.ultKind) {
     case 'shockwave': shockwave(world, p, c); break;
     case 'wall': for (const w of wallPieces(world, p, c)) spawnUltWall(world, w.tx, w.ty, w.rot, c.hp, c.durationS); break;

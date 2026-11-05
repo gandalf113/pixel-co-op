@@ -1,5 +1,6 @@
 const DEFAULT_GRACE_S = 30;
 const DEFAULT_TIMEOUT_S = 6;
+const PID_KEY = 'pixelcoop.pid';
 
 function store(key, value) {
   try {
@@ -16,12 +17,31 @@ export function stored(key) {
   }
 }
 
+// Anonimowy, trwały identyfikator przeglądarki. Serwer nigdy nie widzi tej
+// wartości wprost — soli ją i hashuje, zanim trafi do statystyk. Służy tylko do
+// odróżnienia "ktoś wrócił" od "ktoś nowy".
+export function playerId() {
+  try {
+    let id = localStorage.getItem(PID_KEY);
+    if (!id) {
+      const buf = new Uint8Array(8);
+      crypto.getRandomValues(buf);
+      id = [...buf].map((b) => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem(PID_KEY, id);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 export class Connection {
   constructor(onMessage, onStatus) {
     this.onMessage = onMessage;
     this.onStatus = onStatus;
     this.ws = null;
     this.nick = null;
+    this.room = stored('room');
     this.token = stored('token');
     this.wanted = false;
     this.inGame = false;
@@ -33,9 +53,17 @@ export class Connection {
     this.watchdog = setInterval(() => this.#checkTimeout(), 1000);
   }
 
-  connect(nick) {
+  // room === null → serwer zakłada nowy pokój (tryb hostowany).
+  // W trybie LAN pole jest ignorowane, bo sesja jest jedna.
+  connect(nick, room = null) {
     this.nick = nick;
     store('nick', nick);
+    if (room !== this.room) {
+      this.token = null;
+      store('token', null);
+    }
+    this.room = room;
+    store('room', room);
     this.wanted = true;
     this.lostAt = null;
     this.#open();
@@ -49,7 +77,9 @@ export class Connection {
     this.send({ t: 'leave' });
     this.#stop();
     this.token = null;
+    this.room = null;
     store('token', null);
+    store('room', null);
   }
 
   #stop() {
@@ -62,13 +92,14 @@ export class Connection {
 
   #open() {
     clearTimeout(this.retry);
-    const ws = new WebSocket(`ws://${location.host}/ws`);
+    const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${scheme}://${location.host}/ws`);
     this.ws = ws;
     this.onStatus('connecting');
     ws.onopen = () => {
       if (ws !== this.ws) return;
       this.lastMsg = Date.now();
-      ws.send(JSON.stringify({ t: 'hello', nick: this.nick, token: this.token }));
+      ws.send(JSON.stringify({ t: 'hello', nick: this.nick, token: this.token, room: this.room, pid: playerId() }));
     };
     ws.onmessage = (e) => {
       if (ws !== this.ws) return;
@@ -82,13 +113,19 @@ export class Connection {
       if (msg.t === 'welcome') {
         this.token = msg.token;
         store('token', msg.token);
+        if (msg.room) {
+          this.room = msg.room;
+          store('room', msg.room);
+        }
         this.graceS = msg.balance?.session?.reconnectGraceS ?? DEFAULT_GRACE_S;
         this.timeoutS = msg.balance?.session?.timeoutS ?? DEFAULT_TIMEOUT_S;
         this.lostAt = null;
         this.onStatus('open');
       } else if (msg.t === 'reject') {
         this.token = null;
+        this.room = null;
         store('token', null);
+        store('room', null);
         this.#stop();
         this.onStatus('rejected', msg.reason);
       }
