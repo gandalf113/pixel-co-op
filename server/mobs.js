@@ -1,0 +1,175 @@
+import { buildField, nextStep } from './flowfield.js';
+import { damagePlayer } from './players.js';
+import { moveCircle, tileOf } from '../public/shared/world.js';
+
+const EPS = 1e-9;
+
+const isStand = (p) => p.state === 'alive' && !p.suspended;
+const isDown = (p) => p.state === 'downed' && !p.suspended;
+
+function tilesOf(world, pred) {
+  const t = world.rules.tilePx;
+  const out = [];
+  for (const p of world.players.values()) if (pred(p)) out.push([tileOf(p.x, t), tileOf(p.y, t)]);
+  return out;
+}
+
+export function buildMobFields(world) {
+  const { grid } = world;
+  const { wallCost } = world.rules.balance.mobAi;
+  const stand = tilesOf(world, isStand);
+  const down = tilesOf(world, isDown);
+  return {
+    stand: buildField(grid, stand, null),
+    standSiege: buildField(grid, stand, wallCost),
+    down: buildField(grid, down, null),
+    downSiege: buildField(grid, down, wallCost),
+  };
+}
+
+function refreshFields(world, dt) {
+  world.fieldTimer = (world.fieldTimer ?? 0) - dt;
+  if (world.mobFields && !world.fieldsDirty && world.fieldTimer > 0) return;
+  world.mobFields = buildMobFields(world);
+  world.fieldTimer = world.rules.balance.mobAi.fieldRebuildS;
+  world.fieldsDirty = false;
+}
+
+function nearest(world, mob, pred) {
+  let best = null;
+  let bestD = Infinity;
+  for (const p of world.players.values()) {
+    if (!pred(p)) continue;
+    const d = Math.hypot(p.x - mob.x, p.y - mob.y);
+    if (d < bestD) {
+      bestD = d;
+      best = p;
+    }
+  }
+  return { player: best, dist: bestD };
+}
+
+function pickTarget(world, mob, stand) {
+  const { tilePx, balance } = world.rules;
+  if (stand.dist <= balance.mobAi.downedTargetRangeTiles * tilePx) return { down: false, ...stand };
+  const down = nearest(world, mob, isDown);
+  if (down.player) return { down: true, ...down };
+  return { down: false, ...stand };
+}
+
+function chooseField(world, mob, isDownTarget, tx, ty) {
+  const f = world.mobFields;
+  const normal = isDownTarget ? f.down : f.stand;
+  const siege = isDownTarget ? f.downSiege : f.standSiege;
+  if (world.rules.balance.mobs[mob.type].siege) return { field: siege, siege: true };
+  const idx = ty * world.grid.w + tx;
+  const v = normal[idx];
+  if (v === Infinity || v > world.rules.balance.mobAi.detourMax * siege[idx]) return { field: siege, siege: true };
+  return { field: normal, siege: false };
+}
+
+function resolveStep(grid, tx, ty, step) {
+  const [nx, ny] = step;
+  if (grid.isSolid(nx, ny) || nx === tx || ny === ty) return step;
+  const sideX = grid.isSolid(nx, ty);
+  const sideY = grid.isSolid(tx, ny);
+  if (sideX && sideY) return [nx, ty];
+  if (sideX) return [tx, ny];
+  if (sideY) return [nx, ty];
+  return step;
+}
+
+function moveToward(world, mob, gx, gy, maxDist) {
+  const dx = gx - mob.x;
+  const dy = gy - mob.y;
+  const d = Math.hypot(dx, dy);
+  if (d < EPS) return;
+  const s = Math.min(maxDist, d) / d;
+  const r = world.rules.balance.mobs[mob.type].radiusPx;
+  const pos = moveCircle(world.grid, mob.x, mob.y, r, dx * s, dy * s, world.rules.tilePx);
+  mob.x = pos.x;
+  mob.y = pos.y;
+}
+
+function attackObject(world, mob, tx, ty, hooks) {
+  const item = world.items.get(world.grid.id(tx, ty));
+  if (!item || item.hp <= 0 || mob.attackCd > EPS) return;
+  const cfg = world.rules.balance.mobs[mob.type];
+  item.hp -= world.rules.mobDamage(mob.type) * cfg.wallMult;
+  mob.attackCd = cfg.attackS;
+  if (item.hp <= 0) hooks.onObjectDestroyed?.(item);
+}
+
+function updateMob(world, mob, dt, hooks) {
+  const { tilePx, balance } = world.rules;
+  const cfg = balance.mobs[mob.type];
+  const playerR = balance.player.radiusPx;
+  mob.attackCd = Math.max(0, mob.attackCd - dt);
+
+  const stand = nearest(world, mob, isStand);
+  if (stand.player && stand.dist <= cfg.radiusPx + playerR + balance.mobAi.meleeReachPx && mob.attackCd <= EPS) {
+    damagePlayer(world, stand.player, world.rules.mobDamage(mob.type), 'mob');
+    mob.attackCd = cfg.attackS;
+  }
+
+  const target = pickTarget(world, mob, stand);
+  if (!target.player || target.dist <= cfg.radiusPx + playerR) return;
+  const tx = tileOf(mob.x, tilePx);
+  const ty = tileOf(mob.y, tilePx);
+  const { field, siege } = chooseField(world, mob, target.down, tx, ty);
+  const raw = nextStep(field, world.grid, tx, ty, siege ? balance.mobAi.wallCost : null);
+  const speed = world.rules.mobSpeedPx(mob.type) * dt;
+  if (!raw) {
+    moveToward(world, mob, target.player.x, target.player.y, Math.min(speed, target.dist - cfg.radiusPx - playerR));
+    return;
+  }
+  const [nx, ny] = siege ? resolveStep(world.grid, tx, ty, raw) : raw;
+  if (world.grid.isSolid(nx, ny)) {
+    attackObject(world, mob, nx, ny, hooks);
+    return;
+  }
+  moveToward(world, mob, (nx + 0.5) * tilePx, (ny + 0.5) * tilePx, speed);
+}
+
+function separate(world) {
+  const { mobs, grid } = world;
+  const { tilePx, balance } = world.rules;
+  for (let i = 0; i < mobs.length; i++) {
+    for (let j = i + 1; j < mobs.length; j++) {
+      const a = mobs[i];
+      const b = mobs[j];
+      const ra = balance.mobs[a.type].radiusPx;
+      const rb = balance.mobs[b.type].radiusPx;
+      let dx = b.x - a.x;
+      let dy = b.y - a.y;
+      const d = Math.hypot(dx, dy);
+      if (d >= ra + rb) continue;
+      if (d < EPS) {
+        dx = 1;
+        dy = 0;
+      } else {
+        dx /= d;
+        dy /= d;
+      }
+      const push = (ra + rb - d) / 2;
+      const pa = moveCircle(grid, a.x, a.y, ra, -dx * push, -dy * push, tilePx);
+      const pb = moveCircle(grid, b.x, b.y, rb, dx * push, dy * push, tilePx);
+      a.x = pa.x;
+      a.y = pa.y;
+      b.x = pb.x;
+      b.y = pb.y;
+    }
+  }
+}
+
+export function updateMobs(world, dt, hooks = {}) {
+  refreshFields(world, dt);
+  for (const mob of world.mobs) {
+    if (mob.stun > 0) {
+      mob.stun = Math.max(0, mob.stun - dt);
+      continue;
+    }
+    updateMob(world, mob, dt, hooks);
+  }
+  separate(world);
+}

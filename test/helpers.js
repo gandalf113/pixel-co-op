@@ -1,6 +1,6 @@
 import { loadBalance, makeRules } from '../server/balance.js';
 import { makeRng } from '../server/rng.js';
-import { Grid } from '../public/shared/world.js';
+import { Grid, buildGrid } from '../public/shared/world.js';
 import { createPlayer } from '../server/players.js';
 
 export const balance = loadBalance();
@@ -31,4 +31,19 @@ export function makeWorld({ difficulty = 2, players = [] } = {}) {
     world.players.set(p.id, p);
   });
   return world;
+}
+
+export function addMob(world, type, x, y) {
+  const hp = world.rules.mobHp(type, world.wave);
+  const mob = { id: world.nextId(), type, x, y, hp, maxHp: hp, stun: 0, attackCd: 0 };
+  world.mobs.push(mob);
+  return mob;
+}
+
+export function placeWall(world, tx, ty, rot) {
+  const item = { id: world.nextId(), kind: 'wall', state: 'placed', tx, ty, rot, hp: balance.items.wall.hp };
+  world.items.set(item.id, item);
+  world.grid = buildGrid(world.grid.w, world.grid.h, world.items.values());
+  world.fieldsDirty = true;
+  return item;
 }
