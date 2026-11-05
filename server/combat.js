@@ -20,7 +20,7 @@ export function fireWeapons(world, dt) {
   const r = balance.player.radiusPx;
   for (const p of world.players.values()) {
     if (p.state !== 'alive' || p.suspended || p.busy > 0 || p.held !== null) continue;
-    if (!p.input.fire || p.cooldown > 0) continue;
+    if (!p.input.fire || p.fireLock || p.cooldown > 0) continue;
     const x = p.x + Math.cos(p.angle) * r;
     const y = p.y + Math.sin(p.angle) * r;
     spawnBullet(world, {

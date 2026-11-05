@@ -47,6 +47,8 @@ export class Game {
     this.overAt = null;
     this.mobHooks = { onObjectDestroyed: (item) => items.onObjectDestroyed(this.world, item) };
     this.bulletHooks = { onWallHit: (item, dmg) => this.#damageObject(item, dmg) };
+    this.prevFire = new Map();
+    this.world.waveComplete = () => this.director?.done === true && this.world.mobs.length === 0;
     setDropHeld((w, p) => items.dropHeld(w, p));
   }
 
@@ -59,6 +61,7 @@ export class Game {
     if (w.phase === 'over') return;
     w.time += dt;
     updatePlayers(w, dt);
+    this.#throwOnSpace();
     fireWeapons(w, dt);
     items.updateItems(w, dt);
     updateMobs(w, dt, this.mobHooks);
@@ -176,6 +179,20 @@ export class Game {
       reviveProgress: r1(p.reviveProgress), deathLeft: r1(p.deathLeft), invuln: r1(p.invuln), busy: r1(p.busy),
       held: items.heldKind(this.world, p), ready: p.ready, weaponLv: p.weaponLv,
     };
+  }
+
+  #throwOnSpace() {
+    for (const p of this.world.players.values()) {
+      const fire = p.input.fire;
+      const rising = fire && !this.prevFire.get(p.id);
+      this.prevFire.set(p.id, fire);
+      if (!fire) p.fireLock = false;
+      else if (rising && p.held !== null) {
+        items.handleAction(this.world, p, 'space');
+        // Space that threw must not also start shooting while still held.
+        p.fireLock = true;
+      }
+    }
   }
 
   #damageObject(item, dmg) {
