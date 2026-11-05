@@ -197,6 +197,48 @@ Dziś: formularz nick + kod pokoju, brak jakiegokolwiek endpointu listującego; 
 | V3-K-04 | **Ekran "Sterowanie"**: ładny wizualnie obrazek klawiatury i myszy z opisem każdej akcji (pixel-art, generowany z kodu jak reszta grafiki). Aktualizowany razem z R54. Dostępny też z menu pauzy. |
 | V3-K-05 | Lista pokojów odświeża się co ok. 5 s, gdy ekran jest otwarty, i nigdy w trakcie gry. |
 
+## C2. Przeprojektowanie dzwieku (zgloszenia z gry, 2026-11-06)
+
+Po zagraniu w v0.5.0: **poglosu nie slychac**, dzwiek karabinu jest slaby, przeladowanie zle,
+ultimate rozczarowujace. Ponizej diagnoza i konkretne recepty — agent implementujacy ma sie
+ich trzymac, a nie wymyslac wlasne.
+
+### Dlaczego poglosu nie slychac (diagnoza, nie domysl)
+Trasa jest poprawna (`out -> send -> ConvolverNode -> master`), wiec problem jest w poziomach:
+1. `ConvolverNode.normalize` jest domyslnie `true` — przeglądarka skaluje odpowiedz impulsowa
+   do stalej mocy, co przy krotkim IR daje bardzo cichy ogon;
+2. `DynamicsCompressor` jako limiter dociska ogon **zaraz po transjencie** (to jest dokladnie
+   to, co kompresor robi), wiec resztka poglosu ginie pod progiem slyszalnosci;
+3. sam dzwiek strzalu trwa 14 ms — nie ma czego pogłosić, ucho potrzebuje **ogona w samym
+   dzwieku**, zeby uslyszec przestrzen.
+
+| ID | Wymóg |
+|---|---|
+| V3-C-09 | **Naprawa poglosu**: `convolver.normalize = false` i jawne skalowanie IR do szczytu ok. 0.4; **pre-delay** przed konwolwerem (`DelayNode`: 12 ms pokoj, 35 ms hala) — bez niego ogon zlewa sie z transjentem; udzial wet w gore: strzal 0.45, armata 0.4, `destroyed` 0.7, `explode` 1.1, przeladowanie 0.25, ultimate 0.8; szyna wet **omija limiter albo ma wlasny makeup gain**, zeby kompresor nie zjadal ogona. Do tego kazdy glosny dzwiek dostaje **wlasny, syntezowany ogon** jako warstwa (patrz recepty nizej) — konwolwer ma dokladac przestrzen, a nie byc jedynym zrodlem ogona. |
+| V3-C-10 | **Karabin od nowa, 5 warstw** (struktura z praktyki projektowania broni: transjent / body / mechanika / ogon). Dzis sa 2 warstwy i brzmi jak "pyk". Recepta: (1) **transjent** bialy szum 8 ms, highpass 3 kHz, poziom 0.9, zanik wykladniczy; (2) **body** szum pasmowy 1.2 kHz Q 1.5, 35 ms, poziom 0.6, lowpass jadacy 4000 -> 900 Hz; (3) **dol** sinus 160 -> 45 Hz, 60 ms, poziom 0.5 (to daje "kopa", dzis go nie ma); (4) **mechanika** krotki square 2.5 kHz, 3 ms, poziom 0.15 (zamek); (5) **ogon** szum 180 ms, lowpass 1.2 kHz, poziom 0.18, start 25 ms po transjencie. Rozrzut wysokosci +/-7% zostaje. |
+| V3-C-11 | **Przeladowanie od nowa, 4 zdarzenia** (dzis: za cicho i za plasko). (1) **0%**: zatrzask magazynka — szum 3 ms bp 3.5 kHz + square 1.8 kHz 4 ms + cicha "sprezyna" (trojkat 900 -> 1400 Hz, 40 ms, 0.1); (2) **10%**: wysuniecie magazynka — brazowy szum 60 ms lp 1.5 kHz, 0.25; (3) **60%**: **wbicie nowego, najglosniejsze** — brazowy szum 70 ms lp 600 Hz + sinus 140 -> 50 Hz 60 ms + bialy szum 12 ms bp 2.2 kHz, lacznie ok. 0.8; (4) **koniec**: zamek — szum 25 ms hp 2.5 kHz 0.9 + square 3.2 kHz 5 ms + metaliczny "ring" (trojkat 2600 Hz, 90 ms, 0.12, zanik). Calosc rozciagana na **faktyczny** `reloadS` (V3-C-07 zostaje). |
+| V3-C-12 | **ULTIMATE od nowa, 3 fazy** (dzis: krotki sweep FM, za malo jak na "wlasnie odpalilem super"). (1) **narastanie 0 -> 0.45 s**: pila 120 -> 1400 Hz przez rezonansowy lowpass jadacy w gore + szum narastajacy, glosnosc rosnaca; (2) **uderzenie na 0.45 s**: sinus 90 -> 35 Hz przez 0.5 s + brazowy szum 0.35 s lp 1500 -> 200 Hz + bialy transjent 10 ms; (3) **wybrzmienie**: trzy rozstrojone tony (akord) przez 0.6 s, zanikajace. **Prog III**: narastanie dluzsze (0.6 s), akord bogatszy, wet 0.9 — "pelny" ma byc slyszalnie wiekszy niz prog I, bo dzis roznicy nie ma. |
+| V3-C-08 | **Dzwiek stereo** (zgloszenie: strzal w mur po lewej brzmi na srodku). Kazdy glos przechodzi przez `StereoPannerNode`; `pan = clamp((x_zdarzenia - x_kamery) / (szerokosc_widoku/2), -1, 1) * 0.85`. Wlasne dzwieki gracza (strzal, przeladowanie, obrazenia) zostaja **na srodku** — to informacja o sobie, nie o swiecie. Panoramowanie liczone w chwili startu dzwieku, bez sledzenia ruchu. |
+
+## N. Krotkie partie glosowe (16-bit) [do zbadania, zgloszenie 2026-11-06]
+
+Pomysl: komunikaty glosowe jak z konsol 16-bitowych — `RELOADING!` przy przeladowaniu, a po
+kazdej zakonczonej fali **krotkie przechwalki kolejnych graczy**, awatar po awatarze, z malym
+odstepem.
+
+Problem do rozwiazania: PRD-CON-01 i PRD-CON-05 zakazuja assetow z sieci, a konsole 16-bit
+robily to **probkami**, nie synteza. Mamy wiec trzy drogi i trzeba wybrac po probie:
+
+| ID | Droga | Co to znaczy |
+|---|---|---|
+| V3-N-01 | ~~**Synteza formantowa**~~ — **odrzucone** (R57): daje robota, a potrzebujemy *charakteru* | Pobudzenie pila + **dwa-trzy rownolegle filtry pasmowe** jako formanty F1/F2/F3, monotonna wysokosc, segmenty samoglosek i spolglosek ustawiane w czasie. Tak dziala eSpeak (synteza formantowa dla glosek dzwiecznych). Tablica formantow: `a` ok. F1 800 / F2 1150, `i` ok. F1 300 / F2 2300; F1 odpowiada otwarciu ust, F2 pozycji jezyka. Monotonna wysokosc + filtry formantowe to **dokladnie** ten robotyczny charakter, ktory pasuje do pixel-artu. Zero plikow, pelna zgodnosc z CON-01. |
+| V3-N-02 | **WYBRANE (R57): probki o niskim bitrate, zapiekane w repo** | Nie lamie CON-05 (asset powstaje u nas, nie pobrany z sieci), ale podnosi rozmiar artefaktu — a CON-03 mowi ponizej 20 MB. Kilkanascie krotkich okrzykow w niskiej probkowce zmiesci sie bez problemu, wiec to realna opcja, jesli formanty zabrzmia zbyt slabo. |
+| V3-N-03 | **`speechSynthesis` przegladarki** | Dziala offline, ale glos zalezy od systemu, po polsku bywa go brak, a brzmienie jest "asystentowe", nie konsolowe. Tylko jako awaryjne. |
+| V3-N-05 | **Postacie glosowe** (R57, 2026-11-06). Minimum dwie, wyraznie rozne: (1) **charczacy koks, ktory drze japę** — krzyk, zdarty glos, agresja; (2) **spokojny zabojca** — cichy, opanowany, zaraz po tamtym, np. `Another one cleared`. Kontrast miedzy nimi jest cala sola tego pomyslu, wiec przechwalki po fali leca **po kolei, awatar po awatarze**, zeby bylo go slychac. Kazdy awatar gracza ma przypisana persone glosowa. |
+| V3-N-06 | **Skad probki, skoro nie wolno ich brac z sieci** (PRD-CON-01, CON-05): generujemy je **u siebie**, na bo3serverze — jest tam gotowa fabryka glosu (pocket-tts z klonowaniem barwy z pliku wav, a do wzorcow VoxCPM2 na P100). Charakter (charkot, krzyk, spokoj) robimy na etapie generowania i obrobki, nie w przegladarce. |
+| V3-N-07 | **Format i budzet**: mono, ok. 8-11 kHz, celowo niski bitrate — **retro ma brzmiec retro**, wiec downsampling jest cecha, nie wada. Plik skompresowany (ogg/mp3) zamiast wav, bo przegladarka i tak dekoduje raz przez `decodeAudioData`. Twardy limit: artefakt dystrybucyjny ponizej 20 MB (PRD-CON-03) — kilkanascie krotkich okrzykow miesci sie z ogromnym zapasem. Probki ida przez **te sama szyne co reszta dzwieku**: suwak glosnosci, wyciszenie, panorama (wlasne na srodku). |
+| V3-N-04 | **Tresc i reguly** | `RELOADING!` tylko dla wlasnego gracza i tylko przy **recznym** przeladowaniu albo pierwszym pustym magazynku w fali (inaczej zagada). Po fali: kolejka przechwalek, jedna linijka na gracza, odstep ok. 0.6 s, kolejnosc wg liczby zabojstw, pomijani martwi. Teksty krotkie, w duchu brudnego post-apo, **nie** wulgarne bez potrzeby. Wyciszane tym samym suwakiem co reszta (V3-C-03). |
+
 ## M. Brak reakcji na obrazenia gracza (zgloszenie z gry, 2026-11-05)
 
 **Gracz obrywa i nie dzieje sie NIC**: nie miga, nie brzmi, ekran nie reaguje. Sprawdzone w kodzie:

@@ -220,7 +220,9 @@ function eventPos(e, tp) {
 function playSfx(name, e, tp, opts) {
   const pos = eventPos(e, tp);
   const dist = pos ? Math.hypot(pos.x - cam.x, pos.y - cam.y) / tp : 0;
-  sfx.play(name, { dist, ...opts });
+  // pan: pozycja względem kamery; własne strzały/przeładowanie (center) zostają na środku
+  const pan = pos && !opts?.center && !opts?.own ? { x: pos.x, camX: cam.x, viewW: VIEW_W } : {};
+  sfx.play(name, { dist, ...pan, ...opts });
 }
 
 function onEvent(e) {
@@ -229,7 +231,7 @@ function onEvent(e) {
   const tp = balance.map.tilePx;
   switch (e.type) {
     case 'shot':
-      playSfx(latest?.players.some((p) => p.id === e.id) ? 'shot' : 'cannon', e, tp);
+      playSfx(latest?.players.some((p) => p.id === e.id) ? 'shot' : 'cannon', e, tp, { center: e.id === myId });
       break;
     case 'hit':
       if (e.mob) playSfx('hit', e, tp);

@@ -1,5 +1,12 @@
 # Changelog dokumentacji
 
+## 0.24 - 2026-11-06
+- R57: partie glosowe jednak PROBKAMI o niskim bitrate, nie synteza formantowa. Dwie persony: charczacy koks i spokojny zabojca ("Another one cleared"). Generowane u nas na bo3serverze (pocket-tts / VoxCPM2), nie pobierane (V3-N-05..07).
+- Sekcja C2: diagnoza braku poglosu (normalize=true + limiter dociskajacy ogon + 14 ms dzwiek bez ogona) i naprawa (V3-C-09).
+- V3-C-10/11/12: karabin, przeladowanie i ULTIMATE przeprojektowane — konkretne recepty warstwowe zamiast dotychczasowych dwuwarstwowych.
+- V3-C-08: dzwiek stereo przez StereoPanner; wlasne dzwieki zostaja na srodku.
+- Sekcja N: krotkie partie glosowe 16-bit (RELOADING!, przechwalki po fali) — trzy drogi do zbadania, rekomendacja: synteza formantowa.
+
 ## 0.23 - 2026-11-05
 - PRD-FX-09: reakcja na obrazenia gracza (blysk, winieta, wstrzas, mignieciе paska HP, obrys przy niskim HP, dzwiek) — FX-03 pokrywal wylacznie friendly fire.
 - Punkt M (V3-M-01..05): brak JAKIEJKOLWIEK reakcji na obrazenia gracza — damagePlayer wysyla zdarzenie tylko dla friendly fire, wiec cios potwora i mina nie daja ani blysku, ani dzwieku. Do PRD jako FX-09.

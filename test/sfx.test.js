@@ -7,7 +7,7 @@ function makeCtx() {
   const ctx = { created: [], gains: [], state: 'running', currentTime: 0, sampleRate: 1000, destination: { dest: true }, resumed: 0 };
   const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} });
   const node = (kind, extra = {}) => {
-    const n = { kind, connect(to) { (n.to ??= []).push(to); }, start(t) { (n.starts ??= []).push(t); }, stop() {}, ...extra };
+    const n = { kind, connect(to) { (n.to ??= []).push(to); }, start(t) { (n.starts ??= []).push(t); }, stop(t) { (n.stops ??= []).push(t); }, ...extra };
     ctx.created.push(n);
     return n;
   };
@@ -21,7 +21,9 @@ function makeCtx() {
   ctx.createOscillator = () => node('osc', { frequency: param() });
   ctx.createBufferSource = () => node('src', { playbackRate: param() });
   ctx.createBuffer = (ch, len) => node('buffer', { len, getChannelData: () => new Float32Array(len) });
-  ctx.createConvolver = () => node('convolver', { buffer: null });
+  ctx.createConvolver = () => node('convolver', { buffer: null, normalize: true });
+  ctx.createDelay = (max) => node('delay', { max, delayTime: { value: 0 } });
+  ctx.createStereoPanner = () => node('panner', { pan: { value: 0 } });
   ctx.resume = async () => { ctx.resumed++; };
   return ctx;
 }
@@ -59,7 +61,7 @@ test('odstęp minimalny między tym samym dźwiękiem', () => {
   clock.t += 5;
   assert.equal(sfx.play('shot'), false);
   assert.equal(sfx.voices, 1);
-  clock.t += 95;
+  clock.t += 295; // ogon karabinu trwa ~0.2 s
   assert.equal(sfx.play('shot'), true);
   assert.equal(sfx.voices, 1, "pierwszy strzał już wybrzmiał");
   assert.equal(sfx.play('hit'), true, 'inny dźwięk ma własny odstęp');
@@ -148,7 +150,19 @@ test('pogłos: nic przed unlock(), bufory IR liczone raz, szyna kończy w master
   sfx.unlock();
   const conv = ctx.created.filter((n) => n.kind === 'convolver');
   assert.equal(conv.length, 2);
-  assert.ok(conv.every((c) => c.buffer && c.to[0] === ctx.gains[0]), 'wet wraca przez master');
+  const makeup = conv[0].to[0];
+  assert.ok(conv.every((c) => c.buffer && c.to[0] === makeup), 'wet przez wspólny makeup');
+  // Wet kończy w masterze (głośność steruje pogłosem), ale przez WŁASNY, łagodny limiter —
+  // nie przez ten od dźwięków suchych, który dociskał ogon zaraz po transjencie.
+  const wetGuard = makeup.to.find((n) => n.kind === 'comp');
+  const reachesMaster = makeup.to.includes(ctx.gains[0]) || wetGuard?.to?.includes(ctx.gains[0]);
+  assert.ok(reachesMaster, 'makeup kończy w masterze (głośność steruje pogłosem)');
+  assert.ok(!ctx.created.some((n) => n.kind === 'comp' && n.to?.includes(makeup)), 'nic nie wpina limitera PRZED wet');
+  if (wetGuard) {
+    const dryLimiter = ctx.created.find((n) => n.kind === 'comp' && n !== wetGuard);
+    assert.ok(dryLimiter && dryLimiter !== wetGuard, 'wet ma własny limiter, nie ten od toru suchego');
+    if (wetGuard.threshold) assert.ok(wetGuard.threshold.value > -24, 'limiter wet łagodniejszy');
+  }
   assert.ok(conv[1].buffer.len > conv[0].buffer.len * 3, 'hala dłuższa niż pokój');
   const buffers = () => ctx.created.filter((n) => n.kind === 'buffer').length;
   const n = buffers();
@@ -167,11 +181,12 @@ test('pogłos: strzał dostaje mało wet, wybuch dużo, dźwięk bez szyny nic',
     sfx.play(name);
     const out = ctx.gains[before];
     const send = out.to.find((t) => t.kind === 'gain' && t !== ctx.gains[0]);
+    if (send && !send.to.some((n) => n.kind === 'delay')) throw new Error('send bez pre-delay');
     return send ? send.gain.value : 0;
   };
   const shot = sendOf('shot');
   const boom = sendOf('explode');
-  assert.ok(shot > 0 && boom > shot * 2);
+  assert.ok(shot > 0 && boom > shot * 2, 'wybuch wielokrotnie więcej wet niż strzał');
   assert.equal(sendOf('pickup'), 0);
 });
 
@@ -183,23 +198,107 @@ test('kontekst bez ConvolverNode nadal gra na sucho', () => {
   assert.equal(sfx.play('explode'), true);
 });
 
-test('przeładowanie: trzy zdarzenia rozłożone w podanym czasie', () => {
+test('przeładowanie: cztery zdarzenia rozłożone w podanym czasie, wbicie najgłośniejsze', async () => {
+  const { reloadRecipe } = await import('../public/client/sfx.js');
   const { ctx, clock, sfx } = setup();
   sfx.unlock();
-  const starts = (dur) => {
+  for (const dur of [1.5, 0.9]) {
     clock.t += 5000;
     const from = ctx.created.length;
     assert.equal(sfx.play('reload', { dur }), true);
-    return ctx.created.slice(from).filter((n) => n.kind === 'osc' || n.kind === 'src').flatMap((n) => n.starts);
-  };
-  for (const dur of [1.5, 0.9]) {
-    const t = starts(dur);
-    const min = Math.min(...t);
-    const max = Math.max(...t);
-    assert.equal(min, 0);
-    assert.ok(Math.abs(max - (dur - 0.025)) < 0.01, `szczęk zamka na końcu (${dur})`);
-    assert.ok(t.some((x) => Math.abs(x - dur * 0.6) < 1e-9), 'thunk w 60%');
+    const t = ctx.created.slice(from).filter((n) => n.kind === 'osc' || n.kind === 'src').flatMap((n) => n.starts);
+    assert.equal(Math.min(...t), 0, 'zatrzask na 0%');
+    assert.ok(t.some((x) => Math.abs(x - dur * 0.1) < 1e-9), 'wysunięcie 10%');
+    assert.ok(t.some((x) => Math.abs(x - dur * 0.6) < 1e-9), 'wbicie 60%');
+    assert.ok(Math.abs(Math.max(...t) - (dur - 0.03)) < 1e-9, `zamek na końcu (${dur})`);
+    const sums = new Map();
+    for (const l of reloadRecipe(dur)) sums.set(l.at ?? 0, (sums.get(l.at ?? 0) ?? 0) + l.level);
+    assert.equal(sums.size, 4);
+    const top = [...sums.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    assert.ok(Math.abs(top - dur * 0.6) < 1e-9, 'najgłośniejsze: wbicie');
   }
+});
+
+test('pogłos: normalize=false, pre-delay 12/35 ms, IR skalowane do szczytu', () => {
+  const { ctx, sfx } = setup();
+  sfx.unlock();
+  const conv = ctx.created.filter((n) => n.kind === 'convolver');
+  assert.ok(conv.every((c) => c.normalize === false));
+  const delays = ctx.created.filter((n) => n.kind === 'delay');
+  assert.deepEqual(delays.map((d) => d.delayTime.value), [0.012, 0.035]);
+  assert.ok(delays.every((d, i) => d.to.includes(conv[i])));
+});
+
+test('karabin: pięć warstw i ogon wyraźnie dłuższy niż 40 ms', () => {
+  const { ctx, sfx } = setup();
+  sfx.unlock();
+  const from = ctx.created.length;
+  assert.equal(sfx.play('shot'), true);
+  const src = ctx.created.slice(from).filter((n) => n.kind === 'osc' || n.kind === 'src');
+  assert.equal(src.length, 5);
+  const end = Math.max(...src.flatMap((n) => n.stops)) - 0.02;
+  assert.ok(end > 0.15, `trwa ${end}`);
+});
+
+function ultInfo(tier) {
+  const { ctx, sfx } = setup();
+  sfx.unlock();
+  const from = ctx.created.length;
+  assert.equal(sfx.play('ult', { tier }), true);
+  const nodes = ctx.created.slice(from);
+  const src = nodes.filter((n) => n.kind === 'osc' || n.kind === 'src');
+  const send = nodes.find((n) => n.kind === 'gain' && n.to?.some((x) => x.kind === 'delay'));
+  return { end: Math.max(...src.flatMap((n) => n.stops)), wet: send.gain.value, layers: src.length, nodes, ctx };
+}
+
+test('ultimate: próg III dłuższy, bogatszy i z większym wet niż próg I', () => {
+  const a = ultInfo(1);
+  const c = ultInfo(3);
+  assert.ok(c.end > a.end + 0.1, `${c.end} vs ${a.end}`);
+  assert.ok(c.layers > a.layers);
+  assert.ok(c.wet > a.wet);
+});
+
+test('ultimate: próg III głośniejszy (poziomy obwiedni)', () => {
+  const peak = (tier) => {
+    const { ctx, sfx } = setup();
+    const lv = [];
+    const mk = ctx.createGain;
+    ctx.createGain = () => {
+      const g = mk();
+      g.gain.linearRampToValueAtTime = (v) => lv.push(v);
+      return g;
+    };
+    sfx.unlock();
+    sfx.play('ult', { tier });
+    return lv.reduce((a, b) => a + b, 0);
+  };
+  assert.ok(peak(3) > peak(1));
+});
+
+test('panoramowanie: lewo < 0, prawo > 0, własne 0, brak danych 0', () => {
+  const { ctx, clock, sfx } = setup();
+  sfx.unlock();
+  const pan = (opts) => {
+    clock.t += 1000;
+    const from = ctx.created.length;
+    assert.equal(sfx.play('shot', opts), true);
+    return ctx.created.slice(from).find((n) => n.kind === 'panner').pan.value;
+  };
+  const cam = { camX: 500, viewW: 560 };
+  assert.ok(pan({ x: 300, ...cam }) < 0);
+  assert.ok(pan({ x: 700, ...cam }) > 0);
+  assert.equal(pan({ x: 700, ...cam, own: true }), 0);
+  assert.equal(pan({}), 0);
+  assert.ok(Math.abs(pan({ x: 9999, ...cam }) - 0.85) < 1e-9, 'przycięte do 0.85');
+});
+
+test('brak StereoPannerNode: play gra bez panoramowania', () => {
+  const { ctx, clock, sfx } = setup();
+  delete ctx.createStereoPanner;
+  sfx.unlock();
+  clock.t += 100;
+  assert.equal(sfx.play('shot', { x: 100, camX: 500, viewW: 560 }), true);
 });
 
 test('przeładowanie: własne głośniejsze i bez tłumienia, cudze milknie powyżej 20', () => {

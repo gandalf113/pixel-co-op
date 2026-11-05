@@ -11,36 +11,75 @@ export const OWN_BOOST = 1.6; // własne przeładowanie: informacja taktyczna, m
 export const RELOAD_FALLBACK_S = 1.5;
 // Długości ogonów pogłosu (s): "klaps pomieszczenia" i wybuch w hali.
 export const REVERB_S = { room: 0.25, hall: 1.3 };
+// Pre-delay przed konwolwerem (s): bez niego ogon zlewa się z transjentem (V3-C-09).
+export const PREDELAY_S = { room: 0.012, hall: 0.035 };
+export const IR_PEAK = 0.4; // normalize=false: skalę IR ustalamy sami
+export const WET_MAKEUP = 1; // szyna wet ma wlasny, lagodny limiter — nie ten od dzwiekow suchych
+export const PAN_MAX = 0.85;
 
 // Warstwy: n = szum (white/brown), t = ton. `at` = przesunięcie w sekundach.
-// Poziomy to ułamek pełnej skali przed masterem; limiter łapie szczyty.
-// Trzy części rozstawione proporcjonalnie do czasu przeładowania `s` (maleje z poziomem broni).
-function reloadRecipe(s) {
+// Opcje: lp/hp/bp (+ lpTo = przesuw lowpassa, q/lpQ = dobroć), a = czas narastania (s, domyślnie 2 ms),
+// tail = dodatkowy zanik po `dur`. Poziomy to ułamek pełnej skali przed masterem.
+
+// Przeładowanie (V3-C-11): cztery zdarzenia rozłożone na faktyczny czas `s` (maleje z poziomem broni).
+// Sumy poziomów: zatrzask 0.3, wysunięcie 0.25, wbicie 0.8 (najgłośniejsze), zamek 0.67.
+export function reloadRecipe(s) {
   const dur = Math.max(0.3, s);
+  const lock = Math.max(dur * 0.6 + 0.07, dur - 0.03);
   return Object.assign([
-    // 1. wyjęcie magazynka: metaliczny klik
-    { n: 'white', dur: 0.012, bp: 2800, level: 0.55 },
-    { t: 'square', f0: 2400, dur: 0.004, level: 0.18 },
-    // 2. wbicie nowego (~60%): głębszy "thunk"
-    { t: 'sine', f0: 130, f1: 55, dur: 0.07, level: 0.5, at: dur * 0.6 },
-    { n: 'brown', dur: 0.05, lp: 700, level: 0.5, at: dur * 0.6 },
-    // 3. zamek: ostry szczęk równo z domknięciem pierścienia
-    { n: 'white', dur: 0.02, hp: 1800, level: 0.7, at: Math.max(0, dur - 0.03) },
-    { t: 'square', f0: 3200, dur: 0.006, level: 0.22, at: Math.max(0, dur - 0.03) },
-    { t: 'square', f0: 900, f1: 600, dur: 0.03, level: 0.2, at: Math.max(0, dur - 0.025) },
-  ], { rev: 'room', wet: 0.12 });
+    // 1. 0%: zatrzask magazynka
+    { n: 'white', dur: 0.003, bp: 3500, level: 0.1 },
+    { t: 'square', f0: 1800, dur: 0.004, level: 0.1 },
+    { t: 'triangle', f0: 900, f1: 1400, dur: 0.04, level: 0.1 },
+    // 2. 10%: wysunięcie magazynka
+    { n: 'brown', dur: 0.06, lp: 1500, level: 0.25, at: dur * 0.1 },
+    // 3. 60%: wbicie nowego
+    { n: 'brown', dur: 0.07, lp: 600, level: 0.4, at: dur * 0.6 },
+    { t: 'sine', f0: 140, f1: 50, dur: 0.06, level: 0.3, at: dur * 0.6 },
+    { n: 'white', dur: 0.012, bp: 2200, level: 0.1, at: dur * 0.6 },
+    // 4. koniec: zamek + metaliczny ring
+    { n: 'white', dur: 0.025, hp: 2500, level: 0.45, at: lock },
+    { t: 'square', f0: 3200, dur: 0.005, level: 0.1, at: lock },
+    { t: 'triangle', f0: 2600, dur: 0.09, level: 0.12, at: lock },
+  ], { rev: 'room', wet: 0.25 });
+}
+
+// ULTIMATE (V3-C-12): narastanie -> uderzenie -> wybrzmienie. Próg III: dłuższe narastanie, bogatszy akord, większy wet.
+export function ultRecipe(tier) {
+  const big = tier >= 3;
+  const rise = 0.45 + (Math.min(3, Math.max(1, tier || 1)) - 1) * 0.075; // I 0.45, II 0.525, III 0.6
+  const chord = big ? [110, 138.6, 165, 220, 277.2] : [110, 165, 220];
+  const layers = [
+    // 1. narastanie
+    { t: 'sawtooth', f0: 120, f1: 1400, dur: rise, level: 0.3, a: rise, tail: 0.02, lp: 300, lpTo: 5000, lpQ: 8 },
+    { n: 'white', dur: rise, level: 0.3, a: rise, tail: 0.02, bp: 600, q: 0.8 },
+    // 2. uderzenie
+    { t: 'sine', f0: 90, f1: 35, dur: big ? 0.7 : 0.5, level: 0.7, at: rise },
+    { n: 'brown', dur: big ? 0.5 : 0.35, lp: 1500, lpTo: 200, level: 0.6, at: rise },
+    { n: 'white', dur: 0.01, level: 0.5, at: rise },
+  ];
+  // 3. wybrzmienie: rozstrojony akord
+  chord.forEach((f, i) => {
+    layers.push({ t: i % 2 ? 'sawtooth' : 'triangle', f0: f * (1 + (i - 1) * 0.004), dur: big ? 0.8 : 0.6, level: big ? 0.14 : 0.18, at: rise + 0.05, lp: 1800 });
+  });
+  return Object.assign(layers, { rev: 'hall', wet: big ? 0.9 : 0.8 });
 }
 
 const RECIPES = {
   // rev/wet: do której szyny pogłosu i ile sygnału tam wysłać (ułamek głośności dźwięku)
+  // Karabin (V3-C-10): transjent / body / dół / mechanika / własny ogon.
   shot: Object.assign([
-    { n: 'white', dur: 0.014, lp: 3500, level: 0.5 },
-    { t: 'square', f0: 220, f1: 60, dur: 0.04, level: 0.22 },
-  ], { rev: 'room', wet: 0.3 }),
+    { n: 'white', dur: 0.008, hp: 3000, level: 0.9 },
+    { n: 'white', dur: 0.035, bp: 1200, q: 1.5, lp: 4000, lpTo: 900, level: 0.6 },
+    { t: 'sine', f0: 160, f1: 45, dur: 0.06, level: 0.5 },
+    { t: 'square', f0: 2500, dur: 0.003, level: 0.15 },
+    { n: 'white', dur: 0.18, lp: 1200, level: 0.18, at: 0.025 },
+  ], { rev: 'room', wet: 0.45 }),
   cannon: Object.assign([
     { n: 'white', dur: 0.02, lp: 1800, level: 0.55 },
     { t: 'square', f0: 150, f1: 40, dur: 0.06, level: 0.28, lp: 1800 },
-  ], { rev: 'room', wet: 0.3 }),
+    { n: 'white', dur: 0.16, lp: 900, level: 0.16, at: 0.03 },
+  ], { rev: 'room', wet: 0.4 }),
   hit: [
     { n: 'white', dur: 0.024, bp: 900, level: 0.7 },
     { t: 'sine', f0: 180, f1: 90, dur: 0.06, level: 0.35 },
@@ -58,11 +97,12 @@ const RECIPES = {
   destroyed: Object.assign([
     { n: 'brown', dur: 0.4, lp: 800, lpTo: 200, level: 0.7 },
     { n: 'white', dur: 0.02, level: 0.4 },
-  ], { rev: 'hall', wet: 0.45 }),
+  ], { rev: 'hall', wet: 0.7 }),
   explode: Object.assign([
     { n: 'brown', dur: 0.7, lp: 800, lpTo: 200, level: 0.4 },
     { t: 'sine', f0: 60, f1: 30, dur: 0.5, level: 0.6 },
-  ], { rev: 'hall', wet: 0.8 }),
+    { n: 'white', dur: 0.5, lp: 500, level: 0.15, at: 0.1 },
+  ], { rev: 'hall', wet: 1.1 }),
   pickup: [{ t: 'sine', f0: 440, f1: 880, dur: 0.08, level: 0.25 }],
   place: [
     { t: 'square', f0: 200, dur: 0.04, level: 0.22 },
@@ -93,10 +133,7 @@ const RECIPES = {
     { t: 'triangle', f0: 520, f1: 300, dur: 0.1, level: 0.22 },
   ],
   droplet: [{ t: 'triangle', f0: 1200, f1: 1600, dur: 0.06, level: 0.22, fm: { f: 90, depth: 50 } }],
-  ult: [
-    { t: 'sawtooth', f0: 100, f1: 1200, dur: 0.3, level: 0.2, fm: { f: 40, depth: 80 } },
-    { n: 'white', dur: 0.3, bp: 1500, level: 0.25, tail: true },
-  ],
+  ult: ultRecipe(1),
   down: [{ t: 'sine', f0: 300, f1: 80, dur: 0.5, level: 0.4, tail: 0.3 }],
   death: [{ t: 'sine', f0: 260, f1: 60, dur: 0.6, level: 0.45, tail: 0.4 }],
   revive: [
@@ -119,10 +156,17 @@ function defaultNow() {
   return globalThis.performance?.now ? performance.now() : Date.now();
 }
 
+// pan = clamp((x - camX) / (viewW / 2), -1, 1) * 0.85; brak danych = środek
+export function panFor(x, camX, viewW) {
+  if (!Number.isFinite(x) || !Number.isFinite(camX) || !(viewW > 0)) return 0;
+  return Math.min(1, Math.max(-1, (x - camX) / (viewW / 2))) * PAN_MAX;
+}
+
 export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, random = Math.random } = {}) {
   let ctx = null;
   let dead = false; // próba utworzenia kontekstu się nie udała — nie ponawiamy
   let master = null;
+  let dry = null; // wejście toru suchego (limiter)
   let noise = null; // { white, brown }
   let reverb = null; // { room: ConvolverNode, hall: ConvolverNode } — szyna wet, kończy w masterze
   let volume = 1;
@@ -163,17 +207,49 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
       lp += a * ((random() * 2 - 1) - lp);
       d[i] = lp * Math.exp(-6.9 * k);
     }
+    // normalize=false => skala IR jest nasza: szczyt IR_PEAK
+    let peak = 0;
+    for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(d[i]));
+    if (peak > 0) for (let i = 0; i < len; i++) d[i] *= IR_PEAK / peak;
     return buf;
   }
 
+  // Szyna wet: send -> [pre-delay] -> konwolwer -> makeup -> master. Omija limiter dźwięków suchych,
+  // a master (głośność/wyciszenie) steruje nią tak samo jak resztą.
   function makeReverb() {
     if (typeof ctx.createConvolver !== 'function') return null;
+    const makeup = ctx.createGain();
+    makeup.gain.value = WET_MAKEUP;
+    // Wlasny, lagodny limiter na szynie wet: ogon ma przezyc (dlatego nie ten sam co na torze
+    // suchym, ktory dociskal go zaraz po transjencie), ale wybuch z wet 1.1 nie moze klipowac.
+    if (typeof ctx.createDynamicsCompressor === 'function') {
+      const guard = ctx.createDynamicsCompressor();
+      try {
+        guard.threshold.value = -6;
+        guard.knee.value = 6;
+        guard.ratio.value = 4;
+        guard.attack.value = 0.005;
+        guard.release.value = 0.25;
+      } catch {}
+      makeup.connect(guard);
+      guard.connect(master);
+    } else {
+      makeup.connect(master);
+    }
     const r = {};
     for (const [name, secs] of Object.entries(REVERB_S)) {
       const c = ctx.createConvolver();
+      c.normalize = false;
       c.buffer = makeIR(secs);
-      c.connect(master);
-      r[name] = c;
+      c.connect(makeup);
+      let input = c;
+      if (typeof ctx.createDelay === 'function') {
+        const pre = ctx.createDelay(0.1);
+        pre.delayTime.value = PREDELAY_S[name];
+        pre.connect(c);
+        input = pre;
+      }
+      r[name] = input;
     }
     return r;
   }
@@ -188,9 +264,9 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
           return;
         }
         master = ctx.createGain();
-        const limiter = ctx.createDynamicsCompressor();
-        master.connect(limiter);
-        limiter.connect(ctx.destination);
+        master.connect(ctx.destination);
+        dry = ctx.createDynamicsCompressor(); // limiter tylko na torze suchym
+        dry.connect(master);
         noise = { white: makeNoise('white'), brown: makeNoise('brown') };
         reverb = makeReverb();
         applyMaster();
@@ -200,6 +276,7 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
       dead = true;
       ctx = null;
       master = null;
+      dry = null;
       reverb = null;
     }
   }
@@ -219,7 +296,7 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
     const env = ctx.createGain();
     const end = t + l.dur + (typeof l.tail === 'number' ? l.tail : 0);
     env.gain.setValueAtTime(FLOOR, t);
-    env.gain.linearRampToValueAtTime(l.level * boost, t + 0.002);
+    env.gain.linearRampToValueAtTime(l.level * boost, t + (l.a ?? 0.002));
     env.gain.exponentialRampToValueAtTime(FLOOR, end);
     let tip = env;
     let src;
@@ -249,23 +326,24 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
         mod.stop(end + 0.02);
       }
     }
-    const filt = (type, f) => {
+    const filt = (type, f, q) => {
       const b = ctx.createBiquadFilter();
       b.type = type;
       b.frequency.value = f * pitch;
+      if (q && b.Q) b.Q.value = q;
       tip.connect(b);
       tip = b;
       return b;
     };
     if (l.lp) {
-      const b = filt('lowpass', l.lp);
+      const b = filt('lowpass', l.lp, l.lpQ);
       if (l.lpTo) {
         b.frequency.setValueAtTime(l.lp * pitch, t);
         b.frequency.exponentialRampToValueAtTime(l.lpTo * pitch, t + l.dur);
       }
     }
     if (l.hp) filt('highpass', l.hp);
-    if (l.bp) filt('bandpass', l.bp);
+    if (l.bp) filt('bandpass', l.bp, l.q);
     tip.connect(out);
     src.stop(end + 0.02);
     return end;
@@ -273,9 +351,10 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
 
   // own: własny dźwięk gracza — bez tłumienia odległością i głośniej.
   // dur: czas trwania (s) dla dźwięków rozciąganych, dziś tylko przeładowanie.
-  function play(name, { dist = 0, tier, own = false, dur } = {}) {
+  function play(name, { dist = 0, tier, own = false, dur, x, camX, viewW } = {}) {
     let recipe = RECIPES[name];
     if (!recipe || !ctx || !master) return false;
+    if (name === 'ult') recipe = ultRecipe(tier);
     if (name === 'reload') recipe = reloadRecipe(Number.isFinite(dur) && dur > 0 ? dur : RELOAD_FALLBACK_S);
     if (muted || volume <= 0) return false;
     const d = Number.isFinite(dist) ? Math.max(0, dist) : 0;
@@ -289,7 +368,14 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
       const att = own ? OWN_BOOST : (1 - d / MAX_DIST_TILES) ** 2;
       const out = ctx.createGain();
       out.gain.value = att;
-      out.connect(master);
+      const dest = dry || master;
+      // V3-C-08: pan wg pozycji zdarzenia względem kamery; własne dźwięki zostają na środku
+      const panner = typeof ctx.createStereoPanner === 'function' ? ctx.createStereoPanner() : null;
+      if (panner) {
+        panner.pan.value = own ? 0 : panFor(x, camX, viewW);
+        out.connect(panner);
+        panner.connect(dest);
+      } else out.connect(dest);
       const bus = recipe.rev && reverb?.[recipe.rev];
       if (bus) {
         const send = ctx.createGain();
