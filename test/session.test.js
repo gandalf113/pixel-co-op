@@ -171,3 +171,15 @@ test('results sent on game over, toLobby returns', () => {
   assert.equal(s.game, null);
   assert.ok(last(a, 'lobby'));
 });
+
+test('host and guest timing out together does not crash', () => {
+  const s = mk();
+  const a = join(s, 'A', true);
+  const b = join(s, 'B');
+  send(s, a, { t: 'start' });
+  s.disconnect(a);
+  s.disconnect(b);
+  run(s, 31);
+  assert.equal(s.game, null);
+  assert.equal(s.players.length, 0);
+});

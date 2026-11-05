@@ -50,6 +50,7 @@ export class Session {
     if (!g) return;
     g.tick(dt);
     for (const p of [...this.players]) {
+      if (this.game !== g) break;
       if (p.graceLeft === null) continue;
       p.graceLeft -= dt;
       if (p.graceLeft <= 0) this.#removeFromGame(p);
