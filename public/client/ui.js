@@ -177,10 +177,18 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
   ));
 }
 
-export function showPause({ onResume, onFullscreen, onLeave }) {
+export function showPause({ onResume, onFullscreen, onLeave, volume = 1, muted = false, onVolume, onMute }) {
   show(el('div', { className: 'panel' },
     el('h2', {}, 'PAUZA'),
     el('p', { className: 'muted' }, 'Gra trwa dalej.'),
+    el('label', { className: 'muted' }, 'Głośność',
+      el('input', {
+        type: 'range', min: '0', max: '100', step: '1', value: String(Math.round(volume * 100)),
+        oninput: (ev) => onVolume?.(Number(ev.target.value) / 100),
+      })),
+    el('label', { className: 'muted' },
+      el('input', { type: 'checkbox', checked: muted, onchange: (ev) => onMute?.(!!ev.target.checked) }),
+      ' Wycisz'),
     el('button', { onclick: onResume }, 'Wróć'),
     el('button', { onclick: onFullscreen }, 'Pełny ekran'),
     el('button', { onclick: onLeave }, 'Wyjdź'),

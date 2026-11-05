@@ -8,6 +8,7 @@ import { bakeSprites } from './sprites.js';
 import { VIEW_W, VIEW_H, Camera, computeScale, renderWorld } from './render.js';
 import { renderHud } from './hud.js';
 import * as ui from './ui.js';
+import { createSfx } from './sfx.js';
 
 const ENDED_MSG_MS = 2500;
 const PLAYER_KEY = { id: 'id', x: 'x', y: 'y', angle: 'angle' };
@@ -49,6 +50,32 @@ const mobAngles = new Map();
 const gore = { corpses: [], splats: [] };
 const shakes = new Map();
 const fx = new Fx();
+const sfx = createSfx();
+const SFX_KEY = 'pixelcoop.sfx';
+const audio = loadAudioPrefs();
+sfx.setVolume(audio.volume);
+sfx.setMuted(audio.muted);
+// AudioContext wolno utworzyć dopiero po geście użytkownika (polityka autoplay).
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => sfx.unlock(), { capture: true });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) sfx.resume();
+});
+
+function loadAudioPrefs() {
+  const prefs = { volume: 0.7, muted: false };
+  try {
+    const o = JSON.parse(localStorage.getItem(SFX_KEY) ?? 'null');
+    if (typeof o?.volume === 'number') prefs.volume = Math.min(1, Math.max(0, o.volume));
+    if (typeof o?.muted === 'boolean') prefs.muted = o.muted;
+  } catch { /* prywatne okno albo uszkodzony wpis */ }
+  return prefs;
+}
+
+function saveAudioPrefs() {
+  try {
+    localStorage.setItem(SFX_KEY, JSON.stringify(audio));
+  } catch { /* j.w. */ }
+}
 const PAN_MS = 500;
 let specId = null;
 let camFocus = null;
@@ -179,10 +206,43 @@ function itemCenter(id) {
   return { x: (it.tx + 0.5) * tp, y: (it.ty + 0.5) * tp };
 }
 
+// Pozycja zdarzenia w pikselach świata; null = brak (gramy bez tłumienia).
+function eventPos(e, tp) {
+  if (e.x != null && e.y != null) return e;
+  if (e.tx != null) return { x: (e.tx + 0.5) * tp, y: (e.ty + 0.5) * tp };
+  const pid = e.player ?? e.id;
+  return latest?.players.find((p) => p.id === pid) ?? itemCenter(e.id);
+}
+
+function playSfx(name, e, tp, opts) {
+  const pos = eventPos(e, tp);
+  const dist = pos ? Math.hypot(pos.x - cam.x, pos.y - cam.y) / tp : 0;
+  sfx.play(name, { dist, ...opts });
+}
+
 function onEvent(e) {
   const max = balance.gore;
   const now = performance.now();
   const tp = balance.map.tilePx;
+  switch (e.type) {
+    case 'shot':
+      playSfx(latest?.players.some((p) => p.id === e.id) ? 'shot' : 'cannon', e, tp);
+      break;
+    case 'hit':
+      if (e.mob) playSfx('hit', e, tp);
+      break;
+    case 'objHit': case 'destroyed': case 'explode': case 'pickup': case 'place':
+    case 'drop': case 'reload': case 'down': case 'revive': case 'death':
+    case 'droplet': case 'ff': case 'expire':
+      playSfx(e.type, e, tp);
+      break;
+    case 'deny': case 'ultDeny':
+      if (e.id === myId) sfx.play(e.type); // cudze odmowy to szum
+      break;
+    case 'ult':
+      playSfx('ult', e, tp, { tier: e.tier });
+      break;
+  }
   switch (e.type) {
     case 'pickup':
       if (e.player === myId) heldRot = itemRot.get(e.id) ?? 0;
@@ -358,6 +418,18 @@ function pause() {
   paused = true;
   input.clear();
   ui.showPause({
+    volume: audio.volume,
+    muted: audio.muted,
+    onVolume: (v) => {
+      audio.volume = v;
+      sfx.setVolume(v);
+      saveAudioPrefs();
+    },
+    onMute: (m) => {
+      audio.muted = m;
+      sfx.setMuted(m);
+      saveAudioPrefs();
+    },
     onResume: resume,
     onFullscreen: () => document.documentElement.requestFullscreen?.().catch(() => {}),
     onLeave: () => {
