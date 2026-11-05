@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.16 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.18 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -55,6 +55,10 @@ Wersja: 0.16 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | F8 | Regeneracja w przerwie: 50 HP na starcie przerwy | PRD-PLR-01 | +2 HP/s, 100 HP po 25 s; w trakcie fali brak regeneracji |
 | F9 | Wszyscy klikają Gotowy w przerwie | PRD-LOOP-04 | 5 s odliczania, fala startuje; cofnięcie gotowości przerywa odliczanie |
 | F7 | Wszyscy powaleni | PRD-PLR-08, PRD-LOOP-06 | Game over, ekran z numerem fali i czasem |
+| F10 | Gracz A powalony, licznik 10 s mija, B żyje | PRD-PLR-10 | Po 0 kamera A płynnie przejeżdża na B, napis OBSERWUJESZ: B, HUD HP A zgaszony; A nie może się ruszać ani strzelać |
+| F11 | Obserwator A, żyją B i C | PRD-PLR-10 | Klik / A / D przełącza B → C → B |
+| F12 | Obserwator A śledzi B, B pada, C żyje | PRD-PLR-10 | Automatyczne przejście na C |
+| F13 | Obserwator A, zaczyna się przerwa | PRD-PLR-08, PRD-PLR-10 | A respawnuje z 50 HP, kamera wraca na A |
 
 ## 5. Przedmioty
 

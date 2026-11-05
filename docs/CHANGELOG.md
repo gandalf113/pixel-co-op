@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.18 - 2026-11-05
+- R49 tryb obserwatora po smierci: kamera na zywym sojuszniku, przelaczanie celu, HUD OBSERWUJESZ, powrot przy respawnie (PRD-PLR-10, HUD-05, testy F10-F13).
+
 ## 0.17 - 2026-11-05
 - R48 sciany pekaja mocniej, rogi zaokraglaja sie i krusza (PRD-FX-08). Sprite'y zniszczen wygenerowane: wall_dmg_1..3, wall_collapse_0..2, rubble_0/1, turret_wreck.
 
