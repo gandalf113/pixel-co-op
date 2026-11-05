@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Grid, KIND, footprint, buildGrid, moveCircle, segmentBlocked, placementValid, tileOf } from '../public/shared/world.js';
 
+import './helpers.js'; // wczytuje balans i rejestruje definicje przedmiotow (ksztalt to dane)
+
 const T = 16;
 
 test('out of map is solid', () => {

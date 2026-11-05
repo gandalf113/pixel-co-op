@@ -1,12 +1,16 @@
 import { readFileSync } from 'node:fs';
+import { setItemDefs } from '../public/shared/world.js';
 
 const DEFAULT_PATH = new URL('../public/balance.json', import.meta.url);
 
 export function loadBalance(path = DEFAULT_PATH) {
-  return JSON.parse(readFileSync(path, 'utf8'));
+  const balance = JSON.parse(readFileSync(path, 'utf8'));
+  setItemDefs(balance.items);
+  return balance;
 }
 
 export function makeRules(balance, difficulty, playerCount) {
+  setItemDefs(balance.items);
   const diff = balance.difficulty[difficulty - 1];
   const w = balance.waves;
   const tilePx = balance.map.tilePx;

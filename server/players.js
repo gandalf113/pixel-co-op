@@ -2,6 +2,7 @@ import { stepPlayer, playerSpeedPx } from '../public/shared/movement.js';
 
 const EPS = 1e-9;
 let dropHeld = () => {};
+let padReviveS = () => null;
 
 export function speedMultOf(p) {
   return p.frenzyLeft > 0 ? p.frenzy?.speedMult ?? 1 : 1;
@@ -9,6 +10,11 @@ export function speedMultOf(p) {
 
 export function setDropHeld(fn) {
   dropHeld = fn;
+}
+
+// Sonda platformy leczacej (items.js): ile sekund wstaje powalony stojacy na niej, albo null.
+export function setPadReviveProbe(fn) {
+  padReviveS = fn;
 }
 
 function spawnPos(rules, index) {
@@ -64,7 +70,11 @@ function tickDowned(world, p, dt) {
       break;
     }
   }
-  p.reviveProgress = helped ? p.reviveProgress + dt : Math.max(0, p.reviveProgress - dt);
+  // Platforma stawia bez sojusznika, szybciej niz sojusznik: postep rosnie tak, by pelny byl po reviveS.
+  const padS = padReviveS(world, p);
+  const rate = padS !== null ? Math.max(1, reviveTimeS / padS) : 1;
+  helped ||= padS !== null;
+  p.reviveProgress = helped ? p.reviveProgress + dt * rate : Math.max(0, p.reviveProgress - dt);
   if (p.reviveProgress < EPS) p.reviveProgress = 0;
   if (p.reviveProgress >= reviveTimeS - EPS) {
     p.state = 'alive';

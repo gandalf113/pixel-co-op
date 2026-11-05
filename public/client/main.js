@@ -1,5 +1,5 @@
 import { COLORS } from '../shared/protocol.js';
-import { buildGrid, footprint, placeTarget } from '../shared/world.js';
+import { buildGrid, footprint, placeTarget, setItemDefs, itemDef, itemLimitReached } from '../shared/world.js';
 import { Fx } from './fx.js';
 import { Connection, stored } from './net.js';
 import { InputState } from './input.js';
@@ -153,6 +153,8 @@ function onMessage(msg) {
       myId = msg.id;
       if (msg.room) setUrlRoom(msg.room);
       balance = msg.balance;
+      // Ksztalty i limity przedmiotow musza byc znane, zanim przyjdzie pierwszy snapshot.
+      setItemDefs(balance.items);
       version = msg.version ?? null;
       sprites ??= bakeSprites(document, COLORS);
       predictor ??= new Predictor(balance);
@@ -371,7 +373,7 @@ input.onAction((a, down) => {
     if (myView(latest)?.state === 'dead') cycleSpectate(a === 'next' ? 1 : -1);
     return;
   }
-  if (a === 'q' && myView(latest)?.held === 'wall') heldRot ^= 1;
+  if (a === 'q' && itemDef(myView(latest)?.held)?.rotatable) heldRot ^= 1;
   conn.send({ t: 'act', a });
 });
 
@@ -464,11 +466,6 @@ function resize() {
   Object.assign(hudCanvas.style, { width: `${w}px`, height: `${h}px`, left: `${offset.x}px`, top: `${offset.y}px` });
 }
 
-function activeCount(items, kind) {
-  let n = 0;
-  for (const it of items) if (it.kind === kind && it.state === 'active') n++;
-  return n;
-}
 
 function ghostFor(me, snap, players, aim) {
   if (!me.held || me.state !== 'alive') return null;
@@ -476,12 +473,12 @@ function ghostFor(me, snap, players, aim) {
   const circles = [];
   for (const p of players) if (p.state !== 'dead' && !p.suspended) circles.push({ x: p.x, y: p.y, r: balance.player.radiusPx });
   for (const m of snap.mobs) circles.push({ x: m[2], y: m[3], r: balance.mobs[m[1]].radiusPx });
-  const limit = balance.items[me.held].limit;
-  const rot = me.held === 'wall' ? heldRot : 0;
+  const rot = itemDef(me.held)?.rotatable ? heldRot : 0;
   const t = placeTarget({
     grid, kind: me.held, rot, playerX: me.x, playerY: me.y, aimX: aim.x, aimY: aim.y, circles, tilePx,
     maxRangeTiles: balance.player.placeRangeTiles,
-    limitReached: me.held !== 'wall' && limit != null && activeCount(snap.items, me.held) >= limit,
+    // Limit liczy sie po grupie (wszystkie dzialka razem), nie po pojedynczym wariancie.
+    limitReached: itemLimitReached(snap.items, me.held),
   });
   return { tiles: footprint(me.held, t.tx, t.ty, rot), valid: t.valid };
 }

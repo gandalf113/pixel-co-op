@@ -1,7 +1,7 @@
 import { buildField, nextStep } from './flowfield.js';
 import { damagePlayer } from './players.js';
 import { damageMob } from './combat.js';
-import { moveCircle, tileOf } from '../public/shared/world.js';
+import { KIND, moveCircle, tileOf } from '../public/shared/world.js';
 
 const EPS = 1e-9;
 
@@ -126,11 +126,33 @@ function attackObject(world, mob, tx, ty, hooks) {
   if (item.hp <= 0) hooks.onObjectDestroyed?.(item);
 }
 
+// Potwor stojacy na kolcach nie traktuje ich jako celu, ale uderza w nie co drugi swoj atak
+// (03-WAVES-DIFFICULTY, sekcja 1). Dotyczy kazdego przedmiotu na podlodze, ktory ma HP.
+function gnawFloor(world, mob, dt, hooks) {
+  const { tilePx } = world.rules;
+  const tx = tileOf(mob.x, tilePx);
+  const ty = tileOf(mob.y, tilePx);
+  const item = world.grid.kind(tx, ty) === KIND.FLOOR ? world.items.get(world.grid.id(tx, ty)) : null;
+  if (!item || !(item.hp > 0)) {
+    mob.gnaw = null;
+    return;
+  }
+  const cfg = world.rules.balance.mobs[mob.type];
+  if (mob.gnaw?.id !== item.id) mob.gnaw = { id: item.id, left: 2 * cfg.attackS };
+  mob.gnaw.left -= dt;
+  if (mob.gnaw.left > EPS) return;
+  mob.gnaw.left += 2 * cfg.attackS;
+  item.hp -= world.rules.mobObjDamage(mob.type);
+  world.events.push({ type: 'objHit', id: item.id });
+  if (item.hp <= 0) hooks.onObjectDestroyed?.(item);
+}
+
 function updateMob(world, mob, dt, hooks) {
   const { tilePx, balance } = world.rules;
   const cfg = balance.mobs[mob.type];
   const playerR = balance.player.radiusPx;
   mob.attackCd = Math.max(0, mob.attackCd - dt);
+  gnawFloor(world, mob, dt, hooks);
 
   const stand = nearest(world, mob, isStand);
   if (stand.player && stand.dist <= cfg.radiusPx + playerR + balance.mobAi.meleeReachPx && mob.attackCd <= EPS) {
@@ -205,6 +227,12 @@ export function updateMobs(world, dt, hooks = {}) {
     if (mob.burnLeft > 0) {
       mob.burnLeft -= dt;
       damageMob(world, mob, mob.burnDps * dt, mob.burnOwner);
+      if (!world.mobs.includes(mob)) continue;
+    }
+    if (mob.bleedLeft > 0) {
+      const step = Math.min(dt, mob.bleedLeft);
+      mob.bleedLeft -= dt;
+      damageMob(world, mob, mob.bleedDps * step, mob.bleedOwner);
       if (!world.mobs.includes(mob)) continue;
     }
     if (mob.frozen > 0) {

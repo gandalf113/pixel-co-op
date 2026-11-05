@@ -1,5 +1,5 @@
 import { DECOR_SPRITES } from './sprites.js';
-import { footprint } from '../shared/world.js';
+import { footprint, itemDef, setItemDefs } from '../shared/world.js';
 import { rifleStats } from '../shared/weapon.js';
 
 export const VIEW_W = 560;
@@ -178,15 +178,16 @@ export function fxSprites(sprites) {
   return {
     rubble(ctx, kind, tx, ty, rot, ox, oy) {
       const tp = 16;
-      if (kind === 'turret30') {
-        ctx.drawImage(sprites.get('turret_wreck'), tx * tp + ox, ty * tp + oy);
+      const wreck = itemDef(kind)?.wreck;
+      if (wreck) {
+        ctx.drawImage(sprites.get(wreck), tx * tp + ox, ty * tp + oy);
         return;
       }
       for (const [x, y] of footprint(kind, tx, ty, rot)) ctx.drawImage(sprites.get(`rubble_${tileHash(x, y) % 2}`), x * tp + ox, y * tp + oy);
     },
     collapse(ctx, c, k, ox, oy, tp) {
       const frame = Math.min(2, Math.floor(k * 3));
-      const img = sprites.get(c.kind === 'turret30' ? 'turret_wreck' : `wall_collapse_${frame}`);
+      const img = sprites.get(itemDef(c.kind)?.wreck ?? `wall_collapse_${frame}`);
       for (const [x, y] of c.tiles) ctx.drawImage(img, x * tp + ox, y * tp + oy);
     },
     muzzle(ctx, x, y, a, frame) {
@@ -223,27 +224,59 @@ function outline(ctx, img, x, y, view) {
   ctx.globalAlpha = 1;
 }
 
+// Platforma 3x3: ten sam kafelek powtorzony, pulsujaca zielona obwodka dookola calosci i lampka w rogu.
+function drawPlatform(ctx, view, it, base, ox, oy) {
+  const tp = view.balance.map.tilePx;
+  const f = (view.frame >> 4) & 1;
+  const tiles = footprint(it.kind, it.tx, it.ty, 0);
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const [tx, ty] of tiles) {
+    ctx.drawImage(view.sprites.get(`${base}_${f}`), tx * tp + ox, ty * tp + oy);
+    x0 = Math.min(x0, tx);
+    y0 = Math.min(y0, ty);
+    x1 = Math.max(x1, tx + 1);
+    y1 = Math.max(y1, ty + 1);
+  }
+  ctx.strokeStyle = f ? '#8ea845' : '#55682a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x0 * tp + ox + 0.5, y0 * tp + oy + 0.5, (x1 - x0) * tp - 1, (y1 - y0) * tp - 1);
+  ctx.fillStyle = f ? '#ffe07a' : '#d9b53a';
+  ctx.fillRect(x0 * tp + ox + 2, y0 * tp + oy + 2, 2, 2);
+}
+
 function drawItems(ctx, view, ox, oy) {
   const { balance, sprites, frame } = view;
   const tp = balance.map.tilePx;
+  setItemDefs(balance.items);
   for (const it of view.items) {
     if (it.state === 'placed' || it.state === 'active') {
       const hitAt = view.shakes?.get(it.id);
       const shake = hitAt != null && view.nowMs - hitAt < SHAKE_MS ? ((frame & 1) ? 1 : -1) : 0;
       const sx = ox + shake;
-      if (it.kind === 'wall') {
+      const cfg = itemDef(it.kind);
+      const base = cfg?.sprite ?? it.kind;
+      if (cfg?.behavior === 'block') {
         const frac = it.maxHp ? it.hp / it.maxHp : 1;
-        const center = (w) => ({ x: (w.tx + (w.rot ? 0.5 : 1)) * tp, y: (w.ty + (w.rot ? 1 : 0.5)) * tp });
+        const [w, h] = cfg.size ?? [1, 1];
+        const center = (o) => ({ x: (o.tx + (o.rot ? h : w) / 2) * tp, y: (o.ty + (o.rot ? w : h) / 2) * tp });
         const stage = view.fx ? view.fx.wearStage(view.nowMs, it, frac, tp, center) : 0;
         const lit = it.id === view.highlightId;
-        for (const [tx, ty] of footprint('wall', it.tx, it.ty, it.rot)) {
-          const img = sprites.get(stage ? `wall_dmg_${stage}` : 'wall');
+        for (const [tx, ty] of footprint(it.kind, it.tx, it.ty, it.rot)) {
+          const img = sprites.get(stage ? `${base}_dmg_${stage}` : base);
           if (lit) outline(ctx, img, tx * tp + sx, ty * tp + oy - 1, view);
           ctx.drawImage(img, tx * tp + sx, ty * tp + oy - (lit ? 1 : 0));
         }
+      } else if (cfg?.behavior === 'platform') {
+        drawPlatform(ctx, view, it, base, ox, oy);
+      } else if (cfg?.behavior === 'cage') {
+        ctx.drawImage(sprites.get(`${base}_${it.timeLeft > 0 ? 1 : 0}`), it.tx * tp + sx, it.ty * tp + oy);
+      } else if (cfg?.behavior === 'spikes') {
+        ctx.drawImage(sprites.get(base), it.tx * tp + sx, it.ty * tp + oy);
       } else {
-        const base = it.kind === 'turret30' ? 'turret' : 'mine';
-        const f = it.kind === 'mine' && !it.armed ? 0 : (frame >> 3) & 1;
+        const f = cfg?.behavior === 'mine' && !it.armed ? 0 : (frame >> 3) & 1;
         ctx.drawImage(sprites.get(`${base}_${f}`), it.tx * tp + sx, it.ty * tp + oy);
       }
     } else if (it.state === 'flying' && it.flight) {

@@ -1,8 +1,10 @@
 import { VIEW_W, VIEW_H } from './render.js';
 import { formatTime } from './ui.js';
 import { rifleStats } from '../shared/weapon.js';
+import { footprint, itemDef, setItemDefs } from '../shared/world.js';
 
 const PAD = 12;
+const BAR_COLORS = { turret: '#d9b53a', platform: '#8ea845', cage: '#6fc7c9' };
 const TIER_COLORS = ['#5a4f44', '#6fe0ff', '#d9b53a', '#ff5a4a'];
 
 function text(ctx, str, x, y, { color = '#e8e2d4', size, align = 'left', base = 'alphabetic' }) {
@@ -185,11 +187,15 @@ export function renderHud(ctx, scale, state) {
     }
 
     const tp = balance.map.tilePx;
-    const turretS = balance.items.turret30.durationS;
+    setItemDefs(balance.items);
     for (const it of snap.items) {
-      if (it.kind !== 'turret30' || it.state !== 'active') continue;
-      const s = toScreen((it.tx + 0.5) * tp, it.ty * tp);
-      bar(ctx, s.x - 7 * scale, s.y - 3 * scale, 14 * scale, Math.max(2, scale), it.timeLeft / turretS, '#d9b53a');
+      const cfg = itemDef(it.kind);
+      if (!cfg?.durationS || it.state !== 'active' || !(it.timeLeft > 0)) continue;
+      // Pasek nad calym obrysem (platforma 3x3 jest wyzsza niz dzialko), wypelnienie = pozostaly czas.
+      const tiles = footprint(it.kind, it.tx, it.ty, 0);
+      const top = Math.min(...tiles.map(([, ty]) => ty));
+      const s = toScreen((it.tx + 0.5) * tp, top * tp);
+      bar(ctx, s.x - 7 * scale, s.y - 3 * scale, 14 * scale, Math.max(2, scale), it.timeLeft / cfg.durationS, BAR_COLORS[cfg.behavior] ?? '#d9b53a');
     }
 
     for (const p of state.players) {

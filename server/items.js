@@ -1,12 +1,15 @@
-import { damagePlayer, setDropHeld } from './players.js';
+import { damagePlayer, setDropHeld, setPadReviveProbe } from './players.js';
 import { spawnBullet, damageMob, mobHit, addGore } from './combat.js';
 import { pickWeighted } from './rng.js';
-import { buildGrid, footprint, placeTarget, placementValid, segmentBlocked, tileOf } from '../public/shared/world.js';
+import {
+  behaviorOf, blocksBodies, buildGrid, footprint, itemLimitReached, placeTarget, placementValid, segmentBlocked, tileOf,
+} from '../public/shared/world.js';
 
 const EPS = 1e-9;
 const LAND_SEARCH_TILES = 3;
 
 setDropHeld((world, player) => dropHeld(world, player));
+setPadReviveProbe((world, player) => padReviveS(world, player));
 
 const cfgOf = (world, item) => world.rules.balance.items[item.kind];
 const isHard = (world, item) => cfgOf(world, item).category === 'hard';
@@ -16,14 +19,16 @@ export function rebuildGrid(world) {
   world.fieldsDirty = true;
 }
 
-function blocking(item) {
-  return (item.kind === 'wall' && item.state === 'placed') || (item.kind === 'turret30' && item.state === 'active');
+// Czy przedmiot w tym stanie jest w siatce (blokuje albo zajmuje kafelek) - wg zachowania z balance.json.
+function inGrid(item) {
+  const b = behaviorOf(item.kind);
+  return !!b && b.grid !== null && item.state === b.when;
 }
 
 function toGround(world, item, x, y) {
-  const wasBlocking = blocking(item);
+  const wasInGrid = inGrid(item);
   Object.assign(item, { state: 'ground', x, y, holder: null, flight: null, groundSince: world.time });
-  if (wasBlocking) rebuildGrid(world);
+  if (wasInGrid) rebuildGrid(world);
 }
 
 function enforceGroundLimit(world) {
@@ -54,7 +59,7 @@ export function rollDrop(world, mobType) {
   if (rng() >= rules.dropChance(mobType)) return null;
   const category = rng() < rules.balance.drops.hardShare ? 'hard' : 'power';
   const entries = Object.entries(rules.balance.items)
-    .filter(([, c]) => c.category === category)
+    .filter(([, c]) => c.category === category && c.weight > 0)
     .map(([k, c]) => [k, c.weight]);
   return pickWeighted(rng, entries) ?? null;
 }
@@ -120,26 +125,33 @@ function circles(world) {
   return out;
 }
 
-function activeCount(world, kind) {
-  let n = 0;
-  for (const it of world.items.values()) if (it.kind === kind && it.state === 'active') n++;
-  return n;
-}
+// Limit liczy sie lacznie dla grupy (`limitGroup`), np. dzialka 30/60/90 s dziela jedna pule 8.
+const limitReached = (world, kind) => itemLimitReached(world.items.values(), kind);
 
-function limitReached(world, kind) {
-  return activeCount(world, kind) >= world.rules.balance.items[kind].limit;
-}
+// Poczatkowy stan power-upa wg zachowania; kazde zachowanie bierze liczby ze swojego wpisu w balance.json.
+const ACTIVATORS = {
+  turret(item, cfg) {
+    item.timeLeft = cfg.durationS;
+    item.hp = cfg.hp;
+  },
+  mine(item, cfg) {
+    item.armLeft = cfg.armS;
+  },
+  platform(item, cfg) {
+    item.timeLeft = cfg.durationS;
+  },
+  // Klatka czeka bez limitu czasu; 8 s liczy dopiero od zlapania potwora.
+  cage(item) {
+    item.timeLeft = 0;
+    item.caught = null;
+  },
+};
 
 function activate(world, item, tx, ty, owner) {
   const cfg = cfgOf(world, item);
   Object.assign(item, { state: 'active', tx, ty, holder: null, flight: null, owner, cooldown: 0 });
-  if (item.kind === 'turret30') {
-    item.timeLeft = cfg.durationS;
-    item.hp = cfg.hp;
-  } else if (item.kind === 'mine') {
-    item.armLeft = cfg.armS;
-  }
-  if (blocking(item)) rebuildGrid(world);
+  ACTIVATORS[cfg.behavior]?.(item, cfg);
+  if (inGrid(item)) rebuildGrid(world);
   world.events.push({ type: 'place', id: item.id, kind: item.kind, tx, ty });
 }
 
@@ -230,11 +242,11 @@ export function spawnStartingRuins(world) {
 }
 
 function pickUp(world, player, item) {
-  const wasBlocking = blocking(item);
+  const wasInGrid = inGrid(item);
   Object.assign(item, { state: 'held', holder: player.id, x: player.x, y: player.y });
   player.held = item.id;
   player.busy = world.rules.balance.player.pickupAnimS;
-  if (wasBlocking) rebuildGrid(world);
+  if (wasInGrid) rebuildGrid(world);
   world.events.push({ type: 'pickup', id: item.id, kind: item.kind, player: player.id });
 }
 
@@ -245,16 +257,16 @@ function deny(world, player) {
 function targetFor(world, player, item, limit) {
   const { tilePx, balance } = world.rules;
   return placeTarget({
-    grid: world.grid, kind: item.kind, rot: item.kind === 'wall' ? item.rot : 0,
+    grid: world.grid, kind: item.kind, rot: cfgOf(world, item).rotatable ? item.rot : 0,
     playerX: player.x, playerY: player.y, aimX: player.input.aimX, aimY: player.input.aimY,
     circles: circles(world), tilePx, maxRangeTiles: balance.player.placeRangeTiles, limitReached: limit,
   });
 }
 
-function placeWallItem(world, player, item) {
+function placeHardItem(world, player, item) {
   const { tx, ty, valid } = targetFor(world, player, item, false);
   if (!valid) return deny(world, player);
-  Object.assign(item, { state: 'placed', tx, ty, holder: null });
+  Object.assign(item, { state: 'placed', tx, ty, holder: null, owner: player.id, cooldown: 0 });
   player.held = null;
   rebuildGrid(world);
   world.events.push({ type: 'place', id: item.id, kind: item.kind, tx, ty });
@@ -289,14 +301,14 @@ export function handleAction(world, player, action) {
     if (!item) {
       const target = nearestPickable(world, player);
       if (target) pickUp(world, player, target);
-    } else if (item.kind === 'wall') {
-      placeWallItem(world, player, item);
+    } else if (isHard(world, item)) {
+      placeHardItem(world, player, item);
     } else {
       usePower(world, player, item);
     }
   } else if (action === 'r' && item) {
     dropHeld(world, player);
-  } else if (action === 'q' && item?.kind === 'wall') {
+  } else if (action === 'q' && item && cfgOf(world, item).rotatable) {
     item.rot ^= 1;
   } else if (action === 'space' && item) {
     throwItem(world, player, item);
@@ -330,11 +342,11 @@ function firstBodyHit(world, item, x0, y0, x1, y1) {
   return best;
 }
 
-function freeTileNear(world, x, y) {
+function freeTileNear(world, kind, x, y) {
   const { tilePx } = world.rules;
   const cx = tileOf(x, tilePx);
   const cy = tileOf(y, tilePx);
-  const cs = circles(world);
+  const cs = blocksBodies(kind) ? circles(world) : [];
   const candidates = [];
   for (let dy = -LAND_SEARCH_TILES; dy <= LAND_SEARCH_TILES; dy++) {
     for (let dx = -LAND_SEARCH_TILES; dx <= LAND_SEARCH_TILES; dx++) {
@@ -344,7 +356,7 @@ function freeTileNear(world, x, y) {
   candidates.sort((a, b) => a[2] - b[2]);
   for (const [tx, ty] of candidates) {
     const ok = placementValid({
-      grid: world.grid, tiles: [[tx, ty]], playerX: (tx + 0.5) * tilePx, playerY: (ty + 0.5) * tilePx,
+      grid: world.grid, tiles: footprint(kind, tx, ty, 0), playerX: (tx + 0.5) * tilePx, playerY: (ty + 0.5) * tilePx,
       circles: cs, tilePx, maxRangeTiles: Infinity, limitReached: false,
     });
     if (ok) return [tx, ty];
@@ -352,10 +364,12 @@ function freeTileNear(world, x, y) {
   return null;
 }
 
-function land(world, item, x, y) {
+function land(world, item, x, y, mob = null) {
   const thrower = item.flight.thrower;
   if (isHard(world, item) || limitReached(world, item.kind)) return toGround(world, item, x, y);
-  const tile = freeTileNear(world, x, y);
+  // Pulapka na podlodze (klatka) laduje pod trafionym potworem, zeby go zlapac, a nie obok niego.
+  const onMob = mob && !blocksBodies(item.kind);
+  const tile = freeTileNear(world, item.kind, onMob ? mob.x : x, onMob ? mob.y : y);
   if (!tile) return toGround(world, item, x, y);
   activate(world, item, tile[0], tile[1], thrower);
 }
@@ -372,9 +386,10 @@ function updateFlight(world, item, dt) {
   const hit = firstBodyHit(world, item, item.x, item.y, nx, ny);
   if (hit?.mob) {
     if (isHard(world, item)) hit.mob.stun = Math.max(hit.mob.stun, balance.throw.stunS);
+    if (cfg.throwBleed) Object.assign(hit.mob, { bleedLeft: cfg.throwBleed.durationS, bleedDps: cfg.throwBleed.dps, bleedOwner: f.thrower });
     mobHit(world, hit.x, hit.y, hit.mob, Math.atan2(f.y1 - f.y0, f.x1 - f.x0), cfg.throwDamage);
     damageMob(world, hit.mob, cfg.throwDamage, f.thrower);
-    return land(world, item, hit.x, hit.y);
+    return land(world, item, hit.x, hit.y, hit.mob);
   }
   if (hit?.player) {
     damagePlayer(world, hit.player, cfg.throwDamage * balance.friendlyFire, 'ff');
@@ -385,15 +400,22 @@ function updateFlight(world, item, dt) {
   if (f.t >= f.dur - EPS) land(world, item, nx, ny);
 }
 
+// Wspolny odliczacz czasu zycia power-upa; true = przedmiot zniknal.
+function expireWhenDone(world, item, dt) {
+  item.timeLeft -= dt;
+  if (item.timeLeft > EPS) return false;
+  world.items.delete(item.id);
+  rebuildGrid(world);
+  world.events.push({ type: 'expire', id: item.id });
+  return true;
+}
+
+const tileIn = (tiles, tx, ty) => tiles.some(([x, y]) => x === tx && y === ty);
+
 function updateTurret(world, item, dt) {
   const { tilePx, balance } = world.rules;
   const cfg = cfgOf(world, item);
-  item.timeLeft -= dt;
-  if (item.timeLeft <= EPS) {
-    world.items.delete(item.id);
-    rebuildGrid(world);
-    return;
-  }
+  if (expireWhenDone(world, item, dt)) return;
   item.cooldown = Math.max(0, item.cooldown - dt);
   if (item.cooldown > EPS) return;
   const cx = (item.tx + 0.5) * tilePx;
@@ -439,6 +461,79 @@ function updateMine(world, item, dt) {
   world.events.push({ type: 'explode', id: item.id, x: cx, y: cy, radiusPx: r, mine: true });
 }
 
+// Kolce: co tickS zadaja obrazenia kazdemu potworowi na kafelku, a graczowi friendlyFire tego (10%).
+function updateSpikes(world, item, dt) {
+  const { tilePx, balance } = world.rules;
+  const cfg = cfgOf(world, item);
+  item.cooldown = Math.max(0, item.cooldown - dt);
+  if (item.cooldown > EPS) return;
+  const onTile = (e) => tileOf(e.x, tilePx) === item.tx && tileOf(e.y, tilePx) === item.ty;
+  const mobs = world.mobs.filter(onTile);
+  const players = [...world.players.values()].filter((p) => p.state === 'alive' && !p.suspended && onTile(p));
+  if (!mobs.length && !players.length) return;
+  for (const m of mobs) {
+    mobHit(world, m.x, m.y, m, m.angle ?? 0, cfg.tickDamage);
+    damageMob(world, m, cfg.tickDamage, item.owner);
+  }
+  for (const p of players) damagePlayer(world, p, cfg.tickDamage * balance.friendlyFire, 'spikes');
+  item.cooldown = cfg.tickS;
+}
+
+// Platforma: gracz stojacy w obrysie dostaje healHp co healEveryS.
+function updatePlatform(world, item, dt) {
+  const { tilePx } = world.rules;
+  const cfg = cfgOf(world, item);
+  if (expireWhenDone(world, item, dt)) return;
+  item.cooldown = Math.max(0, item.cooldown - dt);
+  if (item.cooldown > EPS) return;
+  const tiles = footprint(item.kind, item.tx, item.ty, 0);
+  let any = false;
+  for (const p of world.players.values()) {
+    if (p.state !== 'alive' || p.suspended || !tileIn(tiles, tileOf(p.x, tilePx), tileOf(p.y, tilePx))) continue;
+    any = true;
+    p.hp = Math.min(p.maxHp, p.hp + cfg.healHp);
+  }
+  if (any) item.cooldown = cfg.healEveryS;
+}
+
+// Ile sekund wstaje powalony stojacy na platformie (bez sojusznika), albo null.
+function padReviveS(world, player) {
+  const { tilePx } = world.rules;
+  const tx = tileOf(player.x, tilePx);
+  const ty = tileOf(player.y, tilePx);
+  for (const it of world.items.values()) {
+    if (it.state !== 'active' || cfgOf(world, it).behavior !== 'platform') continue;
+    if (tileIn(footprint(it.kind, it.tx, it.ty, 0), tx, ty)) return cfgOf(world, it).reviveS;
+  }
+  return null;
+}
+
+// Klatka: lapie pierwszego potwora na kafelku (nie bossa) i uzywa istniejacego `frozen`/`vuln`
+// (jak Zamrozenie z ultimate), a po durationS znika.
+function updateCage(world, item, dt) {
+  const { tilePx, balance } = world.rules;
+  const cfg = cfgOf(world, item);
+  if (item.caught == null) {
+    const mob = world.mobs.find((m) => !balance.mobs[m.type].boss && tileOf(m.x, tilePx) === item.tx && tileOf(m.y, tilePx) === item.ty);
+    if (!mob) return;
+    item.caught = mob.id;
+    item.timeLeft = cfg.durationS;
+    mob.frozen = Math.max(mob.frozen ?? 0, cfg.durationS);
+    mob.vuln = Math.max(mob.vuln ?? 1, cfg.vuln);
+    mob.slowAfter = 0;
+    world.events.push({ type: 'trap', id: item.id, mob: mob.id });
+    return;
+  }
+  // Zabity w klatce potwor zwalnia ja od razu, zeby nie zajmowala limitu.
+  if (!world.mobs.some((m) => m.id === item.caught)) item.timeLeft = 0;
+  expireWhenDone(world, item, dt);
+}
+
+// Zachowanie -> aktualizacja co tick (tylko te, ktore maja zywa logike; `block` jest bierne).
+const UPDATERS = {
+  turret: updateTurret, mine: updateMine, spikes: updateSpikes, platform: updatePlatform, cage: updateCage,
+};
+
 export function updateItems(world, dt) {
   for (const item of [...world.items.values()]) {
     if (!world.items.has(item.id)) continue;
@@ -457,10 +552,8 @@ export function updateItems(world, dt) {
         rebuildGrid(world);
         world.events.push({ type: 'expire', id: item.id });
       }
-    } else if (item.state === 'active' && item.kind === 'turret30') {
-      updateTurret(world, item, dt);
-    } else if (item.state === 'active' && item.kind === 'mine') {
-      updateMine(world, item, dt);
+    } else if (item.state === 'placed' || item.state === 'active') {
+      UPDATERS[cfgOf(world, item).behavior]?.(world, item, dt);
     }
   }
 }

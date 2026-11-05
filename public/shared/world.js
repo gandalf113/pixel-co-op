@@ -1,4 +1,46 @@
-export const KIND = { EMPTY: 0, WALL: 1, TURRET: 2 };
+// WALL i TURRET blokuja ruch; FLOOR (kolce, platforma, klatka) zajmuje kafelek, ale mozna po nim chodzic.
+export const KIND = { EMPTY: 0, WALL: 1, TURRET: 2, FLOOR: 3 };
+
+// Slownik zachowan: kod zna tylko te kilka rodzajow, a konkretny przedmiot (i jego warianty) to wpis w balance.json.
+// grid: czym przedmiot jest w siatce; when: w jakim stanie; bodies: czy stawianie respektuje graczy/potwory na kafelku.
+export const BEHAVIORS = {
+  block: { grid: KIND.WALL, when: 'placed', bodies: true },
+  turret: { grid: KIND.TURRET, when: 'active', bodies: true },
+  mine: { grid: null, when: 'active', bodies: true },
+  spikes: { grid: KIND.FLOOR, when: 'placed', bodies: false },
+  platform: { grid: KIND.FLOOR, when: 'active', bodies: false },
+  cage: { grid: KIND.FLOOR, when: 'active', bodies: false },
+};
+
+let itemDefs = {};
+
+// Wspolna tablica definicji przedmiotow (balance.items). Serwer ustawia ja przy wczytaniu balansu,
+// klient po otrzymaniu `welcome`; footprint/buildGrid sa zalezne od niej, bo ksztalt to dane.
+export function setItemDefs(items) {
+  itemDefs = items ?? {};
+}
+
+export const itemDef = (kind) => itemDefs[kind];
+export const behaviorOf = (kind) => BEHAVIORS[itemDefs[kind]?.behavior];
+
+export function blocksBodies(kind) {
+  return behaviorOf(kind)?.bodies ?? true;
+}
+
+export const limitGroupOf = (kind) => itemDefs[kind]?.limitGroup ?? kind;
+
+// Ile aktywnych przedmiotow z tej samej grupy limitu (np. wszystkie dzialka) stoi na mapie.
+export function activeInGroup(items, kind) {
+  const group = limitGroupOf(kind);
+  let n = 0;
+  for (const it of items) if (it.state === 'active' && limitGroupOf(it.kind) === group) n++;
+  return n;
+}
+
+export function itemLimitReached(items, kind) {
+  const limit = itemDefs[kind]?.limit;
+  return limit != null && activeInGroup(items, kind) >= limit;
+}
 
 export class Grid {
   constructor(w, h) {
@@ -27,6 +69,11 @@ export class Grid {
   }
 
   isSolid(tx, ty) {
+    const k = this.kind(tx, ty);
+    return k === KIND.WALL || k === KIND.TURRET;
+  }
+
+  isOccupied(tx, ty) {
     return this.kind(tx, ty) !== KIND.EMPTY;
   }
 
@@ -39,19 +86,30 @@ export function tileOf(px, tilePx) {
   return Math.floor(px / tilePx);
 }
 
-export function footprint(kind, tx, ty, rot) {
-  if (kind === 'wall') return rot === 1 ? [[tx, ty], [tx, ty + 1]] : [[tx, ty], [tx + 1, ty]];
-  return [[tx, ty]];
+// Kafelki zajmowane przez przedmiot. Pierwszy kafelek to zawsze kafelek kotwicy (tx, ty): dla `anchor: center`
+// srodek ksztaltu, inaczej lewy gorny rog; placementValid mierzy zasieg i widocznosc wlasnie do niego.
+export function footprint(kind, tx, ty, rot = 0) {
+  const def = itemDefs[kind];
+  let [w, h] = def?.size ?? [1, 1];
+  if (rot === 1 && def?.rotatable) [w, h] = [h, w];
+  const ox = def?.anchor === 'center' ? Math.floor(w / 2) : 0;
+  const oy = def?.anchor === 'center' ? Math.floor(h / 2) : 0;
+  const tiles = [[tx, ty]];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (x === ox && y === oy) continue;
+      tiles.push([tx - ox + x, ty - oy + y]);
+    }
+  }
+  return tiles;
 }
 
 export function buildGrid(w, h, items) {
   const grid = new Grid(w, h);
   for (const it of items) {
-    let k = KIND.EMPTY;
-    if (it.kind === 'wall' && it.state === 'placed') k = KIND.WALL;
-    else if (it.kind === 'turret30' && it.state === 'active') k = KIND.TURRET;
-    if (k === KIND.EMPTY) continue;
-    for (const [tx, ty] of footprint(it.kind, it.tx, it.ty, it.rot)) grid.set(tx, ty, k, it.id);
+    const b = behaviorOf(it.kind);
+    if (!b || b.grid === null || it.state !== b.when) continue;
+    for (const [tx, ty] of footprint(it.kind, it.tx, it.ty, it.rot)) grid.set(tx, ty, b.grid, it.id);
   }
   return grid;
 }
@@ -122,7 +180,7 @@ function circleTouchesTile(c, tx, ty, tilePx) {
 export function placementValid({ grid, tiles, playerX, playerY, circles, tilePx, maxRangeTiles, limitReached }) {
   if (limitReached) return false;
   for (const [tx, ty] of tiles) {
-    if (grid.isSolid(tx, ty)) return false;
+    if (grid.isOccupied(tx, ty)) return false;
     for (const c of circles) if (circleTouchesTile(c, tx, ty, tilePx)) return false;
   }
   const [ax, ay] = tiles[0];
@@ -154,8 +212,9 @@ export function placeTarget({ grid, kind, rot = 0, playerX, playerY, aimX, aimY,
   const ptx = tileOf(playerX, tilePx);
   const pty = tileOf(playerY, tilePx);
   const inRange = (tx, ty) => Math.max(Math.abs(tx - ptx), Math.abs(ty - pty)) <= maxRangeTiles;
+  const bodies = blocksBodies(kind) ? circles : [];
   const valid = (tx, ty) => placementValid({
-    grid, tiles: footprint(kind, tx, ty, rot), playerX, playerY, circles, tilePx, maxRangeTiles, limitReached,
+    grid, tiles: footprint(kind, tx, ty, rot), playerX, playerY, circles: bodies, tilePx, maxRangeTiles, limitReached,
   });
   const cx = tileOf(aimX, tilePx);
   const cy = tileOf(aimY, tilePx);

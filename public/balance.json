@@ -30,9 +30,18 @@
     "readyCountdownS": 5
   },
   "items": {
-    "wall":     { "category": "hard",  "name": "Kawałek ściany", "size": [2, 1], "hp": 150, "throwDamage": 15, "weight": 60 },
-    "turret30": { "category": "power", "name": "Działko 30 s", "durationS": 30, "rangeTiles": 8, "damage": 8, "cooldownS": 0.3, "hp": 100, "throwDamage": 10, "weight": 20, "limit": 8 },
-    "mine":     { "category": "power", "name": "Mina", "armS": 1, "damage": 60, "radiusTiles": 1.5, "throwDamage": 10, "weight": 20, "limit": 20 }
+    "wall":     { "category": "hard",  "behavior": "block", "name": "Kawałek ściany", "size": [2, 1], "rotatable": true, "hp": 150, "throwDamage": 15, "weight": 60, "sprite": "wall" },
+    "boulder":  { "category": "hard",  "behavior": "block", "name": "Głaz", "size": [1, 1], "hp": 400, "throwDamage": 30, "weight": 25, "sprite": "boulder" },
+    "spikes":   { "category": "hard",  "behavior": "spikes", "name": "Kolce", "size": [1, 1], "hp": 80, "throwDamage": 20, "throwBleed": { "dps": 2, "durationS": 3 },
+                  "tickS": 0.5, "tickDamage": 8, "weight": 15, "sprite": "spikes" },
+    "turret30": { "category": "power", "behavior": "turret", "name": "Działko 30 s", "durationS": 30, "rangeTiles": 8, "damage": 8, "cooldownS": 0.3, "hp": 100, "throwDamage": 10, "weight": 20, "limit": 8, "limitGroup": "turret", "sprite": "turret", "wreck": "turret_wreck" },
+    "turret60": { "category": "power", "behavior": "turret", "name": "Działko 60 s", "durationS": 60, "rangeTiles": 8, "damage": 8, "cooldownS": 0.3, "hp": 100, "throwDamage": 10, "weight": 10, "limit": 8, "limitGroup": "turret", "sprite": "turret", "wreck": "turret_wreck" },
+    "turret90": { "category": "power", "behavior": "turret", "name": "Działko 90 s", "durationS": 90, "rangeTiles": 8, "damage": 8, "cooldownS": 0.3, "hp": 100, "throwDamage": 10, "weight": 4, "limit": 8, "limitGroup": "turret", "sprite": "turret", "wreck": "turret_wreck" },
+    "platform30": { "category": "power", "behavior": "platform", "name": "Platforma lecząca 30 s", "size": [3, 3], "anchor": "center", "durationS": 30, "healHp": 5, "healEveryS": 0.5, "reviveS": 2, "throwDamage": 10, "weight": 15, "limit": 4, "limitGroup": "platform", "sprite": "platform" },
+    "platform60": { "category": "power", "behavior": "platform", "name": "Platforma lecząca 60 s", "size": [3, 3], "anchor": "center", "durationS": 60, "healHp": 5, "healEveryS": 0.5, "reviveS": 2, "throwDamage": 10, "weight": 8, "limit": 4, "limitGroup": "platform", "sprite": "platform" },
+    "platform90": { "category": "power", "behavior": "platform", "name": "Platforma lecząca 90 s", "size": [3, 3], "anchor": "center", "durationS": 90, "healHp": 5, "healEveryS": 0.5, "reviveS": 2, "throwDamage": 10, "weight": 3, "limit": 4, "limitGroup": "platform", "sprite": "platform" },
+    "mine":     { "category": "power", "behavior": "mine", "name": "Mina", "armS": 1, "damage": 60, "radiusTiles": 1.5, "throwDamage": 10, "weight": 20, "limit": 20, "sprite": "mine" },
+    "cage":     { "category": "power", "behavior": "cage", "name": "Pułapka-klatka", "durationS": 8, "vuln": 1.5, "throwDamage": 10, "weight": 12, "limit": 12, "sprite": "cage" }
   },
   "ruins": {
     "count": 7, "minRadiusTiles": 4, "maxRadiusTiles": 9, "minGapTiles": 2, "minSpawnGapTiles": 2, "attemptsPerRuin": 200, "minDamagedStates": 2,

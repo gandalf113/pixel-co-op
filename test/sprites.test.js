@@ -26,3 +26,15 @@ test('klatki powalonego gracza są 16x16, z kolorem gracza i różnią się ręk
   }
   assert.notDeepEqual(SPRITES.player_down_0, SPRITES.player_down_1);
 });
+
+test('every item in balance.json has all the sprites its behavior needs', async () => {
+  const { balance } = await import('./helpers.js');
+  for (const [kind, c] of Object.entries(balance.items)) {
+    const need = [`item_${kind}`];
+    if (c.behavior === 'block') need.push(c.sprite, ...[1, 2, 3].map((n) => `${c.sprite}_dmg_${n}`));
+    else if (c.behavior === 'spikes') need.push(c.sprite);
+    else need.push(`${c.sprite}_0`, `${c.sprite}_1`);
+    if (c.wreck) need.push(c.wreck);
+    for (const name of need) assert.ok(SPRITES[name], `${kind}: brak sprite'a ${name}`);
+  }
+});

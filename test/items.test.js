@@ -320,13 +320,21 @@ test('cursor beyond range places on farthest allowed tile toward cursor (I4b, I4
   assert.equal(it.tx, ptx + 2);
 });
 
-test('drop roll categories', () => {
+test('drop roll categories and weights follow balance.json', () => {
   const { w } = oneWorld();
   w.rules = { ...w.rules, dropChance: () => 1 };
-  const n = { wall: 0, turret30: 0, mine: 0 };
-  for (let i = 0; i < 10000; i++) n[rollDrop(w, 'slime')]++;
-  assert.ok(n.wall / 10000 >= 0.53 && n.wall / 10000 <= 0.57, String(n.wall));
-  assert.ok(Math.abs(n.turret30 - n.mine) < 300);
+  const N = 20000;
+  const n = {};
+  for (let i = 0; i < N; i++) {
+    const k = rollDrop(w, 'slime');
+    n[k] = (n[k] ?? 0) + 1;
+  }
+  const items = Object.entries(balance.items);
+  const total = (cat) => items.filter(([, c]) => c.category === cat).reduce((s, [, c]) => s + c.weight, 0);
+  for (const [kind, c] of items) {
+    const share = (c.category === 'hard' ? balance.drops.hardShare : 1 - balance.drops.hardShare) * (c.weight / total(c.category));
+    assert.ok(Math.abs((n[kind] ?? 0) / N - share) < 0.012, `${kind}: ${(n[kind] ?? 0) / N} vs ${share}`);
+  }
 });
 
 test('wave 1 guarantees a wall', () => {

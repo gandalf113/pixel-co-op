@@ -1,3 +1,5 @@
+import { itemDef } from '../shared/world.js';
+
 const MAX_PARTICLES = 500;
 const MAX_CHIPS = 400;
 const SHELL_MAX = 400;
@@ -91,7 +93,7 @@ export class Fx {
 
   destroyed(now, e, tiles, tp) {
     this.wear.delete(e.id);
-    const turret = e.kind === 'turret30';
+    const turret = itemDef(e.kind)?.behavior === 'turret';
     this.collapses.push({ kind: e.kind, tiles, born: now });
     for (const [tx, ty] of tiles) {
       const x = (tx + 0.5) * tp;
