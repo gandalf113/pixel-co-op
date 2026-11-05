@@ -17,7 +17,8 @@ To repo trzyma **dokumentację produktu**. Podział ról:
 | [docs/04-TECH-ARCH.md](docs/04-TECH-ARCH.md) | Ograniczenia techniczne i rekomendowana architektura (przeglądarka, host w LAN, pixel art z kodu) |
 | [docs/05-TEST-PLAN.md](docs/05-TEST-PLAN.md) | Plan testów: scenariusze akceptacyjne per feature, testy LAN, testy balansu |
 | [docs/06-OPEN-QUESTIONS.md](docs/06-OPEN-QUESTIONS.md) | Decyzje do podjęcia i rzeczy czekające na doprecyzowanie |
-| [docs/07-BACKLOG-V2.md](docs/07-BACKLOG-V2.md) | Backlog V2: ULTIMATE (wspólny pasek, 3 progi), boss, dźwięk, mapy, statystyki |
+| [docs/07-BACKLOG-V2.md](docs/07-BACKLOG-V2.md) | Backlog V2: boss, dźwięk, mapy, statystyki |
+| [docs/08-ULTIMATE.md](docs/08-ULTIMATE.md) | ULTIMATE (w MVP): shiny droplets, wspólny pasek, 3 progi, 7 umiejętności, testy |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Historia zmian w dokumentacji |
 
 ## Jak czytać

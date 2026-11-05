@@ -1,5 +1,11 @@
 # Changelog dokumentacji
 
+## 0.5 - 2026-11-05
+- ULTIMATE przeniesiony z backlogu do MVP: nowy 08-ULTIMATE.md (zalozenia zatwierdzone R16-R21, 7 umiejetnosci z 3 progami, HUD, testy UL1-UL13).
+- Feedback z testu silnika: pociski szybkie 600 px/s (PRD-PLR-03), potwory bladza zamiast isc po linii (03 sekcja 1), dynamiczny zoom kamery (PRD-MAP-07).
+- Zatwierdzone: limity power-upow (R22), mapa 80x60 (R23). Nowe pytania Q13-Q15.
+- PRD: zakres MVP, lobby z wyborem ultimate, PRD-CTRL-10 (F), PRD-HUD-10, kryteria akceptacji.
+
 ## 0.4 - 2026-11-05
 - Nowy 07-BACKLOG-V2: ULTIMATE (shiny droplets laduja wspolny pasek wszystkim, kazdy uzywa swojego kiedy chce, 3 progi, wybor w lobby) + propozycja mechaniki i pytania U1-U5.
 

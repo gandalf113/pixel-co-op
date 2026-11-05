@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.3 (2026-11-05)
+Wersja: 0.5 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -35,10 +35,11 @@ MVP to wersja, którą da się zagrać we 2-4 osoby na LAN-ie przez 15 minut i "
 - Drop przedmiotów z potworów: min. 1 hard object (kawałek ściany) i min. 2 power-upy (działko 30s, mina).
 - Podnoszenie / odkładanie / rzucanie (z obrażeniami) / używanie przedmiotów (E / E / Spacja / R).
 - Suwak trudności, 4 poziomy, wybierany przez hosta przed startem.
-- HUD: HP, numer fali, odliczanie do następnej fali, trzymany przedmiot.
+- ULTIMATE: kropelki, wspólny pasek, 3 progi, 7 umiejętności do wyboru w lobby, użycie `F` (`08-ULTIMATE.md`).
+- HUD: HP, numer fali, odliczanie do następnej fali, trzymany przedmiot, pasek ULTIMATE.
 - Stan przegranej (wszyscy gracze padli) i ekran wyniku (numer fali, czas).
 
-Poza MVP (później): pełna lista przedmiotów, boss, pozostałe typy potworów, statystyki, dźwięk, mapy inne niż płaska.
+Poza MVP (później): boss, statystyki, dźwięk, mapy inne niż płaska (`07-BACKLOG-V2.md`).
 
 ## 4. Gracze i sesja
 
@@ -48,7 +49,7 @@ Poza MVP (później): pełna lista przedmiotów, boss, pozostałe typy potworów
 | PRD-SES-02 | Dołączenie: gracz wpisuje adres hosta (IP:port) lub otwiera link w przeglądarce. Nie ma matchmakingu ani lobby w internecie. |
 | PRD-SES-03 | Liczba graczy: 1-4. Jeden gracz = też gra działa (do testów). |
 | PRD-SES-04 | Gracz podaje nick (max 12 znaków). Każdy gracz dostaje inny kolor (4 kolory: zielony, niebieski, żółty, różowy). |
-| PRD-SES-05 | Przed startem jest ekran lobby: lista graczy, trudność, przycisk "Start" u hosta. Reszta widzi "czekam na hosta". |
+| PRD-SES-05 | Przed startem jest ekran lobby: lista graczy, trudność, wybór ULTIMATE per gracz (7 kafelków), przycisk "Start" u hosta (aktywny, gdy każdy wybrał ultimate). Reszta widzi "czekam na hosta". |
 | PRD-SES-06 | Dołączenie w trakcie gry (late join): **niedozwolone**. Po starcie sesja jest zamknięta, spóźniony gracz czeka na nową grę. Host po starcie przestaje przyjmować nowe połączenia (komunikat "gra w toku"). |
 | PRD-SES-07 | Rozłączenie gracza: jego postać znika, przedmiot, który trzymał, spada na ziemię. Gra toczy się dalej. Rozłączenie hosta = koniec sesji dla wszystkich z komunikatem. |
 
@@ -62,6 +63,7 @@ Poza MVP (później): pełna lista przedmiotów, boss, pozostałe typy potworów
 | PRD-CTRL-04 | `E` - podnieś przedmiot z ziemi / odłóż trzymany. Dotyczy obu kategorii (`02-ITEMS.md`, sekcja 3). |
 | PRD-CTRL-05 | `R` - użyj trzymany przedmiot "używalny" (power-up), np. spawnuje platformę leczącą, działko, minę. Z hard objectem w rękach: obrót kawałka ściany o 90 stopni. |
 | PRD-CTRL-06 | Rzut (spacja z przedmiotem) **zawsze zadaje obrażenia** trafionemu potworowi. Wartości w `02-ITEMS.md`. |
+| PRD-CTRL-10 | `F` - użyj ULTIMATE (od progu I, `08-ULTIMATE.md`). |
 | PRD-CTRL-07 | `Esc` - menu pauzy po stronie klienta (gra po stronie hosta NIE pauzuje, bo to multiplayer). Zawiera: wróć, ustawienia (głośność, pełny ekran), wyjdź. |
 | PRD-CTRL-08 | `Tab` (przytrzymanie) - lista graczy z HP. |
 | PRD-CTRL-09 | Sprite postaci obraca się do kursora **płynnie** (rotacja całej postaci o dowolny kąt). Sprite rysowany "z góry" (top-down, nie 3/4), żeby obrót wyglądał naturalnie. Nearest neighbour bez wygładzania. |
@@ -72,12 +74,13 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 
 | ID | Wymóg |
 |---|---|
-| PRD-MAP-01 | Mapa na start: płaska, prostokątna arena. **[PROPOZYCJA]** 80 x 60 kafelków po 16 px (1280 x 960 px świata). Z nieprzekraczalną granicą (ściana/krawędź). |
+| PRD-MAP-01 | Mapa na start: płaska, prostokątna arena 80 x 60 kafelków po 16 px (1280 x 960 px świata). Z nieprzekraczalną granicą (ściana/krawędź). |
 | PRD-MAP-02 | Potwory spawnują się przy krawędziach mapy, poza polem widzenia graczy, jeśli to możliwe. Punkty spawnu rozłożone wzdłuż całego obwodu. |
 | PRD-MAP-03 | Gracze spawnują się na środku mapy, obok siebie. |
 | PRD-MAP-04 | Kamera: postać lokalnego gracza zawsze na środku ekranu. Kamera nie zatrzymuje się na krawędzi mapy (poza mapą rysujemy "pustkę" / ciemność). |
 | PRD-MAP-05 | Skalowanie: render w natywnej rozdzielczości pixel-art (np. 320 x 180 lub 480 x 270) i powiększenie całkowitą krotnością do okna. Bez wygładzania (nearest neighbour). |
 | PRD-MAP-06 | Tło: podłoże z lekką wariacją kafelków (2-3 warianty), żeby ruch był widoczny. |
+| PRD-MAP-07 | **Dynamiczny zoom kamery** (feedback 2026-11-05): lokalna postać zostaje na środku, ale widok oddala się płynnie w miarę rozchodzenia się graczy, tak aby sojusznicy byli widoczni na ekranie. Zoom ograniczony do rozsądnego maksimum: skala od 1.0 (480 x 270 świata) do 0.5 (960 x 540 świata), zmiana płynna (lerp, ok. 1 s), bez skokow. Przy maksymalnym oddaleniu sojusznicy poza ekranem pokazywani są strzałkami na krawędzi (PRD-HUD-07). Zoom w pixel-art: skala całkowita lub renderowanie świata w wyższej rozdzielczości i skalowanie w dół nearest neighbour; developer wybiera, byle piksele zostały ostre. Zoom wraca do 1.0, gdy gracze są blisko. Gracz solo: zoom 1.0. |
 
 ## 7. Postać gracza
 
@@ -85,7 +88,7 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 |---|---|
 | PRD-PLR-01 | HP: 100. Regeneracja naturalna **tylko w przerwie**: +2 HP/s. W trakcie fali brak (tylko platforma lecząca). |
 | PRD-PLR-02 | Prędkość: ok. 5 kafelków/s (80 px/s). Z trzymanym hard objectem: 60% prędkości. Z power-upem: 100%. Z czymkolwiek w rękach gracz nie strzela. |
-| PRD-PLR-03 | Broń podstawowa: pistolet. Obrażenia 10, cooldown 0.25 s, prędkość pocisku 300 px/s, zasięg 12 kafelków. Pocisk znika po trafieniu lub po zasięgu. |
+| PRD-PLR-03 | Broń podstawowa: pistolet. Obrażenia 10, cooldown 0.25 s, **prędkość pocisku 600 px/s** (szybkie, nie wolne: feedback z testu silnika 2026-11-05), zasięg 14 kafelków. Pocisk znika po trafieniu lub po zasięgu. |
 | PRD-PLR-04 | Poziom broni: 1-5. Każdy poziom z "boostu" (rzadki item) podnosi obrażenia o 30% i skraca cooldown o 10%. Na poziomie 3+ pocisk przebija 1 cel. Na 5 strzał potrójny (wachlarz). **[PROPOZYCJA]** |
 | PRD-PLR-05 | **Friendly fire 10%**: pocisk gracza trafiający innego gracza zadaje 10% swoich obrażeń. Pocisk znika po trafieniu sojusznika (nie przebija). Gracz nie może trafić samego siebie. |
 | PRD-PLR-06 | Działka (turrety) ustawione przez graczy NIE strzelają do graczy i nie zadają friendly fire. Miny ranią graczy w 10%. **[PROPOZYCJA]** |
@@ -117,6 +120,7 @@ LOBBY -> START -> [PRZERWA 0 (krótka)] -> FALA 1 -> PRZERWA 1 -> FALA 2 -> PRZE
 | PRD-HUD-02 | Numer fali + stan: "FALA 4" w trakcie fali, "PRZERWA 0:37" w przerwie (góra, środek). W trakcie fali licznik pozostałych potworów. |
 | PRD-HUD-03 | Trzymany przedmiot: ikona + nazwa + (dla power-upów z czasem) czas działania (prawy dolny róg). Pusty slot = "nic". |
 | PRD-HUD-04 | Poziom broni (np. "BROŃ LV 2") obok HP. |
+| PRD-HUD-10 | Pasek ULTIMATE (3 segmenty) nad HP, ikona wybranego ultimate, kropka progu nad sojusznikami (`08-ULTIMATE.md`, ULT-HUD). |
 | PRD-HUD-05 | Nad każdym graczem: nick w jego kolorze i mały pasek HP. Nad powalonym: ikona i licznik do śmierci. |
 | PRD-HUD-06 | Nad działkami i platformami: mały pasek pozostałego czasu. |
 | PRD-HUD-07 | Strzałki na krawędzi ekranu wskazujące sojuszników poza ekranem (kolor gracza). |
@@ -147,6 +151,8 @@ Poza MVP. Jeśli będzie: proste efekty generowane syntezą (bez plików z sieci
 - [ ] Postawiona ściana blokuje potwory i pociski.
 - [ ] Działko strzela do potworów przez swój czas i znika.
 - [ ] 4 poziomy trudności dają mierzalnie inne liczby (HP potworów, ilość).
+- [ ] Kropelki ładują pasek wszystkim; `F` od progu I odpala wybrany ultimate z siłą progu; pasek użytego zeruje się, innych nie.
+- [ ] Pociski są szybkie (600 px/s), potwory nie idą idealnie po linii do gracza.
 - [ ] Game over po powaleniu wszystkich. Ekran wyniku.
 
 Szczegółowe scenariusze testów: `05-TEST-PLAN.md`.

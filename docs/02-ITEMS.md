@@ -1,6 +1,6 @@
 # 02 - Przedmioty
 
-Wersja: 0.3 (2026-11-05)
+Wersja: 0.5 (2026-11-05)
 
 Logika akcji (sekcja 3) jest **zatwierdzona przez właścicieli produktu**. Statystyki w sekcjach 4-5 to wartości startowe do balansu, do strojenia po testach.
 
@@ -97,7 +97,7 @@ Zasady:
 
 Zasady:
 
-- Limity aktywnych na mapie: działka 8, platformy 4, miny 20. Przy limicie ghost czerwony, `R` nie działa, można dalej trzymać. **[PROPOZYCJA]**
+- Limity aktywnych na mapie: działka 8, platformy 4, miny 20 (zatwierdzone). Przy limicie ghost czerwony, `R` nie działa, można dalej trzymać.
 - Power-up z czasem po wygaśnięciu znika z animacją.
 - Czas działania liczy się **także w przerwie** (decyzja właścicieli). Gracz sam decyduje, kiedy użyć; HUD pokazuje czas.
 

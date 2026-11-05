@@ -1,6 +1,6 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.3 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.5 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
@@ -21,10 +21,25 @@ Wersja: 0.3 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr 
 | R13 | Regeneracja HP | **Tylko w przerwie, +2 HP/s**; w fali brak (PRD-PLR-01) | 2026-11-05 |
 | R14 | Boss | Co 5 fal, poza MVP | 2026-11-05 |
 | R15 | Skalowanie fali z liczbą graczy | Tak, budżet x(0.7 + 0.3 N) | 2026-11-05 |
+| R16 | ULTIMATE: wybór | Tylko w lobby, na całą sesję | 2026-11-05 |
+| R17 | ULTIMATE: w MVP? | **Tak, w MVP** | 2026-11-05 |
+| R18 | ULTIMATE: użycie | Od progu I, siła wg progu, pasek zeruje się w całości | 2026-11-05 |
+| R19 | Kropelki | Magnes 2 kafelki, znikają po 20 s | 2026-11-05 |
+| R20 | Pasek między falami | Przenosi się, bez resetu | 2026-11-05 |
+| R21 | Lista ultimate | 7: Fala uderzeniowa, Mur awaryjny, Uzdrowienie, Szał, **Działko szerokie (celowane), Rakieta AoE, Zamrożenie** | 2026-11-05 |
+| R22 | Limity aktywnych power-upów | Działka 8, platformy 4, miny 20 | 2026-11-05 |
+| R23 | Mapa | 80 x 60 kafelków po 16 px, render 480 x 270 | 2026-11-05 |
+| R24 | Pociski (po teście silnika) | Szybkie: 600 px/s | 2026-11-05 |
+| R25 | Ruch potworów (po teście silnika) | Nie tylko do gracza: błądzenie / szum kierunku (03 sekcja 1) | 2026-11-05 |
+| R26 | Kamera (po teście silnika) | Dynamiczny zoom-out w miarę rozchodzenia graczy do rozsądnego maksimum, dalej strzałki (PRD-MAP-07) | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu
 
-Brak. Wszystkie pytania z wersji 0.1 rozstrzygnięte 2026-11-05 (R4-R15). Nowe pytania dopisujemy tu w tym samym formacie.
+| # | Pytanie | Nasza propozycja | Gdzie |
+|---|---|---|---|
+| Q13 | Ściany z Muru awaryjnego: podniesione przez gracza zostają na stałe? | Tak | 08 sekcja 4 |
+| Q14 | Rakieta niszczy fortyfikacje graczy? | Nie | 08 sekcja 4 |
+| Q15 | Ultimate na bossa: 0.5 obrażeń i kontrola skrócona do 1 s? | Tak | 08 sekcja 4 |
 
 ## Otwarte: dla developera
 
