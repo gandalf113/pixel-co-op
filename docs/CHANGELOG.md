@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.20 - 2026-11-05
+- R51 sciana przy ciosie: jeden mikroruch 1 px lewo-prawo zamiast wibracji (FX-08, FX-02, 03 sekcja 1, X7).
+
 ## 0.19 - 2026-11-05
 - R50 startowe ruiny: 7 losowych scian wokol spawnu na rozny poziomie zniszczenia, z seedu gry (PRD-MAP-10, 02 sekcja 4, testy M1-M2).
 
