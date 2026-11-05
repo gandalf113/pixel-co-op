@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.10 (2026-11-05)
+Wersja: 0.14 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -34,8 +34,9 @@ MVP to wersja, którą da się zagrać we 2-4 osoby na LAN-ie przez 15 minut i "
 - Friendly fire 10%.
 - Drop przedmiotów z potworów: min. 1 hard object (kawałek ściany) i min. 2 power-upy (działko 30s, mina).
 - Podnoszenie / odkładanie / rzucanie (z obrażeniami) / używanie przedmiotów (E / E / Spacja / R).
-- Potwory powoli niszczą obiekty graczy (HP obiektów, pęknięcia, obrażenia per typ potwora).
+- Potwory powoli niszczą obiekty graczy (HP obiektów, 4 stany zużycia z kruszeniem krawędzi, animacja zawalenia, rumowisko; PRD-FX-08).
 - Trupy potworów i krew zostają na ziemi (PRD-MAP-09).
+- Widoczne trafienia pocisków w potwory i widoczny wybuch miny (PRD-FX-01, PRD-FX-04).
 - Suwak trudności, 4 poziomy, wybierany przez hosta przed startem.
 - ULTIMATE: kropelki, wspólny pasek, 3 progi, 7 umiejętności do wyboru w lobby, użycie `F` (`08-ULTIMATE.md`).
 - HUD: HP, numer fali, odliczanie do następnej fali, trzymany przedmiot, pasek ULTIMATE.
@@ -62,7 +63,7 @@ Poza MVP (później): boss, statystyki, dźwięk, mapy inne niż płaska (`07-BA
 | PRD-CTRL-01 | `W A S D` - ruch w 8 kierunkach. Ruch po skosie znormalizowany (nie szybszy niż prosto). |
 | PRD-CTRL-02 | **Celowanie myszką**: pozycja kursora względem postaci (która jest na środku ekranu) wyznacza kierunek celowania. Postać obraca się w stronę kursora. Celownik rysowany pod kursorem. |
 | PRD-CTRL-03 | `Spacja` - strzał w kierunku celowania (ręce puste). Przytrzymanie = ogień ciągły z cooldownem broni. **Z przedmiotem w rękach spacja rzuca** (patrz `02-ITEMS.md`). |
-| PRD-CTRL-04 | `E` - podnieś przedmiot z ziemi / odłóż trzymany. Dotyczy obu kategorii (`02-ITEMS.md`, sekcja 3). |
+| PRD-CTRL-04 | `E` - podnieś przedmiot z ziemi (puste ręce) / odłóż lub postaw trzymany (coś w rękach). Z przedmiotem w rękach `E` nigdy nie podnosi innego przedmiotu (ITM-GEN-11). Stawianie celuje najdalej w zasięgu w kierunku kursora, gdy kursor jest za daleko (ITM-PLACE-01). |
 | PRD-CTRL-05 | `R` - użyj trzymany przedmiot "używalny" (power-up), np. spawnuje platformę leczącą, działko, minę. Z hard objectem w rękach: obrót kawałka ściany o 90 stopni. |
 | PRD-CTRL-06 | Rzut (spacja z przedmiotem) **zawsze zadaje obrażenia** trafionemu potworowi. Wartości w `02-ITEMS.md`. |
 | PRD-CTRL-10 | `F` - użyj ULTIMATE (od progu I, `08-ULTIMATE.md`). |
@@ -92,7 +93,7 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 |---|---|
 | PRD-PLR-01 | HP: 100. Regeneracja naturalna **tylko w przerwie**: +2 HP/s. W trakcie fali brak (tylko platforma lecząca). |
 | PRD-PLR-02 | Prędkość: ok. 5 kafelków/s (80 px/s). Z trzymanym hard objectem: 60% prędkości. Z power-upem: 100%. Z czymkolwiek w rękach gracz nie strzela. |
-| PRD-PLR-03 | Broń podstawowa: **karabin maszynowy**. Obrażenia 8, ogień ciągły co 0.1 s (10 strz./s) przy trzymanej spacji, **magazynek 30 pocisków**, po opróżnieniu automatyczny **przeładunek 1.5 s**. Rozrzut 3 stopnie. Prędkość pocisku 600 px/s, zasięg 14 kafelków. Pocisk znika po trafieniu lub po zasięgu. W trakcie przeładunku nie można strzelać; ruch, podnoszenie i rzut działają. `R` z pustymi rękami = ręczny przeładunek (gdy magazynek niepełny). Stare "pistolet" i cooldown 0.25 s nie obowiązują. |
+| PRD-PLR-03 | Broń podstawowa: **karabin maszynowy**. Obrażenia 8, ogień ciągły co **0.14 s (ok. 7 strz./s)** przy trzymanej spacji, **magazynek 30 pocisków**, po opróżnieniu automatyczny **przeładunek 1.5 s**. Rozrzut 3 stopnie. Prędkość pocisku **450 px/s** (po teście 2026-11-05: 600 było ciut za szybko, 300 za wolno), zasięg 14 kafelków. Pocisk znika po trafieniu lub po zasięgu. W trakcie przeładunku nie można strzelać; ruch, podnoszenie i rzut działają. `R` z pustymi rękami = ręczny przeładunek (gdy magazynek niepełny). Stare "pistolet" i cooldown 0.25 s nie obowiązują. |
 | PRD-PLR-04 | Poziom broni: 1-5. Każdy poziom z "boostu" (rzadki item) podnosi obrażenia o 30%, powiększa magazynek o 10 i skraca przeładunek o 0.2 s. Na poziomie 3+ pocisk przebija 1 cel. Na 5 strzał potrójny (wachlarz). **[PROPOZYCJA]** |
 | PRD-PLR-05 | **Friendly fire 10%**: pocisk gracza trafiający innego gracza zadaje 10% swoich obrażeń. Pocisk znika po trafieniu sojusznika (nie przebija). Gracz nie może trafić samego siebie. |
 | PRD-PLR-06 | Działka (turrety) ustawione przez graczy NIE strzelają do graczy i nie zadają friendly fire. Miny ranią graczy w 10%. **[PROPOZYCJA]** |
@@ -124,13 +125,30 @@ LOBBY -> START -> [PRZERWA 0 (krótka)] -> FALA 1 -> PRZERWA 1 -> FALA 2 -> PRZE
 | PRD-HUD-02 | Numer fali + stan: "FALA 4" w trakcie fali, "PRZERWA 0:37" w przerwie (góra, środek). W trakcie fali licznik pozostałych potworów. |
 | PRD-HUD-03 | Trzymany przedmiot: ikona + nazwa + (dla power-upów z czasem) czas działania (prawy dolny róg). Pusty slot = "nic". |
 | PRD-HUD-04 | Poziom broni (np. "BROŃ LV 2") obok HP, a obok licznik amunicji `18 / 30` (migający na czerwono przy 5 i mniej). |
-| PRD-HUD-11 | **Przeładunek na środku ekranu**: pod postacią (która jest na środku) krótki pasek postępu przeładunku z napisem `PRZEŁADOWANIE`, widoczny tylko w trakcie przeładunku. Pasek wypełnia się przez 1.5 s. Obok sojusznika w trakcie przeładunku mała ikonka magazynka, żeby zespół wiedział, kto nie strzela. |
+| PRD-HUD-11 | **Przeładunek jako kółko wokół postaci**: w trakcie przeładunku wokół własnej postaci (środek ekranu) rysowany jest **pierścień o promieniu ok. 14 px świata, wypełniający się zgodnie z ruchem wskazówek zegara od godziny 12** przez 1.5 s, w kolorze kości na ciemnym tle pierścienia, grubość 2 px. Po domknięciu pierścień błyska raz i znika. Bez napisu. Wokół sojusznika w trakcie przeładunku ten sam pierścień, cieńszy (1 px) i w jego kolorze, żeby zespół widział, kto nie strzela. Pierścień rysowany w warstwie świata (obraca się razem z kamerą, nie HUD). |
 | PRD-HUD-10 | Pasek ULTIMATE (3 segmenty) nad HP, ikona wybranego ultimate, kropka progu nad sojusznikami (`08-ULTIMATE.md`, ULT-HUD). |
 | PRD-HUD-05 | Nad każdym graczem: nick w jego kolorze i mały pasek HP. Nad powalonym: ikona i licznik do śmierci. |
 | PRD-HUD-06 | Nad działkami i platformami: mały pasek pozostałego czasu. |
 | PRD-HUD-07 | Strzałki na krawędzi ekranu wskazujące sojuszników poza ekranem (kolor gracza). |
 | PRD-HUD-08 | Celownik pod kursorem. Kursor systemowy ukryty nad canvasem. |
-| PRD-HUD-09 | Podpowiedź kontekstowa przy przedmiocie w zasięgu: "[E] podnieś: Kawałek ściany". |
+| PRD-HUD-09 | Podpowiedź kontekstowa przy przedmiocie w zasięgu: "[E] podnieś: Kawałek ściany". **Przedmiot, który zostanie podniesiony po `E` (najbliższy w zasięgu), jest podświetlony**: jasny 1-px obrys sprite'a pulsujący 2 razy na sekundę plus lekkie uniesienie o 1 px. Podświetlony jest dokładnie jeden przedmiot, ten sam, który wybierze serwer (ta sama reguła: najbliższy środkowi gracza w promieniu podnoszenia, dla postawionej ściany odległość do najbliższego kafelka). Gdy w zasięgu nic nie ma, nic nie świeci i podpowiedzi nie ma. |
+
+## 9b. Efekty wizualne (feedback trafień)
+
+Każde zdarzenie, które zmienia stan walki, musi być widoczne bez patrzenia na HUD. Efekty są czysto kliencie (z eventów `hit`, `mobDeath`, `explode`, `shot`), nie wpływają na symulację.
+
+| ID | Zdarzenie | Efekt (obowiązkowy w MVP) |
+|---|---|---|
+| PRD-FX-01 | **Pocisk trafia potwora** | Potwór **błyska na biało** przez 2 klatki (ok. 70 ms), w miejscu trafienia 3-5 pikseli krwi rozpryskuje się w kierunku lotu pocisku i znika po 0.3 s, na ziemi zostaje mała plamka (PRD-MAP-09). Nad potworem krótko (0.4 s) unosząca się liczba obrażeń, mała, w kolorze kości. Pocisk znika z 1-klatkową iskrą. |
+| PRD-FX-02 | **Pocisk trafia ścianę / obiekt** | Iskra 1-2 klatki i 2-3 odłamki w kolorze obiektu, obiekt drga o 1 px. |
+| PRD-FX-03 | **Pocisk trafia gracza (friendly fire)** | Krótki czerwony błysk sprite'a gracza, u trafionego winieta ekranu na 0.2 s, w HUD komunikat `{nick} trafił cię` na 1 s. |
+| PRD-FX-04 | **Wybuch miny** | Sekwencja 0.5 s: jasny błysk (1 klatka pełny okrąg w promieniu rażenia), potem rozszerzający się pierścień ognia z pomarańczowego w ciemnoszary (4-6 klatek), 8-12 odłamków rozlatujących się promieniście, 2-3 kłęby dymu unoszące się 1 s. **Wstrząs kamery** 0.2 s o amplitudzie 2 px (mniejszy, im dalej od wybuchu, zero powyżej 12 kafelków). Na ziemi zostaje **ślad wypalenia** (ciemny okrąg o średnicy promienia rażenia), trwały jak krew, limit 100. Potwory w zasięgu dostają błysk z FX-01. |
+| PRD-FX-05 | **Śmierć potwora** | Trup i krew (PRD-MAP-09) plus 4-6 odłamków ciała przez 0.3 s. |
+| PRD-FX-06 | **Strzał z karabinu** | Błysk z lufy 1 klatka (sprite `muzzle`), łuska wyrzucana w bok, odrzut sprite'a gracza o 1 px. |
+| PRD-FX-08 | **Niszczenie ściany / obiektu** | Obiekt nie znika z pełnego stanu. Przechodzi przez **4 stany zużycia** wg HP: 100-75% bez zmian; 75-50% drobne pęknięcia (sprite `wall_dmg_1`); 50-25% głębokie pęknięcia i **wyszczerbione krawędzie** (`wall_dmg_2`: brakujące piksele na rogach i bokach, widać pod spodem ziemię); 25-0% dziury na wylot, krawędzie mocno obkruszone (`wall_dmg_3`). Przy każdym przejściu stanu z obiektu **odpadają 3-5 odłamków** w kolorze obiektu, lecą 0.3 s i zostają na ziemi jako gruz (trwały jak krew, limit 400). Przy każdym ciosie potwora obiekt drga o 1 px i sypie 1-2 pyłki. Gdy HP spada do 0: **animacja zawalenia 0.4 s** (3 klatki `wall_collapse_0..2`: obiekt opada i rozsypuje się), 8-12 odłamków promieniście, obłok pyłu 0.6 s, i dopiero po niej obiekt znika; na jego kafelkach zostaje **rumowisko** (`rubble`, bezkolizyjne, trwałe, limit 200). Kolizja i pathfinding zwalniają kafelek w chwili HP = 0, nie po animacji. Dotyczy kawałka ściany, głazu, kolców i działka (działko: iskry zamiast pyłu, zostaje spalony wrak). Stan zużycia jest w snapshocie (`hp`), więc wszyscy gracze widzą to samo. |
+| PRD-FX-07 | Zasada ogólna | Efekty nie mogą zasłaniać stanu gry: cząsteczki mniejsze niż 3 px, czas życia poniżej 1 s (poza śladami trwałymi), limit 500 cząsteczek na raz, powyżej najstarsze znikają. Przy `prefers-reduced-motion` wstrząs kamery wyłączony. |
+
+Sprite'y do tego (`sprites.js`): `muzzle` (6 x 6, 1 klatka), `spark` (3 x 3), `blood_splat_0/1/2` (plamki na ziemi), `scorch` (32 x 32), `smoke_0/1/2` (8 x 8), `corpse_slime/runner/brute` (16 x 16), `wall_dmg_1/2/3` (kafelek ściany w 3 stanach zużycia, z przezroczystymi ubytkami na krawędziach), `wall_collapse_0/1/2` (zawalenie), `rubble_0/1` (rumowisko), `turret_wreck` (wrak działka). Cząsteczki (krew, odłamki, łuski) to pojedyncze piksele z palety, bez sprite'ów.
 
 ## 10. Audio
 
@@ -155,6 +173,8 @@ Poza MVP. Jeśli będzie: proste efekty generowane syntezą (bez plików z sieci
 - [ ] Potwory dropią przedmioty obu kategorii; da się podnieść, odstawić, rzucić.
 - [ ] Postawiona ściana blokuje potwory i pociski, ale potwory ją powoli niszczą (ściana bez obrony pada w ciągu fali).
 - [ ] Działko strzela do potworów przez swój czas i znika.
+- [ ] Każde trafienie potwora widać (błysk, krew, liczba), wybuch miny widać z drugiego końca ekranu (błysk, pierścień, wstrząs, ślad).
+- [ ] Ściana pęka i kruszy się po bokach w 4 stanach, zawala się z animacją i zostawia rumowisko, zamiast znikać w jednej klatce.
 - [ ] 4 poziomy trudności dają mierzalnie inne liczby (HP potworów, ilość).
 - [ ] Kropelki ładują pasek wszystkim; `F` od progu I odpala wybrany ultimate z siłą progu; pasek użytego zeruje się, innych nie.
 - [ ] Pociski są szybkie (600 px/s), potwory nie idą idealnie po linii do gracza.

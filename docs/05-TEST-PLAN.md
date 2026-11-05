@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.10 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.14 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -18,9 +18,11 @@ Wersja: 0.10 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | C1 | WSAD w 8 kierunkach | PRD-CTRL-01 | Ruch po skosie nie szybszy niż prosto (zmierzyć czas przejścia 10 kafelków) |
 | C2 | Krąż myszką wokół postaci | PRD-CTRL-02, 09 | Postać obraca się płynnie do kursora (bez skoków co 45 stopni), celownik pod kursorem |
 | C3 | Spacja raz / przytrzymanie | PRD-CTRL-03, PRD-PLR-03 | Jeden pocisk / seria 10 strz./s w stronę kursora z lekkim rozrzutem |
-| C9 | Trzymaj spację 4 s | PRD-PLR-03, PRD-HUD-11 | Po 30 strzałach (3 s) ogień ustaje, pasek PRZEŁADOWANIE pod postacią 1.5 s, potem seria wraca; licznik w HUD 30 → 0 → 30 |
+| C9 | Trzymaj spację 6 s | PRD-PLR-03, PRD-HUD-11 | Po 30 strzałach (ok. 4.2 s) ogień ustaje, wokół postaci pierścień wypełnia się zgodnie z zegarem przez 1.5 s, błyska, znika, seria wraca; licznik w HUD 30 → 0 → 30 |
+| C11 | Dwa przedmioty na ziemi, podejdź tak, żeby oba były w zasięgu | PRD-HUD-09, ITM-GEN-04 | Świeci dokładnie jeden, bliższy; po E podnosisz ten świecący; odejdź poza zasięg: nic nie świeci |
+| C12 | Sojusznik przeładowuje 5 kafelków obok | PRD-HUD-11 | Wokół niego cienki pierścień w jego kolorze |
 | C10 | R z pustymi rękami przy 12 / 30 | PRD-PLR-03 | Przeładunek 1.5 s, licznik 30; R przy 30 / 30 nic nie robi |
-| C7 | Prędkość pocisku: strzał na 14 kafelków | PRD-PLR-03 | Pocisk dolatuje w ok. 0.4 s (600 px/s), wrażenie "szybki" |
+| C7 | Prędkość pocisku: strzał na 14 kafelków | PRD-PLR-03 | Pocisk dolatuje w ok. 0.5 s (450 px/s): szybki, ale widać lot |
 | C8 | Dwóch graczy rozchodzi się powoli na 40 kafelków, potem wraca | PRD-MAP-07 | Widok oddala się płynnie do max 0.5, obaj widoczni; powyżej zasięgu strzałka; po powrocie zoom wraca do 1.0; piksele ostre |
 | C4 | Idź do krawędzi mapy | PRD-MAP-01, 04 | Nie da się wyjść; postać zostaje na środku ekranu, za krawędzią pustka |
 | C5 | Zmień rozmiar okna | PRD-MAP-05 | Piksele ostre, bez rozmycia, proporcje OK |
@@ -59,7 +61,11 @@ Wersja: 0.10 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | I1 | Zabij 20 ślimaków na Normalnym | ITM-DROP-01, 02 | ok. 5 dropów (25%), obie kategorie się pojawiają w 3 falach |
 | I2 | E przy kawałku ściany | ITM 3.1 | Podniesiony nad głowę, prędkość 60%, spacja nie strzela |
 | I3 | E z trzymaną ścianą, kursor 1 kafelek obok | ITM 3.1, ITM-GEN-07 | Ghost zielony, po E ściana na siatce, blokuje gracza, potwory i pociski |
-| I4 | E z trzymaną ścianą, kursor na potworze / 5 kafelków dalej | ITM-GEN-07 | Ghost czerwony, nic się nie dzieje |
+| I4 | E z trzymaną ścianą, kursor na potworze 1 kafelek obok | ITM-GEN-07 | Ghost czerwony, nic się nie dzieje |
+| I4b | Trzymam ścianę, kursor 6 kafelków dalej na wolnym terenie | ITM-PLACE-01 | Ghost zielony na 2. kafelku od gracza w kierunku kursora; E stawia tam |
+| I4c | Trzymam ścianę, kursor 6 kafelków dalej, ale 2. kafelek zajęty przez postawioną ścianę | ITM-PLACE-01 | Ghost zielony na 1. kafelku (ostatni dozwolony przed przeszkodą) |
+| I4d | Trzymam ścianę, stoję przy murze i celuję w mur | ITM-PLACE-01 | Ghost czerwony (żaden kafelek na odcinku nie jest dozwolony) |
+| I4e | Trzymam ścianę, mina leży 0.5 kafelka ode mnie, E | ITM-GEN-11 | Ściana postawiona, mina dalej leży |
 | I5 | Spacja z trzymanym głazem w stronę potwora | ITM 3.1, ITM-H-02 | Potwór dostaje 30 obr. i stoi 0.5 s; głaz leży na ziemi, da się podnieść |
 | I6 | E przy postawionej ścianie | ITM-GEN-08 | Podnosi ją z powrotem |
 | I7 | R z działkiem 30 s w rękach | ITM 3.2, ITM-P-01 | Działko stoi, strzela do najbliższego potwora, pasek czasu nad nim, znika po 30 s (stoper) |
@@ -81,6 +87,20 @@ Wersja: 0.10 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | I22 | Mur z luką 3 kafelki dalej | 03 sekcja 1 | Biegacze idą luką; Osiłek przegryza, gdy luka daleko |
 | I23 | Ślimak bije ścianę, gracz podchodzi na 1 kafelek | 03 sekcja 1 | Ślimak przełącza się na gracza |
 | I19 | Kolce w korytarzu, przepuść ślimaki | ITM-H-03 | 8 obr. / 0.5 s na każdym; gracz na kolcach traci 0.8 / 0.5 s |
+
+## 5b. Efekty wizualne
+
+| # | Test | Wymóg | Oczekiwane |
+|---|---|---|---|
+| X1 | Strzelaj do ślimaka z 8 kafelków | PRD-FX-01 | Każde trafienie: biały błysk potwora, rozprysk krwi, liczba 8 nad nim, plamka zostaje na ziemi |
+| X2 | Strzelaj w postawioną ścianę | PRD-FX-02 | Iskra i odłamki przy każdym trafieniu, ściana drga |
+| X3 | Trafienie sojusznika | PRD-FX-03 | Czerwony błysk trafionego, u niego winieta i komunikat z nickiem strzelca |
+| X4 | Mina wybucha pod ślimakami, kamera 6 kafelków dalej | PRD-FX-04 | Błysk, pierścień ognia, odłamki, dym, wstrząs kamery, trwały ślad wypalenia; potwory w zasięgu błyskają |
+| X5 | Mina wybucha 20 kafelków dalej (poza ekranem) | PRD-FX-04 | Brak wstrząsu; po dojściu na miejsce ślad wypalenia jest |
+| X6 | 10 min na fali 8+ | PRD-FX-07, PRD-PERF-01 | FPS nie spada przez cząsteczki, stare ślady znikają po limicie |
+| X7 | Ślimak bije ścianę od 150 HP do 0, patrz z 5 kafelków | PRD-FX-08 | Przy 112, 75 i 37 HP ściana zmienia wygląd (pęknięcia, potem ubytki na krawędziach, potem dziury) i sypie odłamki; przy każdym ciosie drga; przy 0 animacja zawalenia 0.4 s, pył, zostaje rumowisko; ściana NIE znika skokowo |
+| X8 | Ściana przy 10 HP, potwór za nią | PRD-FX-08 | Przez dziury widać ziemię, ale ściana nadal blokuje; po zawaleniu potwór wchodzi od razu (kolizja znika przy 0 HP, nie po animacji) |
+| X9 | Działko zniszczone przez potwory | PRD-FX-08 | Iskry, zostaje wrak działka na kafelku, bezkolizyjny |
 
 ## 6. Trudność
 
