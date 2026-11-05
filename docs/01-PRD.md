@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.5 (2026-11-05)
+Wersja: 0.7 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -34,6 +34,7 @@ MVP to wersja, którą da się zagrać we 2-4 osoby na LAN-ie przez 15 minut i "
 - Friendly fire 10%.
 - Drop przedmiotów z potworów: min. 1 hard object (kawałek ściany) i min. 2 power-upy (działko 30s, mina).
 - Podnoszenie / odkładanie / rzucanie (z obrażeniami) / używanie przedmiotów (E / E / Spacja / R).
+- Potwory powoli niszczą obiekty graczy (HP obiektów, pęknięcia, obrażenia per typ potwora).
 - Suwak trudności, 4 poziomy, wybierany przez hosta przed startem.
 - ULTIMATE: kropelki, wspólny pasek, 3 progi, 7 umiejętności do wyboru w lobby, użycie `F` (`08-ULTIMATE.md`).
 - HUD: HP, numer fali, odliczanie do następnej fali, trzymany przedmiot, pasek ULTIMATE.
@@ -148,7 +149,7 @@ Poza MVP. Jeśli będzie: proste efekty generowane syntezą (bez plików z sieci
 - [ ] Przechodzi min. 5 fal; każda kolejna wyraźnie trudniejsza; przerwy wyraźnie dłuższe.
 - [ ] Friendly fire: trafienie sojusznika zabiera 10% obrażeń (sprawdzalne liczbowo).
 - [ ] Potwory dropią przedmioty obu kategorii; da się podnieść, odstawić, rzucić.
-- [ ] Postawiona ściana blokuje potwory i pociski.
+- [ ] Postawiona ściana blokuje potwory i pociski, ale potwory ją powoli niszczą (ściana bez obrony pada w ciągu fali).
 - [ ] Działko strzela do potworów przez swój czas i znika.
 - [ ] 4 poziomy trudności dają mierzalnie inne liczby (HP potworów, ilość).
 - [ ] Kropelki ładują pasek wszystkim; `F` od progu I odpala wybrany ultimate z siłą progu; pasek użytego zeruje się, innych nie.

@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.5 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.7 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -74,6 +74,10 @@ Wersja: 0.5 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | I16 | Dwóch graczy E na ten sam przedmiot w tej samej klatce | ITM-GEN-06 | Dokładnie jeden go ma, drugi ma puste ręce |
 | I17 | Rozłącz gracza z przedmiotem w rękach | ITM-GEN-10, PRD-SES-07 | Przedmiot leży tam, gdzie stał |
 | I18 | Osiłek vs ściana na drodze | MOB-03, ITM-GEN-09 | Atakuje ścianę (50 obr. na cios), ściana pęka po 3 ciosach |
+| I20 | Jeden ślimak vs ściana, gracz za ścianą nie strzela | 03 sekcja 1, ITM-GEN-09 | Ślimak nie stoi bezczynnie: bije co 1 s po 5, ściana pada po ok. 30 s; widać 3 stany pęknięć |
+| I21 | Pełne okrążenie 8 ścian, 2 graczy w środku nie strzela, fala 3 | 03 sekcja 1 | Mur pada przed końcem fali; potwory wchodzą |
+| I22 | Mur z luką 3 kafelki dalej | 03 sekcja 1 | Biegacze idą luką; Osiłek przegryza, gdy luka daleko |
+| I23 | Ślimak bije ścianę, gracz podchodzi na 1 kafelek | 03 sekcja 1 | Ślimak przełącza się na gracza |
 | I19 | Kolce w korytarzu, przepuść ślimaki | ITM-H-03 | 8 obr. / 0.5 s na każdym; gracz na kolcach traci 0.8 / 0.5 s |
 
 ## 6. Trudność

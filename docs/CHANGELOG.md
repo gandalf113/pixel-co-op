@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.7 - 2026-11-05
+- R30: potwory MUSZA powoli niszczyc obiekty graczy (MVP). Nowa kolumna obrazen obiektom per potwor, pathfinding po koszcie, 3 stany pekniec, testy I20-I23 (03 sekcja 1, ITM-GEN-09, PRD MVP).
+
 ## 0.6 - 2026-11-05
 - Q13-Q15 zatwierdzone (R27-R29): Mur awaryjny podniesiony zostaje na stale, Rakieta nie niszczy fortyfikacji graczy, ultimate vs boss 0.5 obrazen i kontrola max 1 s. Brak otwartych pytan dla wlascicieli.
 
