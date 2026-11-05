@@ -9,9 +9,9 @@
     "reviveHp": 30, "respawnHp": 50, "invulnS": 1,
     "pickupRangeTiles": 1, "placeRangeTiles": 2, "pickupAnimS": 0.2
   },
-  "rifle": { "damage": 8, "fireIntervalS": 0.1, "magazine": 30, "reloadS": 1.5, "spreadDeg": 3, "speedPx": 600, "rangeTiles": 14,
+  "rifle": { "damage": 8, "fireIntervalS": 0.14, "magazine": 30, "reloadS": 1.5, "spreadDeg": 3, "speedPx": 450, "rangeTiles": 14,
              "levelDamageMult": 0.3, "levelMagazine": 10, "levelReloadS": 0.2 },
-  "gore": { "maxCorpses": 300, "maxSplats": 600 },
+  "gore": { "maxCorpses": 300, "maxSplats": 600, "maxScorches": 100, "maxRubble": 200 },
   "friendlyFire": 0.1,
   "mobs": {
     "slime":  { "hp": 30,  "damage": 8,  "objDamage": 5,  "wanderDeg": 50, "look": true,  "speedTiles": 2.5, "attackS": 1.0, "fromWave": 1, "drop": 0.25, "cost": 1,   "weight": 50, "radiusPx": 6 },

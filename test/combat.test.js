@@ -34,7 +34,7 @@ test('fireWeapons spawns bullet at player edge and sets cooldown', () => {
   assert.ok(Math.abs(b.x - (a.x + 6)) < 1e-9);
   assert.ok(Math.abs(b.y - a.y) < 1e-9);
   assert.equal(b.damage, 8);
-  assert.ok(Math.abs(a.cooldown - 0.1) < 1e-9);
+  assert.ok(Math.abs(a.cooldown - 0.14) < 1e-9);
   assert.equal(a.ammo, 29);
   assert.equal(w.events.filter((e) => e.type === 'shot').length, 1);
   fireWeapons(w, DT);
@@ -200,18 +200,18 @@ test('killMob without killer removes mob', () => {
   assert.equal(w.players.get('p1').kills, 0);
 });
 
-test('held fire empties magazine at 10/s, then auto reload 1.5 s (C9)', () => {
+test('held fire empties magazine at ~7/s, then auto reload 1.5 s (C9)', () => {
   const w = makeWorld({ players: [{ x: c(20), y: c(20), angle: 0 }] });
   const a = w.players.get('p1');
   a.input.fire = true;
   let ticks = 0;
   while (a.ammo > 0 && ticks < 200) {
-    a.cooldown = Math.max(0, a.cooldown - DT);
+    a.cooldown = Math.max(-DT, a.cooldown - DT);
     fireWeapons(w, DT);
     ticks++;
   }
   assert.equal(w.events.filter((e) => e.type === 'shot').length, 30);
-  assert.ok(Math.abs(ticks * DT - 2.9) < 0.1, `took ${ticks * DT}s`);
+  assert.ok(Math.abs(ticks * DT - 29 * 0.14) < 0.1, `took ${ticks * DT}s`);
   assert.equal(a.reloadLeft, 1.5);
   for (let i = 0; i < 44; i++) fireWeapons(w, DT);
   assert.equal(a.ammo, 0);

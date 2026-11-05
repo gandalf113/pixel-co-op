@@ -27,7 +27,7 @@ export class Game {
       bullets: [],
       items: new Map(),
       events: [],
-      gore: { corpses: [], splats: [] },
+      gore: { corpses: [], splats: [], scorches: [], rubble: [] },
       droplets: [],
       rockets: [],
       rng: makeRng(seed),

@@ -1,7 +1,7 @@
 import { damagePlayer, setDropHeld } from './players.js';
-import { spawnBullet, damageMob, mobHit } from './combat.js';
+import { spawnBullet, damageMob, mobHit, addGore } from './combat.js';
 import { pickWeighted } from './rng.js';
-import { buildGrid, footprint, placementValid, segmentBlocked, tileOf } from '../public/shared/world.js';
+import { buildGrid, footprint, placeTarget, placementValid, segmentBlocked, tileOf } from '../public/shared/world.js';
 
 const EPS = 1e-9;
 const LAND_SEARCH_TILES = 3;
@@ -86,8 +86,12 @@ export function dropHeld(world, player) {
 export function onObjectDestroyed(world, item) {
   if (!world.items.delete(item.id)) return;
   rebuildGrid(world);
-  const { tilePx } = world.rules;
-  world.events.push({ type: 'destroyed', id: item.id, kind: item.kind, x: (item.tx + 0.5) * tilePx, y: (item.ty + 0.5) * tilePx });
+  const { tilePx, balance } = world.rules;
+  addGore(world.gore.rubble, [item.kind, item.tx, item.ty, item.rot ?? 0], balance.gore.maxRubble);
+  world.events.push({
+    type: 'destroyed', id: item.id, kind: item.kind, tx: item.tx, ty: item.ty, rot: item.rot ?? 0,
+    x: (item.tx + 0.5) * tilePx, y: (item.ty + 0.5) * tilePx,
+  });
 }
 
 function rectDist(px, py, tx, ty, tilePx) {
@@ -184,22 +188,18 @@ function deny(world, player) {
   world.events.push({ type: 'deny', id: player.id });
 }
 
-function cursorTile(world, player) {
-  const { tilePx } = world.rules;
-  return [tileOf(player.input.aimX, tilePx), tileOf(player.input.aimY, tilePx)];
-}
-
-function placeFromHand(world, player, tiles, limit) {
+function targetFor(world, player, item, limit) {
   const { tilePx, balance } = world.rules;
-  return placementValid({
-    grid: world.grid, tiles, playerX: player.x, playerY: player.y, circles: circles(world),
-    tilePx, maxRangeTiles: balance.player.placeRangeTiles, limitReached: limit,
+  return placeTarget({
+    grid: world.grid, kind: item.kind, rot: item.kind === 'wall' ? item.rot : 0,
+    playerX: player.x, playerY: player.y, aimX: player.input.aimX, aimY: player.input.aimY,
+    circles: circles(world), tilePx, maxRangeTiles: balance.player.placeRangeTiles, limitReached: limit,
   });
 }
 
 function placeWallItem(world, player, item) {
-  const [tx, ty] = cursorTile(world, player);
-  if (!placeFromHand(world, player, footprint('wall', tx, ty, item.rot), false)) return deny(world, player);
+  const { tx, ty, valid } = targetFor(world, player, item, false);
+  if (!valid) return deny(world, player);
   Object.assign(item, { state: 'placed', tx, ty, holder: null });
   player.held = null;
   rebuildGrid(world);
@@ -207,8 +207,8 @@ function placeWallItem(world, player, item) {
 }
 
 function usePower(world, player, item) {
-  const [tx, ty] = cursorTile(world, player);
-  if (!placeFromHand(world, player, [[tx, ty]], limitReached(world, item.kind))) return deny(world, player);
+  const { tx, ty, valid } = targetFor(world, player, item, limitReached(world, item.kind));
+  if (!valid) return deny(world, player);
   player.held = null;
   activate(world, item, tx, ty, player.id);
 }
@@ -232,11 +232,10 @@ export function handleAction(world, player, action) {
   if (player.state !== 'alive' || player.suspended || player.busy > 0) return;
   const item = player.held != null ? world.items.get(player.held) : null;
   if (action === 'e') {
-    const target = nearestPickable(world, player);
-    if (target) {
-      if (item) toGround(world, item, player.x, player.y);
-      pickUp(world, player, target);
-    } else if (item?.kind === 'wall') {
+    if (!item) {
+      const target = nearestPickable(world, player);
+      if (target) pickUp(world, player, target);
+    } else if (item.kind === 'wall') {
       placeWallItem(world, player, item);
     } else if (item) {
       dropHeld(world, player);
@@ -318,7 +317,7 @@ function updateFlight(world, item, dt) {
   const hit = firstBodyHit(world, item, item.x, item.y, nx, ny);
   if (hit?.mob) {
     if (isHard(world, item)) hit.mob.stun = Math.max(hit.mob.stun, balance.throw.stunS);
-    mobHit(world, hit.x, hit.y);
+    mobHit(world, hit.x, hit.y, hit.mob, Math.atan2(f.y1 - f.y0, f.x1 - f.x0), cfg.throwDamage);
     damageMob(world, hit.mob, cfg.throwDamage, f.thrower);
     return land(world, item, hit.x, hit.y);
   }
@@ -381,7 +380,8 @@ function updateMine(world, item, dt) {
   for (const p of world.players.values()) {
     if (p.state === 'alive' && Math.hypot(p.x - cx, p.y - cy) <= r) damagePlayer(world, p, cfg.damage * balance.friendlyFire, 'mine');
   }
-  world.events.push({ type: 'explode', id: item.id, x: cx, y: cy, radiusPx: r });
+  addGore(world.gore.scorches, [Math.round(cx), Math.round(cy), Math.round(r)], balance.gore.maxScorches);
+  world.events.push({ type: 'explode', id: item.id, x: cx, y: cy, radiusPx: r, mine: true });
 }
 
 export function updateItems(world, dt) {
@@ -400,7 +400,7 @@ export function updateItems(world, dt) {
       if (item.expireLeft <= EPS) {
         world.items.delete(item.id);
         rebuildGrid(world);
-        world.events.push({ type: 'destroyed', id: item.id, kind: item.kind, x: (item.tx + 1) * world.rules.tilePx, y: (item.ty + 0.5) * world.rules.tilePx });
+        world.events.push({ type: 'expire', id: item.id });
       }
     } else if (item.state === 'active' && item.kind === 'turret30') {
       updateTurret(world, item, dt);

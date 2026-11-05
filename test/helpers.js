@@ -19,7 +19,7 @@ export function makeWorld({ difficulty = 2, players = [] } = {}) {
     bullets: [],
     items: new Map(),
     events: [],
-    gore: { corpses: [], splats: [] },
+    gore: { corpses: [], splats: [], scorches: [], rubble: [] },
     droplets: [],
     rockets: [],
     rng: makeRng(1),

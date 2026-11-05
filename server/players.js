@@ -93,7 +93,7 @@ export function updatePlayers(world, dt) {
     }
     p.invuln = Math.max(0, p.invuln - dt);
     p.busy = Math.max(0, p.busy - dt);
-    p.cooldown = Math.max(0, p.cooldown - dt);
+    p.cooldown = Math.max(-dt, p.cooldown - dt);
     if (p.suspended) p.suspendLeft = Math.max(0, p.suspendLeft - dt);
 
     p.angle = Math.atan2(p.input.aimY - p.y, p.input.aimX - p.x);

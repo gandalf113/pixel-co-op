@@ -130,3 +130,44 @@ export function placementValid({ grid, tiles, playerX, playerY, circles, tilePx,
   if (range > maxRangeTiles) return false;
   return !segmentBlocked(grid, playerX, playerY, (ax + 0.5) * tilePx, (ay + 0.5) * tilePx, tilePx, true);
 }
+
+function* tilesAlong(x0, y0, x1, y1, tilePx) {
+  let tx = tileOf(x0, tilePx);
+  let ty = tileOf(y0, tilePx);
+  const ex = tileOf(x1, tilePx);
+  const ey = tileOf(y1, tilePx);
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const sx = Math.sign(dx);
+  const sy = Math.sign(dy);
+  const tDx = dx !== 0 ? Math.abs(tilePx / dx) : Infinity;
+  const tDy = dy !== 0 ? Math.abs(tilePx / dy) : Infinity;
+  let tMaxX = dx === 0 ? Infinity : (sx > 0 ? (tx + 1) * tilePx - x0 : x0 - tx * tilePx) / Math.abs(dx);
+  let tMaxY = dy === 0 ? Infinity : (sy > 0 ? (ty + 1) * tilePx - y0 : y0 - ty * tilePx) / Math.abs(dy);
+  while (tx !== ex || ty !== ey) {
+    if (tMaxX < tMaxY) { tx += sx; tMaxX += tDx; } else { ty += sy; tMaxY += tDy; }
+    yield [tx, ty];
+  }
+}
+
+export function placeTarget({ grid, kind, rot = 0, playerX, playerY, aimX, aimY, circles, tilePx, maxRangeTiles, limitReached }) {
+  const ptx = tileOf(playerX, tilePx);
+  const pty = tileOf(playerY, tilePx);
+  const inRange = (tx, ty) => Math.max(Math.abs(tx - ptx), Math.abs(ty - pty)) <= maxRangeTiles;
+  const valid = (tx, ty) => placementValid({
+    grid, tiles: footprint(kind, tx, ty, rot), playerX, playerY, circles, tilePx, maxRangeTiles, limitReached,
+  });
+  const cx = tileOf(aimX, tilePx);
+  const cy = tileOf(aimY, tilePx);
+  if (limitReached || inRange(cx, cy)) return { tx: cx, ty: cy, valid: !limitReached && valid(cx, cy) };
+  let best = null;
+  let edge = [cx, cy];
+  for (const [tx, ty] of tilesAlong(playerX, playerY, aimX, aimY, tilePx)) {
+    if (!inRange(tx, ty)) break;
+    edge = [tx, ty];
+    if (valid(tx, ty)) best = [tx, ty];
+    else if (best) break;
+  }
+  const [tx, ty] = best ?? edge;
+  return { tx, ty, valid: !!best };
+}

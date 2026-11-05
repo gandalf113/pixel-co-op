@@ -266,16 +266,27 @@ test('actions ignored while busy', () => {
   assert.equal(it.state, 'held');
 });
 
-test('swap picks the other item', () => {
+test('e with item in hands never picks up another (I4e)', () => {
   const { w, p } = oneWorld();
   const a = give(w, p, 'mine');
   const b = spawnDrop(w, 'turret30', p.x + 4, p.y);
   b.x = p.x + 4;
   handleAction(w, p, 'e');
-  assert.equal(p.held, b.id);
-  assert.equal(b.state, 'held');
+  assert.equal(p.held, null);
   assert.equal(a.state, 'ground');
-  assert.equal(a.x, p.x);
+  assert.equal(b.state, 'ground');
+});
+
+test('cursor beyond range places on farthest allowed tile toward cursor (I4b, I4c)', () => {
+  const { w, p } = oneWorld();
+  const it = give(w, p, 'wall');
+  it.rot = 1;
+  const ptx = Math.floor(p.x / 16);
+  const pty = Math.floor(p.y / 16);
+  aim(p, ptx + 6, pty);
+  handleAction(w, p, 'e');
+  assert.equal(it.state, 'placed');
+  assert.equal(it.tx, ptx + 2);
 });
 
 test('drop roll categories', () => {

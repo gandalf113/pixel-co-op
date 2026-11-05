@@ -77,13 +77,13 @@ export function killMob(world, mob, killerId) {
   onMobKilled(world, mob, killerId);
 }
 
-function addGore(list, entry, max) {
+export function addGore(list, entry, max) {
   list.push(entry);
   if (list.length > max) list.splice(0, list.length - max);
 }
 
-export function mobHit(world, x, y) {
-  world.events.push({ type: 'hit', x, y, mob: true });
+export function mobHit(world, x, y, mob, angle, dmg) {
+  world.events.push({ type: 'hit', x, y, mob: mob.id, a: Math.round(angle * 100) / 100, dmg: Math.round(dmg) });
   addGore(world.gore.splats, [Math.round(x), Math.round(y)], world.rules.balance.gore.maxSplats);
 }
 
@@ -150,9 +150,12 @@ function applyHit(world, b, hit, hooks) {
     const { tx, ty } = hit.wall;
     if (!world.grid.inside(tx, ty) || b.fromTurret) return;
     const item = world.items.get(world.grid.id(tx, ty));
-    if (item) hooks.onWallHit?.(item, b.damage);
+    if (item) {
+      world.events.push({ type: 'objHit', id: item.id, x: b.x, y: b.y });
+      hooks.onWallHit?.(item, b.damage);
+    }
   } else if (hit.mob) {
-    mobHit(world, b.x, b.y);
+    mobHit(world, b.x, b.y, hit.mob, Math.atan2(b.vy, b.vx), b.damage);
     damageMob(world, hit.mob, b.damage, b.owner);
     if (b.pierce > 0) {
       b.pierce--;
@@ -162,6 +165,7 @@ function applyHit(world, b, hit, hooks) {
     return;
   } else {
     damagePlayer(world, hit.player, b.damage * world.rules.balance.friendlyFire, 'ff');
+    world.events.push({ type: 'ff', id: hit.player.id, by: b.owner, x: b.x, y: b.y });
   }
   world.events.push({ type: 'hit', x: b.x, y: b.y });
 }
