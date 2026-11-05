@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.7 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.10 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -17,7 +17,9 @@ Wersja: 0.7 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 |---|---|---|---|
 | C1 | WSAD w 8 kierunkach | PRD-CTRL-01 | Ruch po skosie nie szybszy niż prosto (zmierzyć czas przejścia 10 kafelków) |
 | C2 | Krąż myszką wokół postaci | PRD-CTRL-02, 09 | Postać obraca się płynnie do kursora (bez skoków co 45 stopni), celownik pod kursorem |
-| C3 | Spacja raz / przytrzymanie | PRD-CTRL-03 | Jeden pocisk / seria z cooldownem, lecą w stronę kursora |
+| C3 | Spacja raz / przytrzymanie | PRD-CTRL-03, PRD-PLR-03 | Jeden pocisk / seria 10 strz./s w stronę kursora z lekkim rozrzutem |
+| C9 | Trzymaj spację 4 s | PRD-PLR-03, PRD-HUD-11 | Po 30 strzałach (3 s) ogień ustaje, pasek PRZEŁADOWANIE pod postacią 1.5 s, potem seria wraca; licznik w HUD 30 → 0 → 30 |
+| C10 | R z pustymi rękami przy 12 / 30 | PRD-PLR-03 | Przeładunek 1.5 s, licznik 30; R przy 30 / 30 nic nie robi |
 | C7 | Prędkość pocisku: strzał na 14 kafelków | PRD-PLR-03 | Pocisk dolatuje w ok. 0.4 s (600 px/s), wrażenie "szybki" |
 | C8 | Dwóch graczy rozchodzi się powoli na 40 kafelków, potem wraca | PRD-MAP-07 | Widok oddala się płynnie do max 0.5, obaj widoczni; powyżej zasięgu strzałka; po powrocie zoom wraca do 1.0; piksele ostre |
 | C4 | Idź do krawędzi mapy | PRD-MAP-01, 04 | Nie da się wyjść; postać zostaje na środku ekranu, za krawędzią pustka |
@@ -40,7 +42,7 @@ Wersja: 0.7 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 
 | # | Test | Wymóg | Oczekiwane |
 |---|---|---|---|
-| F1 | Gracz A strzela do gracza B z pełnym HP (100), broń LV1 (10 obr.) | PRD-PLR-05 | B ma 99 HP po 1 trafieniu, 90 po 10 |
+| F1 | Gracz A strzela do gracza B z pełnym HP (100), broń LV1 (8 obr.) | PRD-PLR-05 | B ma 99.2 HP po 1 trafieniu (HUD pokazuje 99), 92 po 10 |
 | F2 | Strzał w siebie niemożliwy | PRD-PLR-05 | Pocisk nie rani strzelającego |
 | F3 | Pocisk po trafieniu sojusznika znika | PRD-PLR-05 | Nie przebija dalej |
 | F4 | Działko z potworem za graczem | PRD-PLR-06 | Działko nie strzela przez / do gracza, gracz nie traci HP |
@@ -85,7 +87,7 @@ Wersja: 0.7 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | # | Test | Wymóg | Oczekiwane |
 |---|---|---|---|
 | D1 | Suwak w lobby ma 4 pozycje z nazwami | 03 sekcja 4 | Łatwy / Normalny / Trudny / Koszmar, opis pod spodem |
-| D2 | Zabij ślimaka na każdej trudności pistoletem LV1 | 03 sekcja 4 | Łatwy: 3 strzały (21 HP), Normalny: 3 (30), Trudny: 5 (42), Koszmar: 6 (60) |
+| D2 | Zabij ślimaka na każdej trudności karabinem LV1 (8 obr.) | 03 sekcja 4 | Łatwy: 3 strzały (21 HP), Normalny: 4 (30), Trudny: 6 (42), Koszmar: 8 (60) |
 | D3 | HP gracza na start per trudność | 03 sekcja 4 | 120 / 100 / 100 / 80 |
 | D4 | Przerwa po fali 1 per trudność (stoper) | 03 sekcja 4 | 34 / 26 / 22 / 18 s |
 | D5 | Trudność nie zmienia się w trakcie sesji | PRD-LOOP-07 | Brak możliwości zmiany po starcie |

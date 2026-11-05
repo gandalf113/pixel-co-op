@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.10 - 2026-11-05
+- R34 bron startowa to karabin maszynowy: magazynek 30, seria 10 strz./s, 8 obr., przeladunek 1.5 s z paskiem na srodku ekranu, R przeladowuje (PRD-PLR-03, PRD-HUD-04, PRD-HUD-11, testy C9, C10, F1, D2).
+
 ## 0.9 - 2026-11-05
 - R33 trupy i krew: zabity potwor zostawia trupa i krew, trafienie plamke; bezkolizyjne, trwale, z limitami (PRD-MAP-09, 03 sekcja 1).
 

@@ -1,6 +1,6 @@
 # 02 - Przedmioty
 
-Wersja: 0.7 (2026-11-05)
+Wersja: 0.10 (2026-11-05)
 
 Logika akcji (sekcja 3) jest **zatwierdzona przez właścicieli produktu**. Statystyki w sekcjach 4-5 to wartości startowe do balansu, do strojenia po testach.
 
@@ -61,8 +61,8 @@ Rzucony power-up: zadaje obrażenia trafionemu potworowi (wartość z tabeli w s
 
 | Sytuacja | `E` | `Spacja` | `R` |
 |---|---|---|---|
-| Ręce puste, nic w zasięgu | - | strzał | - |
-| Ręce puste, przedmiot w zasięgu | podnieś | strzał | - |
+| Ręce puste, nic w zasięgu | - | seria z karabinu | przeładuj (gdy magazynek niepełny) |
+| Ręce puste, przedmiot w zasięgu | podnieś | seria z karabinu | przeładuj |
 | Trzymam hard object | odłóż (lub zamień) | rzuć (obrażenia) | obróć ścianę |
 | Trzymam power-up stawialny | odłóż na ziemię (lub zamień) | rzuć (obrażenia) + aktywacja w miejscu lądowania | użyj = postaw i aktywuj |
 | Trzymam boost broni | odłóż na ziemię (lub zamień) | rzuć (obrażenia), nie aktywuje | użyj na sobie |

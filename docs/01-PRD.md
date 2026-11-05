@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.9 (2026-11-05)
+Wersja: 0.10 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -92,8 +92,8 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 |---|---|
 | PRD-PLR-01 | HP: 100. Regeneracja naturalna **tylko w przerwie**: +2 HP/s. W trakcie fali brak (tylko platforma lecząca). |
 | PRD-PLR-02 | Prędkość: ok. 5 kafelków/s (80 px/s). Z trzymanym hard objectem: 60% prędkości. Z power-upem: 100%. Z czymkolwiek w rękach gracz nie strzela. |
-| PRD-PLR-03 | Broń podstawowa: pistolet. Obrażenia 10, cooldown 0.25 s, **prędkość pocisku 600 px/s** (szybkie, nie wolne: feedback z testu silnika 2026-11-05), zasięg 14 kafelków. Pocisk znika po trafieniu lub po zasięgu. |
-| PRD-PLR-04 | Poziom broni: 1-5. Każdy poziom z "boostu" (rzadki item) podnosi obrażenia o 30% i skraca cooldown o 10%. Na poziomie 3+ pocisk przebija 1 cel. Na 5 strzał potrójny (wachlarz). **[PROPOZYCJA]** |
+| PRD-PLR-03 | Broń podstawowa: **karabin maszynowy**. Obrażenia 8, ogień ciągły co 0.1 s (10 strz./s) przy trzymanej spacji, **magazynek 30 pocisków**, po opróżnieniu automatyczny **przeładunek 1.5 s**. Rozrzut 3 stopnie. Prędkość pocisku 600 px/s, zasięg 14 kafelków. Pocisk znika po trafieniu lub po zasięgu. W trakcie przeładunku nie można strzelać; ruch, podnoszenie i rzut działają. `R` z pustymi rękami = ręczny przeładunek (gdy magazynek niepełny). Stare "pistolet" i cooldown 0.25 s nie obowiązują. |
+| PRD-PLR-04 | Poziom broni: 1-5. Każdy poziom z "boostu" (rzadki item) podnosi obrażenia o 30%, powiększa magazynek o 10 i skraca przeładunek o 0.2 s. Na poziomie 3+ pocisk przebija 1 cel. Na 5 strzał potrójny (wachlarz). **[PROPOZYCJA]** |
 | PRD-PLR-05 | **Friendly fire 10%**: pocisk gracza trafiający innego gracza zadaje 10% swoich obrażeń. Pocisk znika po trafieniu sojusznika (nie przebija). Gracz nie może trafić samego siebie. |
 | PRD-PLR-06 | Działka (turrety) ustawione przez graczy NIE strzelają do graczy i nie zadają friendly fire. Miny ranią graczy w 10%. **[PROPOZYCJA]** |
 | PRD-PLR-07 | Powalenie: gdy HP spada do 0, gracz jest "powalony" (leży, nie strzela, nie rusza się). Sojusznik stojący obok przez 3 s podnosi go z 30 HP. Bez pomocy przez 10 s (czas zależny od trudności, `03` sekcja 4) = śmierć do końca fali. |
@@ -123,7 +123,8 @@ LOBBY -> START -> [PRZERWA 0 (krótka)] -> FALA 1 -> PRZERWA 1 -> FALA 2 -> PRZE
 | PRD-HUD-01 | Pasek HP lokalnego gracza (lewy dolny róg) z wartością liczbową. |
 | PRD-HUD-02 | Numer fali + stan: "FALA 4" w trakcie fali, "PRZERWA 0:37" w przerwie (góra, środek). W trakcie fali licznik pozostałych potworów. |
 | PRD-HUD-03 | Trzymany przedmiot: ikona + nazwa + (dla power-upów z czasem) czas działania (prawy dolny róg). Pusty slot = "nic". |
-| PRD-HUD-04 | Poziom broni (np. "BROŃ LV 2") obok HP. |
+| PRD-HUD-04 | Poziom broni (np. "BROŃ LV 2") obok HP, a obok licznik amunicji `18 / 30` (migający na czerwono przy 5 i mniej). |
+| PRD-HUD-11 | **Przeładunek na środku ekranu**: pod postacią (która jest na środku) krótki pasek postępu przeładunku z napisem `PRZEŁADOWANIE`, widoczny tylko w trakcie przeładunku. Pasek wypełnia się przez 1.5 s. Obok sojusznika w trakcie przeładunku mała ikonka magazynka, żeby zespół wiedział, kto nie strzela. |
 | PRD-HUD-10 | Pasek ULTIMATE (3 segmenty) nad HP, ikona wybranego ultimate, kropka progu nad sojusznikami (`08-ULTIMATE.md`, ULT-HUD). |
 | PRD-HUD-05 | Nad każdym graczem: nick w jego kolorze i mały pasek HP. Nad powalonym: ikona i licznik do śmierci. |
 | PRD-HUD-06 | Nad działkami i platformami: mały pasek pozostałego czasu. |
@@ -148,7 +149,7 @@ Poza MVP. Jeśli będzie: proste efekty generowane syntezą (bez plików z sieci
 
 - [ ] 4 osoby na 4 laptopach w jednym WLAN bez internetu grają 10 minut bez rozłączenia.
 - [ ] Całość kopiuje się jednym katalogiem; na nowym komputerze uruchamia się w mniej niż 2 minuty.
-- [ ] Postać reaguje na WSAD, obraca się do myszy, strzela spacją.
+- [ ] Postać reaguje na WSAD, obraca się do myszy, strzela spacją serią; po 30 strzałach przeładunek 1.5 s z paskiem na środku ekranu.
 - [ ] Przechodzi min. 5 fal; każda kolejna wyraźnie trudniejsza; przerwy wyraźnie dłuższe.
 - [ ] Friendly fire: trafienie sojusznika zabiera 10% obrażeń (sprawdzalne liczbowo).
 - [ ] Potwory dropią przedmioty obu kategorii; da się podnieść, odstawić, rzucić.
