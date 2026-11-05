@@ -1,6 +1,6 @@
 # 03 - Potwory, fale, trudność
 
-Wersja: 0.1 (2026-11-05)
+Wersja: 0.3 (2026-11-05)
 
 Liczby to **wartości startowe do balansu**. Zmieniamy je po testach (patrz `05-TEST-PLAN.md`, sekcja "Testy balansu"). Developer powinien trzymać je w jednym pliku konfiguracyjnym (np. `balance.json`), żeby dało się stroić bez grzebania w kodzie.
 
@@ -52,7 +52,7 @@ Koszt potwora w punktach: Ślimak 1, Biegacz 1.5, Osiłek 6, Plujka 3, Rój (tr�
 - Od fali 4: min. 1 Osiłek. Od fali 6: min. 1 Plujka.
 - Co 5. fala: Boss **plus** 60% normalnego budżetu.
 - Skalowanie HP potworów: `HP * (1 + 0.04 * (n - 1))` (fala 10: +36%, fala 20: +76%). Obrażenia bez skalowania (to przerwy i fortyfikacje mają decydować, nie one-shoty).
-- Skalowanie z liczbą graczy: budżet `* (0.7 + 0.3 * liczba_graczy)` (1 gracz: 1.0; 2: 1.3; 3: 1.6; 4: 1.9). **[PROPOZYCJA]**
+- Skalowanie z liczbą graczy: budżet `* (0.7 + 0.3 * liczba_graczy)` (1 gracz: 1.0; 2: 1.3; 3: 1.6; 4: 1.9). Liczy się liczba graczy w sesji na starcie (late join nie istnieje; rozłączenie nie zmniejsza budżetu).
 
 ### 2.3 Spawn w czasie
 
@@ -79,7 +79,8 @@ P(n) = 20 + 6 * n     (sekundy), max 120
 | 17+ | 120 s |
 
 - W przerwie HUD pokazuje odliczanie. Ostatnie 5 s: miganie i sygnał.
-- Przyspieszenie przerwy przez "Gotowi" (PRD-LOOP-04) jest opcjonalne i wymaga wszystkich graczy.
+- Przyspieszenie przerwy przez "Gotowy" (PRD-LOOP-04) wymaga wszystkich graczy; potem 5 s odliczania.
+- W przerwie gracze regenerują +2 HP/s (PRD-PLR-01).
 
 ## 4. Suwak trudności: 4 poziomy
 

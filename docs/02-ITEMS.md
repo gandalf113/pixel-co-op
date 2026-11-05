@@ -1,6 +1,6 @@
 # 02 - Przedmioty
 
-Wersja: 0.2 (2026-11-05)
+Wersja: 0.3 (2026-11-05)
 
 Logika akcji (sekcja 3) jest **zatwierdzona przez właścicieli produktu**. Statystyki w sekcjach 4-5 to wartości startowe do balansu, do strojenia po testach.
 
@@ -37,7 +37,7 @@ Obie kategorie dropią z potworów i leżą na ziemi do podniesienia. **Używaln
 | `E` | ręce puste, przedmiot w zasięgu | **Podnieś.** Przedmiot znika z ziemi, pojawia się nad głową. Animacja 0.2 s, w trakcie gracz stoi. |
 | `E` | trzymam przedmiot | **Odłóż.** Hard object stawiany na kafelku wskazanym kursorem, max 2 kafelki od gracza, przyciągany do siatki. Przed odłożeniem widać ghost. Odłożony = `POSTAWIONY`, staje się kolizją / fortyfikacją. Jeśli miejsce niedozwolone: nic, krótki sygnał. |
 | `Spacja` | trzymam przedmiot | **Rzuć** w kierunku kursora. Zasięg 4 kafelki, lot 0.5 s (wizualny łuk). **Rzut zadaje obrażenia**: pierwszy potwór trafiony w locie dostaje obrażenia wg tabeli w sekcji 4 i ogłuszenie 0.5 s. Po wylądowaniu przedmiot leży `NA_ZIEMI` (nie jest fortyfikacją, trzeba go odłożyć przez `E`). |
-| `R` | trzymam hard object | Obróć o 90 stopni (tylko kawałek ściany, który jest 2 x 1). Głaz i kolce: brak efektu. **[PROPOZYCJA]**, bo `R` jest wolne dla martwych. |
+| `R` | trzymam hard object | Obróć o 90 stopni (tylko kawałek ściany, który jest 2 x 1). Głaz i kolce: brak efektu. |
 
 Rzucony hard object trafiający sojusznika: 10% obrażeń (friendly fire), lot przerwany.
 
@@ -51,7 +51,7 @@ To samo co martwe (`E` podnieś, `E` odłóż na ziemię, `Spacja` rzuć z obra�
 
 Różnica między `E` (odłóż) a `R` (użyj) dla power-upa: `E` kładzie go na ziemi jako przedmiot do podniesienia (np. żeby podać koledze albo zostawić na później). `R` aktywuje.
 
-Rzucony power-up: zadaje obrażenia jak hard object (wartość z tabeli w sekcji 5), **nie aktywuje się** od rzutu, po wylądowaniu leży `NA_ZIEMI`. Rzut to transport i cios awaryjny, nie zdalna aktywacja. Rzucony power-up nie rani sojuszników.
+Rzucony power-up: zadaje obrażenia trafionemu potworowi (wartość z tabeli w sekcji 5) i **aktywuje się tam, gdzie spadł**, tak jakby użyto `R` na tym kafelku. Działko zaczyna strzelać, platforma działa, mina się uzbraja, klatka łapie potwora, na którego spadła (albo pierwszego, który wejdzie). Jeśli miejsce lądowania jest niedozwolone (na obiekcie, poza mapą), przedmiot ląduje na najbliższym wolnym kafelku. Przy limicie aktywnych (sekcja 5) rzucony power-up leży `NA_ZIEMI` nieaktywny. Wyjątek: **boost broni** rzucony nie aktywuje się, leży na ziemi (rzut = podanie koledze). Rzucony power-up nie rani sojuszników.
 
 ### 3.3 Zamiana
 
@@ -64,8 +64,8 @@ Rzucony power-up: zadaje obrażenia jak hard object (wartość z tabeli w sekcji
 | Ręce puste, nic w zasięgu | - | strzał | - |
 | Ręce puste, przedmiot w zasięgu | podnieś | strzał | - |
 | Trzymam hard object | odłóż (lub zamień) | rzuć (obrażenia) | obróć ścianę |
-| Trzymam power-up stawialny | odłóż na ziemię (lub zamień) | rzuć (obrażenia) | użyj = postaw i aktywuj |
-| Trzymam boost broni | odłóż na ziemię (lub zamień) | rzuć (obrażenia) | użyj na sobie |
+| Trzymam power-up stawialny | odłóż na ziemię (lub zamień) | rzuć (obrażenia) + aktywacja w miejscu lądowania | użyj = postaw i aktywuj |
+| Trzymam boost broni | odłóż na ziemię (lub zamień) | rzuć (obrażenia), nie aktywuje | użyj na sobie |
 
 ## 4. Hard objects
 
@@ -99,7 +99,7 @@ Zasady:
 
 - Limity aktywnych na mapie: działka 8, platformy 4, miny 20. Przy limicie ghost czerwony, `R` nie działa, można dalej trzymać. **[PROPOZYCJA]**
 - Power-up z czasem po wygaśnięciu znika z animacją.
-- Czas działania liczy się także w przerwie. Otwarte: `06-OPEN-QUESTIONS.md`, Q3.
+- Czas działania liczy się **także w przerwie** (decyzja właścicieli). Gracz sam decyduje, kiedy użyć; HUD pokazuje czas.
 
 ## 6. Drop
 

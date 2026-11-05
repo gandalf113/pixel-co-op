@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.1 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.3 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -16,7 +16,7 @@ Wersja: 0.1 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | # | Test | Wymóg | Oczekiwane |
 |---|---|---|---|
 | C1 | WSAD w 8 kierunkach | PRD-CTRL-01 | Ruch po skosie nie szybszy niż prosto (zmierzyć czas przejścia 10 kafelków) |
-| C2 | Krąż myszką wokół postaci | PRD-CTRL-02, 09 | Postać obraca się do kursora, celownik pod kursorem |
+| C2 | Krąż myszką wokół postaci | PRD-CTRL-02, 09 | Postać obraca się płynnie do kursora (bez skoków co 45 stopni), celownik pod kursorem |
 | C3 | Spacja raz / przytrzymanie | PRD-CTRL-03 | Jeden pocisk / seria z cooldownem, lecą w stronę kursora |
 | C4 | Idź do krawędzi mapy | PRD-MAP-01, 04 | Nie da się wyjść; postać zostaje na środku ekranu, za krawędzią pustka |
 | C5 | Zmień rozmiar okna | PRD-MAP-05 | Piksele ostre, bez rozmycia, proporcje OK |
@@ -43,6 +43,8 @@ Wersja: 0.1 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | F4 | Działko z potworem za graczem | PRD-PLR-06 | Działko nie strzela przez / do gracza, gracz nie traci HP |
 | F5 | Mina pod graczem | PRD-PLR-06 | 6 HP straty (10% z 60) |
 | F6 | Powalenie i podniesienie | PRD-PLR-07..09 | 0 HP = leży; sojusznik 3 s obok = wstaje z 30 HP; 1 s nietykalności |
+| F8 | Regeneracja w przerwie: 50 HP na starcie przerwy | PRD-PLR-01 | +2 HP/s, 100 HP po 25 s; w trakcie fali brak regeneracji |
+| F9 | Wszyscy klikają Gotowy w przerwie | PRD-LOOP-04 | 5 s odliczania, fala startuje; cofnięcie gotowości przerywa odliczanie |
 | F7 | Wszyscy powaleni | PRD-PLR-08, PRD-LOOP-06 | Game over, ekran z numerem fali i czasem |
 
 ## 5. Przedmioty
@@ -57,7 +59,9 @@ Wersja: 0.1 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | I6 | E przy postawionej ścianie | ITM-GEN-08 | Podnosi ją z powrotem |
 | I7 | R z działkiem 30 s w rękach | ITM 3.2, ITM-P-01 | Działko stoi, strzela do najbliższego potwora, pasek czasu nad nim, znika po 30 s (stoper) |
 | I8 | E z działkiem w rękach (zamiast R) | ITM 3.2 | Działko leży na ziemi nieaktywne, da się podnieść ponownie |
-| I9 | Spacja z działkiem w rękach | ITM 3.2 | Leci, rani potwora (10), ląduje nieaktywne |
+| I9 | Spacja z działkiem w rękach | ITM 3.2 | Leci, rani potwora (10), po wylądowaniu działko jest aktywne i strzela |
+| I9b | Spacja z boostem broni w rękach | ITM 3.2 | Leci, ląduje na ziemi nieaktywny, kolega może podnieść |
+| I9c | Spacja z działkiem przy limicie 8 aktywnych | ITM sekcja 5 | Ląduje nieaktywne na ziemi |
 | I10 | R z platformą 30 s, stań na niej z 50 HP | ITM-P-04 | +5 HP / 0.5 s, 100 HP po ok. 5 s |
 | I11 | Powalony na platformie | ITM-P-04 | Wstaje po 2 s bez sojusznika |
 | I12 | R z miną, wpuść potwora | ITM-P-07 | Uzbrojenie 1 s, wybuch gdy potwór wejdzie, 60 obr. w promieniu |
@@ -87,7 +91,7 @@ Wersja: 0.1 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | N2 | Fala 10+ z 60 potworami i 200 przedmiotami | PRD-PERF-01 | 60 FPS na laptopie z iGPU (licznik FPS w menu debug) |
 | N3 | Zamknij przeglądarkę klienta w trakcie fali | PRD-SES-07 | Postać znika, gra toczy się dalej, reszta nie widzi laga |
 | N4 | Zamknij hosta | PRD-SES-07 | Klienci dostają komunikat o końcu sesji |
-| N5 | Late join w trakcie fali | PRD-SES-06 | Czeka, spawnuje się w przerwie |
+| N5 | Próba dołączenia po starcie gry | PRD-SES-06 | Odrzucone z komunikatem "gra w toku", nie wpływa na graczy |
 | N6 | Dołączenie: czas od wpisania adresu do lobby | PRD-PERF-04 | < 5 s |
 
 ## 8. Testy balansu (sesje grywalnościowe)

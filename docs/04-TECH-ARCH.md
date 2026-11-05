@@ -1,6 +1,6 @@
 # 04 - Ograniczenia techniczne i rekomendowana architektura
 
-Wersja: 0.1 (2026-11-05). Sekcje 1-2 to wymagania. Sekcja 3+ to **rekomendacja** dla developera; może wybrać inaczej, o ile sekcje 1-2 są spełnione.
+Wersja: 0.3 (2026-11-05). Sekcje 1-2 to wymagania. Sekcja 3+ to **rekomendacja** dla developera; może wybrać inaczej, o ile sekcje 1-2 są spełnione.
 
 ## 1. Wymagania twarde
 
@@ -47,7 +47,7 @@ Wersja: 0.1 (2026-11-05). Sekcje 1-2 to wymagania. Sekcja 3+ to **rekomendacja**
 
 - Rozdzielczość: postaci 16 x 16, potwory 16 x 16 (boss 32 x 32), przedmioty 16 x 16, kafelki 16 x 16.
 - Format rekomendowany: sprite'y jako **tablice stringów z indeksami palety** w kodzie (np. 16 linii po 16 znaków, `.` = przezroczysty), paleta 16-32 kolorów współdzielona. Przy starcie gry rysowane do offscreen canvas. Zero plików PNG, zero zależności, diff w git czytelny.
-- Każdy sprite ma: idle (1-2 klatki), ruch (2-4 klatki), 8 kierunków dla gracza (lub 4 + lustro). Potwory: 4 kierunki + lustro wystarczy.
+- Gracz: sprite top-down (widok dokładnie z góry), rotowany płynnie o dowolny kąt (`ctx.rotate`), idle 1-2 klatki, ruch 2-4 klatki. Przy rotacji nearest neighbour, bez wygładzania. Potwory: ta sama metoda (rotacja do kierunku ruchu) albo 4 kierunki + lustro, do wyboru przez developera.
 - Efekty (pocisk, wybuch, odłamki, leczenie) jako proste kształty proceduralne albo 2-4-klatkowe sprite'y.
 
 ## 6. Struktura katalogu dystrybucji (propozycja)
