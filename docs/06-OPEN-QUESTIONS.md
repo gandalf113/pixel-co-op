@@ -1,6 +1,6 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.1 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.3 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
@@ -9,23 +9,22 @@ Wersja: 0.1 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr 
 | R1 | Logika przedmiotów | `E` podnosi / odkłada, `Spacja` rzuca (z obrażeniami), `R` używa power-up. Opis w `02-ITEMS.md` sekcja 3. | 2026-11-05 |
 | R2 | Friendly fire | 10%, stałe na każdej trudności | 2026-11-05 |
 | R3 | Liczba poziomów trudności | 4 | 2026-11-05 |
+| R4 | Max graczy | 4 | 2026-11-05 |
+| R5 | 0 HP w trakcie fali | Powalenie; sojusznik 3 s podnosi z 30 HP; bez pomocy śmierć do końca fali (PRD-PLR-07) | 2026-11-05 |
+| R6 | Timer działka / platformy w przerwie | Liczy się zawsze, także w przerwie | 2026-11-05 |
+| R7 | Rzucony power-up | **Aktywuje się tam, gdzie spadł**. Wyjątek: boost broni tylko leży (podanie). (ITM 3.2) | 2026-11-05 |
+| R8 | Kawałek ściany | 2 x 1, `R` obraca | 2026-11-05 |
+| R9 | Skrócenie przerwy | "Gotowy" u każdego gracza; komplet = 5 s odliczania (PRD-LOOP-04) | 2026-11-05 |
+| R10 | Late join | **Nie**. Po starcie sesja zamknięta (PRD-SES-06) | 2026-11-05 |
+| R11 | Koniec gry | Endless | 2026-11-05 |
+| R12 | Rotacja postaci | **Płynna rotacja całej postaci** za kursorem, sprite top-down (PRD-CTRL-09) | 2026-11-05 |
+| R13 | Regeneracja HP | **Tylko w przerwie, +2 HP/s**; w fali brak (PRD-PLR-01) | 2026-11-05 |
+| R14 | Boss | Co 5 fal, poza MVP | 2026-11-05 |
+| R15 | Skalowanie fali z liczbą graczy | Tak, budżet x(0.7 + 0.3 N) | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu
 
-| # | Pytanie | Nasza propozycja | Gdzie |
-|---|---|---|---|
-| Q1 | Max liczba graczy: 4? | 4 | PRD-SES-03 |
-| Q2 | Powalenie i podnoszenie (downed / revive) czy natychmiastowa śmierć do końca fali? | Powalenie, 3 s podnoszenia, 10 s do śmierci | PRD-PLR-07 |
-| Q3 | Czy czas działania działka / platformy liczy się w przerwie? | Tak (gracz decyduje kiedy użyć). Alternatywa: pauza timera w przerwie, mniej kary za błąd | ITM sekcja 5 |
-| Q4 | Rzucony power-up aktywuje się po wylądowaniu, czy tylko leży? | Tylko leży (rzut = transport + cios). Aktywacja wyłącznie przez `R` | ITM 3.2 |
-| Q5 | `R` z hard objectem w rękach obraca ścianę? Czy ściana jest 1 x 1 i obrót niepotrzebny? | Obraca, ściana 2 x 1 | ITM 3.1 |
-| Q6 | Skrócenie przerwy przyciskiem "Gotowi"? | Tak, wymaga wszystkich | PRD-LOOP-04 |
-| Q7 | Late join w trakcie gry? | Tak, spawn w najbliższej przerwie | PRD-SES-06 |
-| Q8 | Endless czy z końcem (np. fala 20 = zwycięstwo)? | Endless | PRD-LOOP-06 |
-| Q9 | 8 kierunków sprite'a vs płynna rotacja? | 8 kierunków, lufa rotowana płynnie | PRD-CTRL-09 |
-| Q10 | Naturalna regeneracja HP? | Brak, tylko platforma | PRD-PLR-01 |
-| Q11 | Boss co 5 fal, czy w ogóle w MVP? | Co 5 fal, poza MVP | MOB-06 |
-| Q12 | Skalowanie budżetu fali z liczbą graczy? | Tak: x(0.7 + 0.3 * N) | 03 sekcja 2.2 |
+Brak. Wszystkie pytania z wersji 0.1 rozstrzygnięte 2026-11-05 (R4-R15). Nowe pytania dopisujemy tu w tym samym formacie.
 
 ## Otwarte: dla developera
 

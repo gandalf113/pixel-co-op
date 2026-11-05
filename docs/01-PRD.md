@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.1 (2026-11-05)
+Wersja: 0.3 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -49,7 +49,7 @@ Poza MVP (później): pełna lista przedmiotów, boss, pozostałe typy potworów
 | PRD-SES-03 | Liczba graczy: 1-4. Jeden gracz = też gra działa (do testów). |
 | PRD-SES-04 | Gracz podaje nick (max 12 znaków). Każdy gracz dostaje inny kolor (4 kolory: zielony, niebieski, żółty, różowy). |
 | PRD-SES-05 | Przed startem jest ekran lobby: lista graczy, trudność, przycisk "Start" u hosta. Reszta widzi "czekam na hosta". |
-| PRD-SES-06 | Dołączenie w trakcie gry (late join): **[PROPOZYCJA]** dozwolone, nowy gracz spawnuje się na środku mapy w najbliższej przerwie między falami. W trakcie fali czeka. |
+| PRD-SES-06 | Dołączenie w trakcie gry (late join): **niedozwolone**. Po starcie sesja jest zamknięta, spóźniony gracz czeka na nową grę. Host po starcie przestaje przyjmować nowe połączenia (komunikat "gra w toku"). |
 | PRD-SES-07 | Rozłączenie gracza: jego postać znika, przedmiot, który trzymał, spada na ziemię. Gra toczy się dalej. Rozłączenie hosta = koniec sesji dla wszystkich z komunikatem. |
 
 ## 5. Sterowanie
@@ -60,11 +60,11 @@ Poza MVP (później): pełna lista przedmiotów, boss, pozostałe typy potworów
 | PRD-CTRL-02 | **Celowanie myszką**: pozycja kursora względem postaci (która jest na środku ekranu) wyznacza kierunek celowania. Postać obraca się w stronę kursora. Celownik rysowany pod kursorem. |
 | PRD-CTRL-03 | `Spacja` - strzał w kierunku celowania (ręce puste). Przytrzymanie = ogień ciągły z cooldownem broni. **Z przedmiotem w rękach spacja rzuca** (patrz `02-ITEMS.md`). |
 | PRD-CTRL-04 | `E` - podnieś przedmiot z ziemi / odłóż trzymany. Dotyczy obu kategorii (`02-ITEMS.md`, sekcja 3). |
-| PRD-CTRL-05 | `R` - użyj trzymany przedmiot "używalny" (power-up), np. spawnuje platformę leczącą, działko, minę. Dla hard objectów: obrót ściany **[PROPOZYCJA]**. |
+| PRD-CTRL-05 | `R` - użyj trzymany przedmiot "używalny" (power-up), np. spawnuje platformę leczącą, działko, minę. Z hard objectem w rękach: obrót kawałka ściany o 90 stopni. |
 | PRD-CTRL-06 | Rzut (spacja z przedmiotem) **zawsze zadaje obrażenia** trafionemu potworowi. Wartości w `02-ITEMS.md`. |
 | PRD-CTRL-07 | `Esc` - menu pauzy po stronie klienta (gra po stronie hosta NIE pauzuje, bo to multiplayer). Zawiera: wróć, ustawienia (głośność, pełny ekran), wyjdź. |
 | PRD-CTRL-08 | `Tab` (przytrzymanie) - lista graczy z HP. |
-| PRD-CTRL-09 | Sprite postaci obraca się do kursora. **[PROPOZYCJA]** 8 kierunków (sprite'y per kierunek), nie płynna rotacja, bo pixel art rotowany płynnie wygląda źle. Broń / lufa może być rysowana osobno i rotowana płynnie. |
+| PRD-CTRL-09 | Sprite postaci obraca się do kursora **płynnie** (rotacja całej postaci o dowolny kąt). Sprite rysowany "z góry" (top-down, nie 3/4), żeby obrót wyglądał naturalnie. Nearest neighbour bez wygładzania. |
 
 Nie ma celowania klawiaturą ani sterowania padem w MVP.
 
@@ -83,13 +83,13 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 
 | ID | Wymóg |
 |---|---|
-| PRD-PLR-01 | HP: 100. Regeneracja: brak naturalna (tylko platforma lecząca). **[PROPOZYCJA]** |
+| PRD-PLR-01 | HP: 100. Regeneracja naturalna **tylko w przerwie**: +2 HP/s. W trakcie fali brak (tylko platforma lecząca). |
 | PRD-PLR-02 | Prędkość: ok. 5 kafelków/s (80 px/s). Z trzymanym hard objectem: 60% prędkości. Z power-upem: 100%. Z czymkolwiek w rękach gracz nie strzela. |
 | PRD-PLR-03 | Broń podstawowa: pistolet. Obrażenia 10, cooldown 0.25 s, prędkość pocisku 300 px/s, zasięg 12 kafelków. Pocisk znika po trafieniu lub po zasięgu. |
 | PRD-PLR-04 | Poziom broni: 1-5. Każdy poziom z "boostu" (rzadki item) podnosi obrażenia o 30% i skraca cooldown o 10%. Na poziomie 3+ pocisk przebija 1 cel. Na 5 strzał potrójny (wachlarz). **[PROPOZYCJA]** |
 | PRD-PLR-05 | **Friendly fire 10%**: pocisk gracza trafiający innego gracza zadaje 10% swoich obrażeń. Pocisk znika po trafieniu sojusznika (nie przebija). Gracz nie może trafić samego siebie. |
 | PRD-PLR-06 | Działka (turrety) ustawione przez graczy NIE strzelają do graczy i nie zadają friendly fire. Miny ranią graczy w 10%. **[PROPOZYCJA]** |
-| PRD-PLR-07 | Powalenie: gdy HP spada do 0, gracz jest "powalony" (leży, nie strzela, nie rusza się). Sojusznik stojący obok przez 3 s podnosi go z 30 HP. Potwory atakują powalonego (dobijanie: 10 s bez pomocy = śmierć do końca fali). **[PROPOZYCJA]** |
+| PRD-PLR-07 | Powalenie: gdy HP spada do 0, gracz jest "powalony" (leży, nie strzela, nie rusza się). Sojusznik stojący obok przez 3 s podnosi go z 30 HP. Bez pomocy przez 10 s (czas zależny od trudności, `03` sekcja 4) = śmierć do końca fali. |
 | PRD-PLR-08 | Martwy gracz wraca na początku następnej przerwy między falami z 50 HP. Gdy wszyscy gracze są powaleni lub martwi w trakcie fali = koniec gry. |
 | PRD-PLR-09 | Nietykalność 1 s po podniesieniu / respawnie (miganie sprite'a). |
 
@@ -104,8 +104,8 @@ LOBBY -> START -> [PRZERWA 0 (krótka)] -> FALA 1 -> PRZERWA 1 -> FALA 2 -> PRZE
 | PRD-LOOP-01 | Fala kończy się, gdy wszystkie potwory z fali są martwe. Potwory z fali spawnują się porcjami (nie wszystkie naraz), patrz `03-WAVES-DIFFICULTY.md`. |
 | PRD-LOOP-02 | Po fali startuje przerwa z widocznym odliczaniem. Długość przerwy rośnie z numerem fali (tabela w `03`). |
 | PRD-LOOP-03 | W przerwie: gracze podnoszą dropy, budują, rozstawiają power-upy, leczą się. Nic nie atakuje. Dropy z poprzedniej fali leżą na ziemi do podniesienia. |
-| PRD-LOOP-04 | Host może skrócić przerwę przyciskiem "Gotowi" (wszyscy gracze muszą kliknąć gotowość, albo host wymusza po 5 s ostrzeżenia). **[PROPOZYCJA]** |
-| PRD-LOOP-05 | Dropy leżące na ziemi nie znikają między falami. **[PROPOZYCJA]** Limit 200 przedmiotów na mapie, powyżej najstarsze znikają. |
+| PRD-LOOP-04 | Przerwę można skrócić: każdy gracz klika "Gotowy" (klawisz `G` lub przycisk w HUD). Gdy wszyscy są gotowi, rusza 5-sekundowe odliczanie i fala startuje. Gotowość można cofnąć do końca odliczania. HUD pokazuje, kto jest gotowy. |
+| PRD-LOOP-05 | Dropy leżące na ziemi nie znikają między falami. Limit 200 przedmiotów na mapie, powyżej najstarsze znikają. |
 | PRD-LOOP-06 | Gra nie ma końca (endless). Cel: dotrwać jak najdalej. Ekran końcowy pokazuje numer fali, czas, zabójstwa per gracz. |
 | PRD-LOOP-07 | Trudność jest stała przez całą sesję (wybrana w lobby). |
 
