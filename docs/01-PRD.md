@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.17 (2026-11-05)
+Wersja: 0.18 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -99,6 +99,7 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 | PRD-PLR-06 | Działka (turrety) ustawione przez graczy NIE strzelają do graczy i nie zadają friendly fire. Miny ranią graczy w 10%. **[PROPOZYCJA]** |
 | PRD-PLR-07 | Powalenie: gdy HP spada do 0, gracz jest "powalony" (leży, nie strzela, nie rusza się). Sojusznik stojący obok przez 3 s podnosi go z 30 HP. Bez pomocy przez 10 s (czas zależny od trudności, `03` sekcja 4) = śmierć do końca fali. |
 | PRD-PLR-08 | Martwy gracz wraca na początku następnej przerwy między falami z 50 HP. Gdy wszyscy gracze są powaleni lub martwi w trakcie fali = koniec gry. |
+| PRD-PLR-10 | **Tryb obserwatora po śmierci** (R49): gdy licznik śmierci powalonego gracza dobiegnie końca (stan `dead`), jego widok **przełącza się na śledzenie żywego sojusznika**: kamera centruje się na nim (płynny przejazd 0.5 s), HUD pokazuje u góry `OBSERWUJESZ: {nick}` i `wracasz w przerwie`, własny HUD HP/amunicji zgaszony. Domyślnie śledzony jest najbliższy żywy sojusznik; **lewy / prawy przycisk myszy albo A / D** przełączają na kolejnego żywego (po kółku). Gdy śledzony padnie, automatyczne przejście na następnego żywego. Gdy nikt nie żyje, gra i tak kończy się game over (PLR-08). Obserwator nie wysyła inputu ruchu ani strzału; `Tab` i `Esc` działają. W chwili respawnu w przerwie kamera wraca na własną postać (przejazd 0.5 s). Powalony (jeszcze z licznikiem) nadal widzi własną postać, żeby sojusznik mógł go znaleźć i podnieść. |
 | PRD-PLR-09 | Nietykalność 1 s po podniesieniu / respawnie (miganie sprite'a). |
 
 ## 8. Pętla rozgrywki
@@ -127,7 +128,7 @@ LOBBY -> START -> [PRZERWA 0 (krótka)] -> FALA 1 -> PRZERWA 1 -> FALA 2 -> PRZE
 | PRD-HUD-04 | Poziom broni (np. "BROŃ LV 2") obok HP, a obok licznik amunicji `18 / 30` (migający na czerwono przy 5 i mniej). |
 | PRD-HUD-11 | **Przeładunek jako kółko wokół postaci**: w trakcie przeładunku wokół własnej postaci (środek ekranu) rysowany jest **pierścień o promieniu ok. 14 px świata, wypełniający się zgodnie z ruchem wskazówek zegara od godziny 12** przez 1.5 s, w kolorze kości na ciemnym tle pierścienia, grubość 2 px. Po domknięciu pierścień błyska raz i znika. Bez napisu. Wokół sojusznika w trakcie przeładunku ten sam pierścień, cieńszy (1 px) i w jego kolorze, żeby zespół widział, kto nie strzela. Pierścień rysowany w warstwie świata (obraca się razem z kamerą, nie HUD). |
 | PRD-HUD-10 | **Pasek ULTIMATE w lewym górnym rogu, w stylu paska super z bijatyk 16-bit** (R47): poziomy, długi (ok. 1/3 szerokości ekranu), gruby (10-12 px ekranu), z ikoną 32 x 32 wybranego ultimate po lewej, podzielony na **3 segmenty z wyraźnymi przerwami**, każdy wypełnia się od lewej; wypełniony segment świeci i ma animowany "połysk" przesuwający się co 2 s; pełny pasek pulsuje i obok pojawia się napis `ULTI GOTOWE [F]` w stylu bitmapowym. Pod paskiem licznik progu `I / II / III` rzymskimi. Pasek HP i broń zostają na dole (HUD-01, HUD-04). Kropka progu nad sojusznikami bez zmian (`08-ULTIMATE.md`, ULT-HUD). |
-| PRD-HUD-05 | Nad każdym graczem: nick w jego kolorze i mały pasek HP. Nad powalonym: ikona i licznik do śmierci. |
+| PRD-HUD-05 | Nad każdym graczem: nick w jego kolorze i mały pasek HP. Nad powalonym: ikona i licznik do śmierci. W trybie obserwatora nad śledzonym sojusznikiem dodatkowo mała ikona oka. |
 | PRD-HUD-06 | Nad działkami i platformami: mały pasek pozostałego czasu. |
 | PRD-HUD-07 | Strzałki na krawędzi ekranu wskazujące sojuszników poza ekranem (kolor gracza). |
 | PRD-HUD-08 | Celownik pod kursorem. Kursor systemowy ukryty nad canvasem. |
