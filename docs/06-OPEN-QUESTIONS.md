@@ -1,6 +1,6 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.11 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.12 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
@@ -40,6 +40,9 @@ Wersja: 0.11 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr
 | R33 | Trupy i krew | Zabite potwory zostawiają trupa i plamę krwi, trafienia małe plamki; bezkolizyjne, zostają między falami, limity 300 / 600 (PRD-MAP-09) | 2026-11-05 |
 | R34 | Broń startowa | Karabin maszynowy: 8 obr., 10 strz./s, magazynek 30, przeładunek 1.5 s z paskiem na środku ekranu, R = ręczny przeładunek (PRD-PLR-03, PRD-HUD-11) | 2026-11-05 |
 | R35 | Feedback trafień | Trafienie potwora i wybuch miny muszą być wyraźnie widoczne: błysk, krew, liczby obrażeń, pierścień wybuchu, wstrząs kamery, trwały ślad (PRD sekcja 9b, FX-01..07) | 2026-11-05 |
+| R36 | Pociski i rate (po teście) | 450 px/s, co 0.14 s (ok. 7 strz./s); 600 i 10/s było ciut za szybko (PRD-PLR-03) | 2026-11-05 |
+| R37 | Wskaźnik przeładunku | Pierścień wokół postaci wypełniający się zgodnie z zegarem, nie pasek; cieńszy w kolorze gracza u sojuszników (PRD-HUD-11) | 2026-11-05 |
+| R38 | Podświetlenie przedmiotu | Najbliższy przedmiot w zasięgu E jest podświetlony pulsującym obrysem, dokładnie jeden, ten sam co wybierze serwer (PRD-HUD-09, ITM-GEN-04) | 2026-11-05 |
 | R26 | Kamera (po teście silnika) | Dynamiczny zoom-out w miarę rozchodzenia graczy do rozsądnego maksimum, dalej strzałki (PRD-MAP-07) | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu

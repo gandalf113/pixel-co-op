@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.12 - 2026-11-05
+- Po tescie: R36 pociski 450 px/s i rate 0.14 s (PRD-PLR-03, C7, C9); R37 przeladunek jako pierscien wokol postaci (PRD-HUD-11, C12); R38 podswietlenie przedmiotu do podniesienia (PRD-HUD-09, ITM-GEN-04, C11).
+
 ## 0.11 - 2026-11-05
 - R35 efekty wizualne: nowa sekcja PRD 9b (FX-01..07): widoczne trafienia pocisku w potwora (blysk, krew, liczba), w sciane, w gracza; widoczny wybuch miny (blysk, pierscien, odlamki, dym, wstrzas kamery, slad wypalenia); blysk z lufy; limity czasteczek. Testy X1-X6. Lista sprite'ow FX do zrobienia.
 

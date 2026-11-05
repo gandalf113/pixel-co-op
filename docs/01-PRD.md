@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.11 (2026-11-05)
+Wersja: 0.12 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -93,7 +93,7 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 |---|---|
 | PRD-PLR-01 | HP: 100. Regeneracja naturalna **tylko w przerwie**: +2 HP/s. W trakcie fali brak (tylko platforma lecząca). |
 | PRD-PLR-02 | Prędkość: ok. 5 kafelków/s (80 px/s). Z trzymanym hard objectem: 60% prędkości. Z power-upem: 100%. Z czymkolwiek w rękach gracz nie strzela. |
-| PRD-PLR-03 | Broń podstawowa: **karabin maszynowy**. Obrażenia 8, ogień ciągły co 0.1 s (10 strz./s) przy trzymanej spacji, **magazynek 30 pocisków**, po opróżnieniu automatyczny **przeładunek 1.5 s**. Rozrzut 3 stopnie. Prędkość pocisku 600 px/s, zasięg 14 kafelków. Pocisk znika po trafieniu lub po zasięgu. W trakcie przeładunku nie można strzelać; ruch, podnoszenie i rzut działają. `R` z pustymi rękami = ręczny przeładunek (gdy magazynek niepełny). Stare "pistolet" i cooldown 0.25 s nie obowiązują. |
+| PRD-PLR-03 | Broń podstawowa: **karabin maszynowy**. Obrażenia 8, ogień ciągły co **0.14 s (ok. 7 strz./s)** przy trzymanej spacji, **magazynek 30 pocisków**, po opróżnieniu automatyczny **przeładunek 1.5 s**. Rozrzut 3 stopnie. Prędkość pocisku **450 px/s** (po teście 2026-11-05: 600 było ciut za szybko, 300 za wolno), zasięg 14 kafelków. Pocisk znika po trafieniu lub po zasięgu. W trakcie przeładunku nie można strzelać; ruch, podnoszenie i rzut działają. `R` z pustymi rękami = ręczny przeładunek (gdy magazynek niepełny). Stare "pistolet" i cooldown 0.25 s nie obowiązują. |
 | PRD-PLR-04 | Poziom broni: 1-5. Każdy poziom z "boostu" (rzadki item) podnosi obrażenia o 30%, powiększa magazynek o 10 i skraca przeładunek o 0.2 s. Na poziomie 3+ pocisk przebija 1 cel. Na 5 strzał potrójny (wachlarz). **[PROPOZYCJA]** |
 | PRD-PLR-05 | **Friendly fire 10%**: pocisk gracza trafiający innego gracza zadaje 10% swoich obrażeń. Pocisk znika po trafieniu sojusznika (nie przebija). Gracz nie może trafić samego siebie. |
 | PRD-PLR-06 | Działka (turrety) ustawione przez graczy NIE strzelają do graczy i nie zadają friendly fire. Miny ranią graczy w 10%. **[PROPOZYCJA]** |
@@ -125,13 +125,13 @@ LOBBY -> START -> [PRZERWA 0 (krótka)] -> FALA 1 -> PRZERWA 1 -> FALA 2 -> PRZE
 | PRD-HUD-02 | Numer fali + stan: "FALA 4" w trakcie fali, "PRZERWA 0:37" w przerwie (góra, środek). W trakcie fali licznik pozostałych potworów. |
 | PRD-HUD-03 | Trzymany przedmiot: ikona + nazwa + (dla power-upów z czasem) czas działania (prawy dolny róg). Pusty slot = "nic". |
 | PRD-HUD-04 | Poziom broni (np. "BROŃ LV 2") obok HP, a obok licznik amunicji `18 / 30` (migający na czerwono przy 5 i mniej). |
-| PRD-HUD-11 | **Przeładunek na środku ekranu**: pod postacią (która jest na środku) krótki pasek postępu przeładunku z napisem `PRZEŁADOWANIE`, widoczny tylko w trakcie przeładunku. Pasek wypełnia się przez 1.5 s. Obok sojusznika w trakcie przeładunku mała ikonka magazynka, żeby zespół wiedział, kto nie strzela. |
+| PRD-HUD-11 | **Przeładunek jako kółko wokół postaci**: w trakcie przeładunku wokół własnej postaci (środek ekranu) rysowany jest **pierścień o promieniu ok. 14 px świata, wypełniający się zgodnie z ruchem wskazówek zegara od godziny 12** przez 1.5 s, w kolorze kości na ciemnym tle pierścienia, grubość 2 px. Po domknięciu pierścień błyska raz i znika. Bez napisu. Wokół sojusznika w trakcie przeładunku ten sam pierścień, cieńszy (1 px) i w jego kolorze, żeby zespół widział, kto nie strzela. Pierścień rysowany w warstwie świata (obraca się razem z kamerą, nie HUD). |
 | PRD-HUD-10 | Pasek ULTIMATE (3 segmenty) nad HP, ikona wybranego ultimate, kropka progu nad sojusznikami (`08-ULTIMATE.md`, ULT-HUD). |
 | PRD-HUD-05 | Nad każdym graczem: nick w jego kolorze i mały pasek HP. Nad powalonym: ikona i licznik do śmierci. |
 | PRD-HUD-06 | Nad działkami i platformami: mały pasek pozostałego czasu. |
 | PRD-HUD-07 | Strzałki na krawędzi ekranu wskazujące sojuszników poza ekranem (kolor gracza). |
 | PRD-HUD-08 | Celownik pod kursorem. Kursor systemowy ukryty nad canvasem. |
-| PRD-HUD-09 | Podpowiedź kontekstowa przy przedmiocie w zasięgu: "[E] podnieś: Kawałek ściany". |
+| PRD-HUD-09 | Podpowiedź kontekstowa przy przedmiocie w zasięgu: "[E] podnieś: Kawałek ściany". **Przedmiot, który zostanie podniesiony po `E` (najbliższy w zasięgu), jest podświetlony**: jasny 1-px obrys sprite'a pulsujący 2 razy na sekundę plus lekkie uniesienie o 1 px. Podświetlony jest dokładnie jeden przedmiot, ten sam, który wybierze serwer (ta sama reguła: najbliższy środkowi gracza w promieniu podnoszenia, dla postawionej ściany odległość do najbliższego kafelka). Gdy w zasięgu nic nie ma, nic nie świeci i podpowiedzi nie ma. |
 
 ## 9b. Efekty wizualne (feedback trafień)
 

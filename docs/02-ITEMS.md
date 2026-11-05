@@ -1,6 +1,6 @@
 # 02 - Przedmioty
 
-Wersja: 0.10 (2026-11-05)
+Wersja: 0.12 (2026-11-05)
 
 Logika akcji (sekcja 3) jest **zatwierdzona przez właścicieli produktu**. Statystyki w sekcjach 4-5 to wartości startowe do balansu, do strojenia po testach.
 
@@ -20,7 +20,7 @@ Obie kategorie dropią z potworów i leżą na ziemi do podniesienia. **Używaln
 | ITM-GEN-01 | Gracz trzyma **jeden** przedmiot naraz. Nie ma plecaka. |
 | ITM-GEN-02 | Trzymany przedmiot jest widoczny na sprite'cie gracza (nad głową, w dwóch rękach). |
 | ITM-GEN-03 | Z przedmiotem w rękach gracz **nie strzela** (spacja służy wtedy do rzutu). Prędkość: z hard objectem 60%, z power-upem 100%. |
-| ITM-GEN-04 | Przedmioty na ziemi mają promień podnoszenia 1 kafelka od środka postaci. Przy kilku w zasięgu podnosi się najbliższy. |
+| ITM-GEN-04 | Przedmioty na ziemi mają promień podnoszenia 1 kafelka od środka postaci. Przy kilku w zasięgu podnosi się najbliższy. **Ten najbliższy jest podświetlony** (PRD-HUD-09), żeby gracz widział, co podniesie przed naciśnięciem `E`. |
 | ITM-GEN-05 | Stany przedmiotu: `NA_ZIEMI`, `TRZYMANY(gracz)`, `W_LOCIE`, `POSTAWIONY` (hard object), `AKTYWNY` (użyty power-up z czasem), `ZUŻYTY`. |
 | ITM-GEN-06 | Host jest źródłem prawdy o stanie przedmiotu. Dwóch graczy nie może podnieść tego samego: pierwsza akcja, która dotrze do hosta, wygrywa. |
 | ITM-GEN-07 | Hard objectu nie da się odłożyć na inny obiekt, gracza ani potwora. Ghost pokazuje, czy miejsce jest dozwolone (zielony / czerwony). |

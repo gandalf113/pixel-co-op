@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.11 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.12 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -18,9 +18,11 @@ Wersja: 0.11 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | C1 | WSAD w 8 kierunkach | PRD-CTRL-01 | Ruch po skosie nie szybszy niż prosto (zmierzyć czas przejścia 10 kafelków) |
 | C2 | Krąż myszką wokół postaci | PRD-CTRL-02, 09 | Postać obraca się płynnie do kursora (bez skoków co 45 stopni), celownik pod kursorem |
 | C3 | Spacja raz / przytrzymanie | PRD-CTRL-03, PRD-PLR-03 | Jeden pocisk / seria 10 strz./s w stronę kursora z lekkim rozrzutem |
-| C9 | Trzymaj spację 4 s | PRD-PLR-03, PRD-HUD-11 | Po 30 strzałach (3 s) ogień ustaje, pasek PRZEŁADOWANIE pod postacią 1.5 s, potem seria wraca; licznik w HUD 30 → 0 → 30 |
+| C9 | Trzymaj spację 6 s | PRD-PLR-03, PRD-HUD-11 | Po 30 strzałach (ok. 4.2 s) ogień ustaje, wokół postaci pierścień wypełnia się zgodnie z zegarem przez 1.5 s, błyska, znika, seria wraca; licznik w HUD 30 → 0 → 30 |
+| C11 | Dwa przedmioty na ziemi, podejdź tak, żeby oba były w zasięgu | PRD-HUD-09, ITM-GEN-04 | Świeci dokładnie jeden, bliższy; po E podnosisz ten świecący; odejdź poza zasięg: nic nie świeci |
+| C12 | Sojusznik przeładowuje 5 kafelków obok | PRD-HUD-11 | Wokół niego cienki pierścień w jego kolorze |
 | C10 | R z pustymi rękami przy 12 / 30 | PRD-PLR-03 | Przeładunek 1.5 s, licznik 30; R przy 30 / 30 nic nie robi |
-| C7 | Prędkość pocisku: strzał na 14 kafelków | PRD-PLR-03 | Pocisk dolatuje w ok. 0.4 s (600 px/s), wrażenie "szybki" |
+| C7 | Prędkość pocisku: strzał na 14 kafelków | PRD-PLR-03 | Pocisk dolatuje w ok. 0.5 s (450 px/s): szybki, ale widać lot |
 | C8 | Dwóch graczy rozchodzi się powoli na 40 kafelków, potem wraca | PRD-MAP-07 | Widok oddala się płynnie do max 0.5, obaj widoczni; powyżej zasięgu strzałka; po powrocie zoom wraca do 1.0; piksele ostre |
 | C4 | Idź do krawędzi mapy | PRD-MAP-01, 04 | Nie da się wyjść; postać zostaje na środku ekranu, za krawędzią pustka |
 | C5 | Zmień rozmiar okna | PRD-MAP-05 | Piksele ostre, bez rozmycia, proporcje OK |
