@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.17 - 2026-11-05
+- R48 sciany pekaja mocniej, rogi zaokraglaja sie i krusza (PRD-FX-08). Sprite'y zniszczen wygenerowane: wall_dmg_1..3, wall_collapse_0..2, rubble_0/1, turret_wreck.
+
 ## 0.16 - 2026-11-05
 - R46 lobby: szeroki panel, 7 ultimate w jednym rzedzie bez przewijania, ikony 32x32 (PRD-SES-05, ULT-HUD-03, S5). Ikony ult_* dodane do sprites.js.
 - R47 pasek ULTIMATE w lewym gornym rogu w stylu bijatyk 16-bit (PRD-HUD-10, ULT-HUD-01, S6).
