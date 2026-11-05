@@ -1,6 +1,6 @@
 # 02 - Przedmioty
 
-Wersja: 0.19 (2026-11-05)
+Wersja: 0.22 (2026-11-05)
 
 Logika akcji (sekcja 3) jest **zatwierdzona przez właścicieli produktu**. Statystyki w sekcjach 4-5 to wartości startowe do balansu, do strojenia po testach.
 
@@ -20,14 +20,14 @@ Obie kategorie dropią z potworów i leżą na ziemi do podniesienia. **Używaln
 | ITM-GEN-01 | Gracz trzyma **jeden** przedmiot naraz. Nie ma plecaka. |
 | ITM-GEN-02 | Trzymany przedmiot jest widoczny na sprite'cie gracza (nad głową, w dwóch rękach). |
 | ITM-GEN-03 | Z przedmiotem w rękach gracz **nie strzela** (spacja służy wtedy do rzutu). Prędkość: z hard objectem 60%, z power-upem 100%. |
-| ITM-GEN-04 | Przedmioty na ziemi mają promień podnoszenia 1 kafelka od środka postaci. Przy kilku w zasięgu podnosi się najbliższy. **Ten najbliższy jest podświetlony** (PRD-HUD-09), żeby gracz widział, co podniesie przed naciśnięciem `E`. |
+| ITM-GEN-04 | Przedmioty **leżące na ziemi** mają promień podnoszenia 1 kafelka od środka postaci. Przy kilku w zasięgu podnosi się najbliższy. **Ten najbliższy jest podświetlony** (PRD-HUD-09), żeby gracz widział, co podniesie przed naciśnięciem `E`. Obiekty postawione i aktywne nie są podświetlane, bo nie da się ich podnieść (R53). |
 | ITM-GEN-05 | Stany przedmiotu: `NA_ZIEMI`, `TRZYMANY(gracz)`, `W_LOCIE`, `POSTAWIONY` (hard object), `AKTYWNY` (użyty power-up z czasem), `ZUŻYTY`. |
 | ITM-GEN-06 | Host jest źródłem prawdy o stanie przedmiotu. Dwóch graczy nie może podnieść tego samego: pierwsza akcja, która dotrze do hosta, wygrywa. |
 | ITM-GEN-07 | Hard objectu nie da się odłożyć na inny obiekt, gracza ani potwora. Ghost pokazuje, czy miejsce jest dozwolone (zielony / czerwony). **Zasięg nie jest powodem czerwonego ghosta**: gdy kursor jest dalej niż zasięg stawiania, ghost **przyciąga się do najdalszego dozwolonego kafelka w kierunku kursora** i tam się stawia (ITM-PLACE-01). Czerwony oznacza tylko zajęte miejsce, kolizję z graczem / potworem, brak linii widzenia przez ścianę albo osiągnięty limit. |
-| ITM-GEN-08 | Odłożony hard object **da się ponownie podnieść** (`E` przy nim), o ile nie jest zniszczony. Power-up po użyciu (`R`) już nie. |
+| ITM-GEN-08 | **Raz postawione zostaje postawione** (R53, 2026-11-05): obiekt w stanie `POSTAWIONY` albo `AKTYWNY` **nie da się podnieść** - stoi do zniszczenia. Dotyczy ścian i głazów stawianych przez graczy, startowych ruin (PRD-MAP-10), ścian z Muru awaryjnego (uchyla R27), działek, min, kolców i klatek. Podnieść da się wyłącznie to, co leży `NA_ZIEMI`. Powód: budowanie ma być decyzją, a nie przesuwanką w trakcie fali. |
 | ITM-GEN-09 | Hard objecty mają HP i **są powoli niszczone przez każdego potwora, który je dotyka na swojej drodze** (nie tylko gdy nie ma obejścia), oraz przez pociski graczy (pełne obrażenia, nie 10%). Tempo i obrażenia per potwór w `03-WAVES-DIFFICULTY.md`, sekcja 1. Obiekt przechodzi przez **4 stany zużycia** (pęknięcia, wyszczerbione krawędzie, dziury), sypie odłamki przy każdym przejściu, a przy 0 HP **zawala się z animacją** i zostawia rumowisko; znika dopiero po animacji (PRD-FX-08). |
 | ITM-GEN-10 | Gracz powalony lub rozłączony upuszcza trzymany przedmiot pod nogi (`NA_ZIEMI`). |
-| ITM-GEN-11 | **`E` z przedmiotem w rękach zawsze dotyczy trzymanego przedmiotu** (odłóż / postaw), nigdy nie podnosi innego przedmiotu z okolicy. Zamiana przedmiotów nie istnieje: żeby wziąć coś innego, najpierw odkładasz to, co masz. |
+| ITM-GEN-11 | **`E` z przedmiotem w rękach zawsze dotyczy trzymanego przedmiotu** (użyj / postaw), nigdy nie podnosi innego przedmiotu z okolicy. Zamiana przedmiotów nie istnieje: żeby wziąć coś innego, najpierw odkładasz to, co masz (`R`). |
 | ITM-PLACE-01 | **Celowanie przy stawianiu**: kafelek docelowy = kafelek pod kursorem, jeśli jest w zasięgu (`placeRangeTiles`, metryka Czebyszewa jak dotąd); jeśli kursor jest dalej, kafelek docelowy = **ostatni kafelek w zasięgu na odcinku od środka gracza do kursora** (idąc po kafelkach od gracza w stronę kursora, bierzemy najdalszy, który jest w zasięgu i dozwolony; jeśli po drodze trafimy na niedozwolony, bierzemy ostatni dozwolony przed nim). Ghost zawsze jest zielony, gdy istnieje jakikolwiek dozwolony kafelek na tym odcinku, i leży na nim. Czerwony tylko, gdy żaden kafelek na odcinku nie jest dozwolony (np. gracz stoi przy ścianie i celuje w nią) albo limit. To samo dla `E` (hard object) i `R` (power-up). Klient i serwer liczą ten sam kafelek z tych samych danych (pozycja gracza, pozycja kursora, siatka), żeby ghost i wynik się zgadzały. |
 
 ## 3. Logika akcji (zatwierdzona)
@@ -37,21 +37,22 @@ Obie kategorie dropią z potworów i leżą na ziemi do podniesienia. **Używaln
 | Klawisz | Warunek | Efekt |
 |---|---|---|
 | `E` | ręce puste, przedmiot w zasięgu | **Podnieś.** Przedmiot znika z ziemi, pojawia się nad głową. Animacja 0.2 s, w trakcie gracz stoi. |
-| `E` | trzymam przedmiot | **Odłóż.** Hard object stawiany na kafelku docelowym wg ITM-PLACE-01 (pod kursorem, a gdy kursor za daleko: najdalej w zasięgu w kierunku kursora), przyciągany do siatki. Przed odłożeniem widać ghost. Odłożony = `POSTAWIONY`, staje się kolizją / fortyfikacją. Jeśli ghost czerwony: nic, krótki sygnał. `E` z przedmiotem w rękach **nigdy nie podnosi innego przedmiotu** (ITM-GEN-11). |
+| `E` | trzymam przedmiot | **Postaw.** Hard object stawiany na kafelku docelowym wg ITM-PLACE-01 (pod kursorem, a gdy kursor za daleko: najdalej w zasięgu w kierunku kursora), przyciągany do siatki. Przed postawieniem widać ghost. Postawiony = `POSTAWIONY`, staje się kolizją / fortyfikacją i **nie da się go już podnieść** (ITM-GEN-08). Jeśli ghost czerwony: nic, krótki sygnał. `E` z przedmiotem w rękach **nigdy nie podnosi innego przedmiotu** (ITM-GEN-11). |
 | `Spacja` | trzymam przedmiot | **Rzuć** w kierunku kursora. Zasięg 4 kafelki, lot 0.5 s (wizualny łuk). **Rzut zadaje obrażenia**: pierwszy potwór trafiony w locie dostaje obrażenia wg tabeli w sekcji 4 i ogłuszenie 0.5 s. Po wylądowaniu przedmiot leży `NA_ZIEMI` (nie jest fortyfikacją, trzeba go odłożyć przez `E`). |
-| `R` | trzymam hard object | Obróć o 90 stopni (tylko kawałek ściany, który jest 2 x 1). Głaz i kolce: brak efektu. |
+| `R` | trzymam hard object | **Odłóż** pod nogi jako `NA_ZIEMI` (do podniesienia, nie fortyfikacja). |
+| `Q` / kółko myszy | trzymam hard object | Obróć o 90 stopni (tylko kawałek ściany, który jest 2 x 1). Głaz i kolce: brak efektu. |
 
 Rzucony hard object trafiający sojusznika: 10% obrażeń (friendly fire), lot przerwany.
 
 ### 3.2 Przedmioty "używalne" (power-upy)
 
-To samo co martwe (`E` podnieś, `E` odłóż na ziemię, `Spacja` rzuć z obrażeniami) **plus**:
+To samo co martwe (`E` podnieś, `R` odłóż na ziemię, `Spacja` / LPM rzuć z obrażeniami) **plus**:
 
 | Klawisz | Warunek | Efekt |
 |---|---|---|
-| `R` | trzymam power-up | **Użyj.** Power-up stawialny (działko, platforma, mina, klatka) spawnuje się na kafelku docelowym wg ITM-PLACE-01 (ghost jak przy odkładaniu) i od tej chwili jest `AKTYWNY`: liczy się czas, nie da się go podnieść z powrotem. Boost broni: działa natychmiast na gracza, przedmiot znika. |
+| `E` | trzymam power-up | **Użyj.** Power-up stawialny (działko, platforma, mina, klatka) spawnuje się na kafelku docelowym wg ITM-PLACE-01 (ghost jak przy odkładaniu) i od tej chwili jest `AKTYWNY`: liczy się czas, nie da się go podnieść z powrotem. Boost broni: działa natychmiast na gracza, przedmiot znika. |
 
-Różnica między `E` (odłóż) a `R` (użyj) dla power-upa: `E` kładzie go na ziemi jako przedmiot do podniesienia (np. żeby podać koledze albo zostawić na później). `R` aktywuje.
+Różnica między `E` (użyj) a `R` (odłóż) dla power-upa: `E` aktywuje, `R` kładzie go na ziemi jako przedmiot do podniesienia (np. żeby podać koledze albo zostawić na później). Rzadsza akcja dostała rzadszy klawisz (R54).
 
 Rzucony power-up: zadaje obrażenia trafionemu potworowi (wartość z tabeli w sekcji 5) i **aktywuje się tam, gdzie spadł**, tak jakby użyto `R` na tym kafelku. Działko zaczyna strzelać, platforma działa, mina się uzbraja, klatka łapie potwora, na którego spadła (albo pierwszego, który wejdzie). Jeśli miejsce lądowania jest niedozwolone (na obiekcie, poza mapą), przedmiot ląduje na najbliższym wolnym kafelku. Przy limicie aktywnych (sekcja 5) rzucony power-up leży `NA_ZIEMI` nieaktywny. Wyjątek: **boost broni** rzucony nie aktywuje się, leży na ziemi (rzut = podanie koledze). Rzucony power-up nie rani sojuszników.
 
@@ -63,11 +64,11 @@ Rzucony power-up: zadaje obrażenia trafionemu potworowi (wartość z tabeli w s
 
 | Sytuacja | `E` | `Spacja` | `R` |
 |---|---|---|---|
-| Ręce puste, nic w zasięgu | - | seria z karabinu | przeładuj (gdy magazynek niepełny) |
+| Ręce puste, nic w zasięgu | - | seria z karabinu (spacja albo LPM) | przeładuj (gdy magazynek niepełny) |
 | Ręce puste, przedmiot w zasięgu | podnieś | seria z karabinu | przeładuj |
-| Trzymam hard object | postaw (najdalej w zasięgu w kierunku kursora) | rzuć (obrażenia) | obróć ścianę |
-| Trzymam power-up stawialny | odłóż na ziemię pod nogi | rzuć (obrażenia) + aktywacja w miejscu lądowania | użyj = postaw i aktywuj (najdalej w zasięgu w kierunku kursora) |
-| Trzymam boost broni | odłóż na ziemię pod nogi | rzuć (obrażenia), nie aktywuje | użyj na sobie |
+| Trzymam hard object | postaw (najdalej w zasięgu w kierunku kursora) | rzuć (obrażenia) | odłóż pod nogi (obrót: `Q` / kółko) |
+| Trzymam power-up stawialny | użyj = postaw i aktywuj (najdalej w zasięgu w kierunku kursora) | rzuć (obrażenia) + aktywacja w miejscu lądowania | odłóż na ziemię pod nogi |
+| Trzymam boost broni | użyj na sobie | rzuć (obrażenia), nie aktywuje | odłóż na ziemię pod nogi |
 
 ## 4. Hard objects
 
@@ -81,8 +82,8 @@ Zasady:
 
 - Potwory wybierają między obejściem a przegryzieniem na podstawie kosztu (HP obiektu / ich obrażenia obiektom). Każdy potwór dotykający obiektu na trasie atakuje go. Mur bez obrony pada w ciągu jednej fali; broniony trzyma. Szczegóły w `03`, sekcja 1.
 - Zniszczony hard object zawala się (animacja 0.4 s, odłamki, pył) i zostawia bezkolizyjne rumowisko. Nie zostawia dropu. Szczegóły PRD-FX-08.
-- Odkładanie: do 2 kafelków od gracza, nie przez ścianę; kursor dalej = stawianie na granicy zasięgu w kierunku kursora (ITM-PLACE-01).
-- Na start gry wokół spawnu stoi 7 losowych kawałków ściany na różnym poziomie zniszczenia (PRD-MAP-10). To zwykłe `wall` w stanie `POSTAWIONY` z obniżonym HP: można je podnieść (zachowują HP), przestawić, zniszczyć.
+- Stawianie: do 2 kafelków od gracza, nie przez ścianę; kursor dalej = stawianie na granicy zasięgu w kierunku kursora (ITM-PLACE-01).
+- Na start gry wokół spawnu stoi 7 losowych kawałków ściany na różnym poziomie zniszczenia (PRD-MAP-10). To zwykłe `wall` w stanie `POSTAWIONY` z obniżonym HP: **nie da się ich podnieść ani przestawić** (R53), zostają jako osłona do zniszczenia.
 
 ## 5. Power-upy
 

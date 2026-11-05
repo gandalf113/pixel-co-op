@@ -20,6 +20,7 @@ To repo trzyma **dokumentację produktu**. Podział ról:
 | [docs/07-BACKLOG-V2.md](docs/07-BACKLOG-V2.md) | Backlog V2: boss, dźwięk, mapy, statystyki |
 | [docs/08-ULTIMATE.md](docs/08-ULTIMATE.md) | ULTIMATE (w MVP): shiny droplets, wspólny pasek, 3 progi, 7 umiejętności, testy |
 | [docs/09-HOSTING.md](docs/09-HOSTING.md) | Tryb hostowany: pokoje, telemetria faktycznego użycia, leaderboard (opcjonalny, domyślnie wyłączony) |
+| [docs/10-BACKLOG-V3.md](docs/10-BACKLOG-V3.md) | **Backlog V3 (aktualny front roboty)**: nowe potwory, pełne okno, SFX, brakujące dropy, audyt PRD, sieć, rozkład trupów, krew, modyfikatory broni, lista pokojów. Z kolejnością realizacji |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Historia zmian w dokumentacji |
 
 ## Jak czytać

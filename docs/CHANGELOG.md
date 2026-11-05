@@ -1,5 +1,17 @@
 # Changelog dokumentacji
 
+## 0.22 - 2026-11-05
+- 10-BACKLOG-V3: backlog zgloszony po hostowaniu gry (punkty A-L) rozpisany na wymagania z ID (V3-A-01..V3-L-01), z audytem luk wobec PRD i kolejnoscia realizacji.
+- R52 skala ulamkowa: gra wypelnia wysokosc okna, HUD wylacznie na planszy; uchyla calkowita krotnosc (PRD-MAP-05, V3-B-01).
+- R53 raz postawione zostaje postawione: postawionego/aktywnego obiektu nie da sie podniesc, takze ruin startowych i muru z ultimate; kasuje ITM-GEN-08 i R27 (V3-J-02).
+- R54 nowa logika klawiszy: E podnosi i uzywa, R odklada, obrot sciany Q/kolko myszy, LPM = spacja; uchyla R1 (PRD-CTRL-03/04/05, 02 sekcja 3, V3-J-03/04).
+- R55 magnes kropelek oslabiony: zasieg 9 kafelkow, boost 380 px/s, wartosc kropelki bez zmian; modyfikuje R44 (ULT-07, V3-L-01).
+- R56 boost broni podnosi poziom I losuje modyfikator (wachlarz / samonaprowadzanie / gwozdziarka); uchyla czesc PRD-PLR-04 (V3-I-01).
+- PRD-HUD-12 numer wersji widoczny w grze, zrodlem tag wdrozenia (V3-J-01).
+- PRD-PLR-07 licznik smierci pauzuje sie w trakcie podnoszenia; sprite powalonego lezy i macha (V3-J-09, V3-J-07).
+- PRD-HUD-07 strzalka do powalonego zawsze, z sekundami do smierci (V3-J-08).
+- PRD-HUD-11 pierscien przeladowania polprzezroczysty i rysowany klockami, zeby nie wybijal sie na pierwszy plan (V3-J-06).
+
 ## 0.21 - 2026-11-05
 - 09-HOSTING: tryb hostowany (pokoje z kodem, telemetria faktycznej rozgrywki, leaderboard). Domyslnie wylaczony, TECH-01 dla trybu LAN bez zmian.
 

@@ -1,12 +1,12 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.20 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.22 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
 | # | Pytanie | Decyzja | Data |
 |---|---|---|---|
-| R1 | Logika przedmiotów | `E` podnosi / odkłada, `Spacja` rzuca (z obrażeniami), `R` używa power-up. Opis w `02-ITEMS.md` sekcja 3. | 2026-11-05 |
+| R1 | ~~Logika przedmiotów~~ | ~~`E` podnosi / odkłada, `R` używa~~ **uchylone przez R54** | 2026-11-05 |
 | R2 | Friendly fire | 10%, stałe na każdej trudności | 2026-11-05 |
 | R3 | Liczba poziomów trudności | 4 | 2026-11-05 |
 | R4 | Max graczy | 4 | 2026-11-05 |
@@ -56,6 +56,11 @@ Wersja: 0.20 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr
 | R49 | Obserwator po śmierci | Po upływie licznika śmierci kamera śledzi żywego sojusznika, klik / A / D zmienia cel, napis OBSERWUJESZ, powrót na własną postać przy respawnie (PRD-PLR-10) | 2026-11-05 |
 | R50 | Startowe ruiny | 7 kawałków ściany losowo 4-9 kafelków od spawnu, losowa orientacja, każda na innym losowym poziomie zniszczenia, seed gry, zwykłe wall do podniesienia (PRD-MAP-10) | 2026-11-05 |
 | R51 | Reakcja ściany na cios | Jeden mikroruch 1 px w bok i z powrotem (2 klatki), bez wibracji; dotyczy ciosu potwora i trafienia pociskiem (FX-08, FX-02) | 2026-11-05 |
+| R52 | Skalowanie widoku | **Skala ułamkowa**: stałe 560 x 315 rozciągane do pełnej wysokości okna, HUD wyłącznie na planszy. Uchyla całkowitą krotność z PRD-MAP-05 (V3-B-01) | 2026-11-05 |
+| R53 | Podnoszenie postawionych obiektów | **Nie da się.** Postawione / aktywne stoi do zniszczenia - też ruiny startowe i mur z ultimate. Kasuje ITM-GEN-08 i R27 (V3-J-02) | 2026-11-05 |
+| R54 | Logika klawiszy | `E` podnosi i **używa**, `R` **odkłada**, obrót ściany `Q` / kółko myszy, LPM = spacja. Uchyla R1 (V3-J-03, V3-J-04) | 2026-11-05 |
+| R55 | Magnes kropelek | Zasięg 9 kafelków, boost 380 px/s, wartość kropelki bez zmian. Modyfikuje R44 (V3-L-01) | 2026-11-05 |
+| R56 | Modyfikatory broni | Boost broni podnosi poziom **i** losuje modyfikator (wachlarz / samonaprowadzanie / gwoździarka). Uchyla część PRD-PLR-04 (V3-I-01) | 2026-11-05 |
 | R26 | ~~Kamera (po teście silnika)~~ | ~~Dynamiczny zoom-out~~ **uchylone przez R42** | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu

@@ -1,6 +1,6 @@
 # 08 - ULTIMATE
 
-Wersja: 0.4 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
+Wersja: 0.5 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
 
 ## 1. Założenia (zatwierdzone)
 
@@ -12,7 +12,7 @@ Wersja: 0.4 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Zało�
 | ULT-04 | Pasek jest **trzystopniowy**: progi I / II / III. Użycie jest możliwe od progu I, siła efektu zależy od osiągniętego progu. Pasek zeruje się niezależnie od progu, z którego użyto. |
 | ULT-05 | Ultimate wybiera się **w lobby**, przed startem, na całą sesję. Dwóch graczy może wybrać ten sam. |
 | ULT-06 | Pasek **nie resetuje się** między falami. |
-| ULT-07 | Kropelki są **przyciągane magnesem o bardzo dużym zasięgu** (R44, po teście 2026-11-05): promień magnesu **14 kafelków**, prędkość przyciągania rośnie, im bliżej gracza: `v(d) = clamp(40 + 700 * (1 - d/R)^2, 40, 740)` px/s, gdzie `d` to odległość do najbliższego żywego gracza, `R` = 14 kafelków. Czyli na skraju zasięgu kropelka pełznie 40 px/s, przy 3 kafelkach leci ok. 450 px/s, tuż przy graczu 740. Kropelka wybiera najbliższego żywego gracza i zmienia cel, jeśli inny stanie się bliższy. Znika po **30 s**, jeśli nikt jej nie zebrał (praktycznie tylko, gdy wszyscy są dalej niż 14 kafelków). Pochłonięcie w promieniu 6 px od środka gracza. |
+| ULT-07 | Kropelki są **przyciągane magnesem o bardzo dużym zasięgu** (R44, po teście 2026-11-05): promień magnesu **9 kafelków** (R55, 2026-11-05: 14 ściągało kropelki z drugiego końca ekranu), prędkość przyciągania rośnie, im bliżej gracza: `v(d) = clamp(40 + 380 * (1 - d/R)^2, 40, 420)` px/s, gdzie `d` to odległość do najbliższego żywego gracza, `R` = 9 kafelków (R55). Czyli na skraju zasięgu kropelka pełznie 40 px/s, w połowie drogi ok. 135 px/s, tuż przy graczu 420. Wartość kropelki zostaje 5 punktów: zmienia się zbieranie, nie tempo ładowania paska. Kropelka wybiera najbliższego żywego gracza i zmienia cel, jeśli inny stanie się bliższy. Znika po **30 s**, jeśli nikt jej nie zebrał (praktycznie tylko, gdy wszyscy są dalej niż 14 kafelków). Pochłonięcie w promieniu 6 px od środka gracza. |
 
 ## 2. Kropelki i pasek
 
@@ -54,7 +54,7 @@ Zasady wspólne: ultimate **nie rani sojuszników** (brak friendly fire), **nisz
 
 Zasady szczegółowe:
 
-- Ściany z Muru awaryjnego to zwykłe hard objecty (potwory je atakują, gracze mogą je podnieść i przestawić; podniesiony kawałek traci timer i zostaje na stałe). Zatwierdzone (R27).
+- Ściany z Muru awaryjnego to zwykłe hard objecty (potwory je atakują), ale **nie da się ich podnieść ani przestawić** - znikają po swoim czasie albo padają pod ciosami (R53 uchyla R27).
 - Rakieta nie niszczy fortyfikacji graczy. Zatwierdzone (R28).
 - Zamrożony potwór nie atakuje, nie rusza się, nie wzywa posiłków (boss).
 - Działko szerokie i Rakieta: celowanie w kierunku kursora w chwili `F`, bez dodatkowego potwierdzania.
@@ -70,9 +70,9 @@ Zasady szczegółowe:
 | # | Test | Wymóg | Oczekiwane |
 |---|---|---|---|
 | UL1 | Gracz A zbiera 10 kropelek, gracz B stoi w kącie | ULT-02 | Obaj mają +10 punktów |
-| UL2 | Kropelka 13 kafelków od gracza, gracz stoi | ULT-07 | Pełznie w stronę gracza, przyspiesza wyraźnie w ostatnich 4 kafelkach, dociera w ok. 8-10 s |
+| UL2 | Kropelka 8 kafelków od gracza, gracz stoi | ULT-07 | Pełznie w stronę gracza, przyspiesza wyraźnie w ostatnich 3 kafelkach |
 | UL2b | Zabij 20 ślimaków w fali 1 na Normalnym | sekcja 2 | Pasek ok. 100 punktów, próg I osiągnięty w trakcie fali 1 |
-| UL3 | Kropelka 16 kafelków od wszystkich graczy przez 30 s | ULT-07 | Nie rusza się, znika po 30 s |
+| UL3 | Kropelka 11 kafelków od wszystkich graczy przez 30 s | ULT-07 | Nie rusza się, znika po 30 s |
 | UL4 | `F` przy 99 punktach | ULT-CTRL-01 | Sygnał "za mało", nic się nie dzieje |
 | UL5 | `F` przy 100 (próg I), 200 (II), 300 (III) | ULT-04 | Efekt wg kolumny progu, pasek = 0, paski innych bez zmian |
 | UL6 | Fala uderzeniowa III przy 10 ślimakach i sojuszniku w zasięgu | U-01 | Ślimaki martwe (150 > HP), sojusznik 0 obrażeń |
