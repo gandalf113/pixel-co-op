@@ -25,15 +25,6 @@ function bar(ctx, x, y, w, h, frac, color) {
   ctx.fillRect(x, y, Math.round(w * Math.max(0, Math.min(1, frac))), h);
 }
 
-function drawMagazine(ctx, x, y, scale) {
-  ctx.fillStyle = '#000';
-  ctx.fillRect(x - 1, y - 1, 4 * scale + 2, 7 * scale + 2);
-  ctx.fillStyle = '#d9b53a';
-  ctx.fillRect(x, y, 4 * scale, 7 * scale);
-  ctx.fillStyle = '#7d766b';
-  for (let i = 1; i < 7; i += 2) ctx.fillRect(x, y + i * scale, 4 * scale, Math.max(1, scale / 2));
-}
-
 function drawIcon(ctx, img, x, y, scale) {
   if (!img) return;
   ctx.drawImage(img, Math.round(x - (img.width * scale) / 2), Math.round(y - (img.height * scale) / 2), img.width * scale, img.height * scale);
@@ -70,7 +61,6 @@ export function renderHud(ctx, scale, offset, state) {
         ctx.fill();
       }
       bar(ctx, s.x - 8 * scale, top - 2 * scale, 16 * scale, Math.max(2, scale), p.hp / p.maxHp, p.color);
-      if (p.reloadLeft > 0 && p.id !== snap.you.id) drawMagazine(ctx, s.x + 10 * scale, top - 6 * scale, scale);
       if (p.state === 'downed') {
         text(ctx, `✚ ${Math.ceil(p.deathLeft)}`, s.x, s.y + 14 * scale, { color: '#ff5a4a', size: fs, align: 'center' });
         if (p.reviveProgress > 0) bar(ctx, s.x - 8 * scale, s.y + 16 * scale, 16 * scale, Math.max(2, scale), p.reviveProgress / balance.player.reviveTimeS, '#6fc7c9');
@@ -144,13 +134,6 @@ export function renderHud(ctx, scale, offset, state) {
       text(ctx, `${me.ammo} / ${gun.magazine}`, PAD + bw + 10 + ctx.measureText(lvStr).width + 12, H - PAD - 3 * scale,
         { size: fs, base: 'middle', color: low ? '#ff5a4a' : '#e8e2d4' });
 
-      if (me.reloadLeft > 0) {
-        const s = toScreen(me.x, me.y);
-        const rw = 24 * scale;
-        bar(ctx, s.x - rw / 2, s.y + 11 * scale, rw, Math.max(3, 2 * scale), 1 - me.reloadLeft / gun.reloadS, '#d9b53a');
-        text(ctx, 'PRZEŁADOWANIE', s.x, s.y + 13 * scale + small + 2, { size: small, align: 'center' });
-      }
-
       if (me.ultKind && balance.ultimate) {
         const u = balance.ultimate;
         const segW = 20 * scale;
@@ -178,6 +161,8 @@ export function renderHud(ctx, scale, offset, state) {
         drawIcon(ctx, sprites.get(`item_${held}`), W - PAD - ctx.measureText(label).width - 12 * scale, H - PAD - 3 * scale, scale);
       }
     }
+
+    state.fx?.drawHud(ctx, state.nowMs, toScreen, scale, text, small);
 
     if (state.hint) text(ctx, `[E] podnieś: ${state.hint}`, W / 2, H - PAD - 24 * scale, { size: fs, align: 'center' });
 
@@ -209,5 +194,23 @@ export function renderHud(ctx, scale, offset, state) {
     ctx.globalAlpha = 1;
   }
 
-  if (state.showCursor) drawIcon(ctx, sprites.get('crosshair'), state.mouse.x, state.mouse.y, scale);
+  if (state.showCursor) {
+    const { x, y } = state.mouse;
+    const hit = state.fx && state.nowMs < state.fx.hitMarkerUntil;
+    if (!hit) drawIcon(ctx, sprites.get('crosshair'), x, y, scale);
+    else {
+      const arm = 3 * scale;
+      const gap = 3 * scale;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(x - gap - arm - 1, y - scale / 2 - 1, arm + 2, scale + 2);
+      ctx.fillRect(x + gap - 1, y - scale / 2 - 1, arm + 2, scale + 2);
+      ctx.fillRect(x - scale / 2 - 1, y - gap - arm - 1, scale + 2, arm + 2);
+      ctx.fillRect(x - scale / 2 - 1, y + gap - 1, scale + 2, arm + 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x - gap - arm, y - scale / 2, arm, scale);
+      ctx.fillRect(x + gap, y - scale / 2, arm, scale);
+      ctx.fillRect(x - scale / 2, y - gap - arm, scale, arm);
+      ctx.fillRect(x - scale / 2, y + gap, scale, arm);
+    }
+  }
 }

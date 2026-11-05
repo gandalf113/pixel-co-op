@@ -1,4 +1,4 @@
-import { damageMob } from './combat.js';
+import { damageMob, addGore } from './combat.js';
 import { spawnUltWall } from './items.js';
 import { moveCircle, segmentBlocked, tileOf } from '../public/shared/world.js';
 
@@ -18,7 +18,7 @@ export function spawnDroplets(world, mob) {
       id: world.nextId(),
       x: mob.x + (world.rng() * 2 - 1) * cfg.scatterPx,
       y: mob.y + (world.rng() * 2 - 1) * cfg.scatterPx,
-      age: 0, fly: null,
+      age: 0,
     });
   }
 }
@@ -31,33 +31,33 @@ function collect(world) {
 
 function updateDroplets(world, dt) {
   const cfg = ult(world);
-  const magnet = cfg.magnetTiles * world.rules.tilePx;
+  const range = cfg.magnetTiles * world.rules.tilePx;
   world.droplets = world.droplets.filter((d) => {
-    if (d.fly) {
-      const p = world.players.get(d.fly.pid);
-      if (!p) {
-        d.fly = null;
-        return true;
-      }
-      d.fly.t += dt;
-      const k = Math.min(1, d.fly.t / cfg.flyS);
-      d.x = d.fly.x0 + (p.x - d.fly.x0) * k;
-      d.y = d.fly.y0 + (p.y - d.fly.y0) * k;
-      if (k < 1) return true;
-      collect(world);
-      world.events.push({ type: 'droplet', player: p.id });
-      return false;
-    }
-    d.age += dt;
-    if (d.age >= cfg.lifeS) return false;
+    let target = null;
+    let best = Infinity;
     for (const p of world.players.values()) {
       if (p.state !== 'alive' || p.suspended) continue;
-      if (Math.hypot(p.x - d.x, p.y - d.y) <= magnet) {
-        d.fly = { pid: p.id, t: 0, x0: d.x, y0: d.y };
-        break;
+      const dist = Math.hypot(p.x - d.x, p.y - d.y);
+      if (dist < best) {
+        best = dist;
+        target = p;
       }
     }
-    return true;
+    if (target && best <= cfg.absorbPx) {
+      collect(world);
+      world.events.push({ type: 'droplet', player: target.id });
+      return false;
+    }
+    if (target && best <= range) {
+      const k = 1 - best / range;
+      const v = Math.min(cfg.magnetMinPx + cfg.magnetBoostPx, cfg.magnetMinPx + cfg.magnetBoostPx * k * k);
+      const step = Math.min(best, v * dt);
+      d.x += ((target.x - d.x) / best) * step;
+      d.y += ((target.y - d.y) / best) * step;
+      return true;
+    }
+    d.age += dt;
+    return d.age < cfg.lifeS;
   });
 }
 
@@ -73,7 +73,8 @@ function explode(world, r) {
     }
     damageMob(world, m, r.cfg.damage, r.owner);
   }
-  world.events.push({ type: 'explode', id: r.id, x: r.x, y: r.y, radiusPx: radius, ult: true });
+  addGore(world.gore.scorches, [Math.round(r.x), Math.round(r.y), Math.round(radius)], world.rules.balance.gore.maxScorches);
+  world.events.push({ type: 'explode', id: r.id, x: r.x, y: r.y, radiusPx: radius, mine: true });
 }
 
 function updateRockets(world, dt) {

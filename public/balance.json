@@ -25,7 +25,7 @@
     "minBruteFromWave": 4,
     "batchMin": 3, "batchDivisor": 6, "batchIntervalS": 4,
     "spawnPoints": 12, "spawnPointsPerBatchMin": 1, "spawnPointsPerBatchMax": 3,
-    "spawnHiddenDistPx": 280, "maxAliveMobs": 60,
+    "spawnHiddenDistPx": 330, "maxAliveMobs": 60,
     "firstBreakS": 15, "breakBase": 20, "breakPerWave": 6, "breakMax": 120,
     "readyCountdownS": 5
   },
@@ -37,7 +37,7 @@
   "drops": { "hardShare": 0.55, "scatterPx": 8, "groundLimit": 200 },
   "throw": { "rangeTiles": 4, "flightS": 0.5, "stunS": 0.5 },
   "ultimate": {
-    "barMax": 300, "tierPoints": 100, "magnetTiles": 2, "flyS": 0.3, "lifeS": 20, "scatterPx": 6,
+    "barMax": 300, "tierPoints": 100, "magnetTiles": 14, "magnetMinPx": 40, "magnetBoostPx": 700, "absorbPx": 6, "lifeS": 30, "scatterPx": 6,
     "droplets": { "slime": 1, "runner": 1, "brute": 3 },
     "kinds": {
       "shockwave": { "name": "Fala uderzeniowa", "icon": "◎", "tiers": [
@@ -72,9 +72,9 @@
     }
   },
   "difficulty": [
-    { "name": "Łatwy", "dropletValue": 1.3,    "desc": "Długie przerwy, dużo dropu, słabsze potwory", "mobHp": 0.7, "mobDamage": 0.6, "budget": 0.8,  "mobSpeed": 0.9,  "drop": 1.3,  "breakMult": 1.3,  "playerHp": 120, "downedS": 20 },
-    { "name": "Normalny", "dropletValue": 1.0, "desc": "Gra tak, jak ją zaprojektowaliśmy",           "mobHp": 1.0, "mobDamage": 1.0, "budget": 1.0,  "mobSpeed": 1.0,  "drop": 1.0,  "breakMult": 1.0,  "playerHp": 100, "downedS": 10 },
-    { "name": "Trudny", "dropletValue": 0.85,   "desc": "Silniejsze potwory, mniej czasu na budowę",   "mobHp": 1.4, "mobDamage": 1.3, "budget": 1.25, "mobSpeed": 1.05, "drop": 0.85, "breakMult": 0.85, "playerHp": 100, "downedS": 8 },
-    { "name": "Koszmar", "dropletValue": 0.7,  "desc": "Krótkie przerwy, mało dropu, potwory x2 HP",  "mobHp": 2.0, "mobDamage": 1.8, "budget": 1.5,  "mobSpeed": 1.15, "drop": 0.7,  "breakMult": 0.7,  "playerHp": 80,  "downedS": 5 }
+    { "name": "Łatwy", "dropletValue": 6.5,    "desc": "Długie przerwy, dużo dropu, słabsze potwory", "mobHp": 0.7, "mobDamage": 0.6, "budget": 0.8,  "mobSpeed": 0.9,  "drop": 1.3,  "breakMult": 1.3,  "playerHp": 120, "downedS": 20 },
+    { "name": "Normalny", "dropletValue": 5, "desc": "Gra tak, jak ją zaprojektowaliśmy",           "mobHp": 1.0, "mobDamage": 1.0, "budget": 1.0,  "mobSpeed": 1.0,  "drop": 1.0,  "breakMult": 1.0,  "playerHp": 100, "downedS": 10 },
+    { "name": "Trudny", "dropletValue": 4.25,   "desc": "Silniejsze potwory, mniej czasu na budowę",   "mobHp": 1.4, "mobDamage": 1.3, "budget": 1.25, "mobSpeed": 1.05, "drop": 0.85, "breakMult": 0.85, "playerHp": 100, "downedS": 8 },
+    { "name": "Koszmar", "dropletValue": 3.5,  "desc": "Krótkie przerwy, mało dropu, potwory x2 HP",  "mobHp": 2.0, "mobDamage": 1.8, "budget": 1.5,  "mobSpeed": 1.15, "drop": 0.7,  "breakMult": 0.7,  "playerHp": 80,  "downedS": 5 }
   ]
 }

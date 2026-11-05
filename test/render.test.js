@@ -5,15 +5,15 @@ import { computeScale, Camera, VIEW_W, VIEW_H, tileHash } from '../public/client
 test('computeScale never below 1', () => {
   assert.equal(computeScale(100, 100), 1);
   assert.equal(computeScale(0, 0), 1);
-  assert.equal(computeScale(1920, 1080), 4);
-  assert.equal(computeScale(1440, 900), 3);
+  assert.equal(computeScale(1920, 1080), 3);
+  assert.equal(computeScale(1440, 900), 2);
 });
 
 test('camera centers the followed point', () => {
   const cam = new Camera();
   cam.follow(100, 100);
   assert.deepEqual(cam.worldToView(100, 100), { x: VIEW_W / 2, y: VIEW_H / 2 });
-  assert.deepEqual(cam.worldToView(100, 100), { x: 240, y: 135 });
+  assert.deepEqual(cam.worldToView(100, 100), { x: 280, y: 157.5 });
 });
 
 test('camera round-trips view and world', () => {

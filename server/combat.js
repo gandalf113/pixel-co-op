@@ -82,8 +82,8 @@ export function addGore(list, entry, max) {
   if (list.length > max) list.splice(0, list.length - max);
 }
 
-export function mobHit(world, x, y, mob, angle, dmg) {
-  world.events.push({ type: 'hit', x, y, mob: mob.id, a: Math.round(angle * 100) / 100, dmg: Math.round(dmg) });
+export function mobHit(world, x, y, mob, angle, dmg, by = null) {
+  world.events.push({ type: 'hit', x, y, mob: mob.id, a: Math.round(angle * 100) / 100, dmg: Math.round(dmg), by });
   addGore(world.gore.splats, [Math.round(x), Math.round(y)], world.rules.balance.gore.maxSplats);
 }
 
@@ -155,7 +155,7 @@ function applyHit(world, b, hit, hooks) {
       hooks.onWallHit?.(item, b.damage);
     }
   } else if (hit.mob) {
-    mobHit(world, b.x, b.y, hit.mob, Math.atan2(b.vy, b.vx), b.damage);
+    mobHit(world, b.x, b.y, hit.mob, Math.atan2(b.vy, b.vx), b.damage, b.fromTurret ? null : b.owner);
     damageMob(world, hit.mob, b.damage, b.owner);
     if (b.pierce > 0) {
       b.pierce--;

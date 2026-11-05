@@ -359,7 +359,7 @@ function updateTurret(world, item, dt) {
     damage: cfg.damage, speedPx: balance.rifle.speedPx, rangePx: range,
   });
   item.cooldown = cfg.cooldownS;
-  world.events.push({ type: 'shot', id: item.id, x: cx, y: cy });
+  world.events.push({ type: 'shot', id: item.id, x: cx, y: cy, angle: Math.atan2(target.y - cy, target.x - cx) });
 }
 
 function updateMine(world, item, dt) {

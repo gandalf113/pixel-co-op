@@ -1,5 +1,6 @@
 import { COLORS } from '../shared/protocol.js';
-import { buildGrid, footprint, placementValid, tileOf } from '../shared/world.js';
+import { buildGrid, footprint, placeTarget } from '../shared/world.js';
+import { Fx } from './fx.js';
 import { Connection, stored } from './net.js';
 import { InputState } from './input.js';
 import { Predictor, SnapshotBuffer, lerpEntities } from './predict.js';
@@ -44,6 +45,8 @@ const itemRot = new Map();
 const mobAngles = new Map();
 const gore = { corpses: [], splats: [] };
 const shakes = new Map();
+const fx = new Fx();
+let lastFrameMs = 0;
 let effects = [];
 let denyUntil = 0;
 let flash = null;
@@ -67,6 +70,7 @@ function resetGame() {
   gore.corpses = [];
   gore.splats = [];
   shakes.clear();
+  fx.reset();
   effects = [];
   paused = false;
   heldRot = 0;
@@ -113,6 +117,7 @@ function onMessage(msg) {
       gore.corpses = msg.corpses.slice();
       gore.splats = msg.splats.map(([x, y]) => [x, y, 0]);
       for (const [, x, y] of gore.corpses) gore.splats.push([x, y, 1]);
+      fx.restore(msg.scorches ?? [], msg.rubble ?? []);
       break;
     case 'results':
       mode = 'results';
@@ -133,21 +138,62 @@ function pushCapped(list, entry, max) {
   if (list.length > max) list.splice(0, list.length - max);
 }
 
+function itemCenter(id) {
+  const it = latest?.items.find((i) => i.id === id);
+  if (!it) return null;
+  const tp = balance.map.tilePx;
+  if (it.kind === 'wall') return { x: (it.tx + (it.rot ? 0.5 : 1)) * tp, y: (it.ty + (it.rot ? 1 : 0.5)) * tp };
+  return { x: (it.tx + 0.5) * tp, y: (it.ty + 0.5) * tp };
+}
+
 function onEvent(e) {
   const max = balance.gore;
-  if (e.type === 'pickup' && e.player === myId) heldRot = itemRot.get(e.id) ?? 0;
-  else if (e.type === 'hit' && e.mob) pushCapped(gore.splats, [Math.round(e.x), Math.round(e.y), 0], max.maxSplats);
-  else if (e.type === 'objHit') shakes.set(e.id, performance.now());
-  else if (e.type === 'ultDeny' && e.id === myId) denyUntil = performance.now() + 800;
-  else if (e.type === 'ult' || e.type === 'explode') {
-    const now = performance.now();
-    const kind = e.type === 'explode' ? 'explode' : e.kind;
-    const color = latest?.players.find((p) => p.id === e.id)?.color ?? '#ffffff';
-    effects.push({ ...e, kind, color, start: now, durMs: EFFECT_MS[kind] * (e.tier === 3 ? 1.6 : 1) });
-    if (e.type === 'ult') flash = { color, start: now, strong: e.id === myId };
-  } else if (e.type === 'mobDeath') {
-    pushCapped(gore.splats, [Math.round(e.x), Math.round(e.y), 1], max.maxSplats);
-    pushCapped(gore.corpses, [e.mobType, Math.round(e.x), Math.round(e.y), e.a], max.maxCorpses);
+  const now = performance.now();
+  const tp = balance.map.tilePx;
+  switch (e.type) {
+    case 'pickup':
+      if (e.player === myId) heldRot = itemRot.get(e.id) ?? 0;
+      break;
+    case 'hit':
+      if (!e.mob) break;
+      pushCapped(gore.splats, [Math.round(e.x), Math.round(e.y), 0], max.maxSplats);
+      fx.mobHit(now, e, myId);
+      break;
+    case 'objHit': {
+      shakes.set(e.id, now);
+      const c = e.x != null ? e : itemCenter(e.id);
+      if (c) fx.objHit(now, c.x, c.y, e.x != null);
+      break;
+    }
+    case 'destroyed':
+      fx.destroyed(now, e, e.kind === 'wall' ? footprint('wall', e.tx, e.ty, e.rot) : [[e.tx, e.ty]], tp);
+      break;
+    case 'explode':
+      fx.explode(now, e, predictor?.pos, tp, latest?.mobs ?? []);
+      break;
+    case 'shot': {
+      const shooter = latest?.players.find((p) => p.id === e.id);
+      const origin = shooter ? (e.id === myId && predictor?.pos ? predictor.pos : shooter) : e;
+      fx.shot(now, e, !!shooter, origin.x, origin.y);
+      break;
+    }
+    case 'ff':
+      fx.ff(now, e, myId, (id) => latest?.players.find((p) => p.id === id)?.nick ?? '?');
+      break;
+    case 'ultDeny':
+      if (e.id === myId) denyUntil = now + 800;
+      break;
+    case 'ult': {
+      const color = latest?.players.find((p) => p.id === e.id)?.color ?? '#ffffff';
+      effects.push({ ...e, color, start: now, durMs: EFFECT_MS[e.kind] * (e.tier === 3 ? 1.6 : 1) });
+      flash = { color, start: now, strong: e.id === myId };
+      break;
+    }
+    case 'mobDeath':
+      pushCapped(gore.splats, [Math.round(e.x), Math.round(e.y), 1], max.maxSplats);
+      pushCapped(gore.corpses, [e.mobType, Math.round(e.x), Math.round(e.y), e.a], max.maxCorpses);
+      fx.mobDeath(now, e);
+      break;
   }
 }
 
@@ -267,17 +313,17 @@ function activeCount(items, kind) {
 function ghostFor(me, snap, players, aim) {
   if (!me.held || me.state !== 'alive') return null;
   const { tilePx } = balance.map;
-  const tiles = footprint(me.held, tileOf(aim.x, tilePx), tileOf(aim.y, tilePx), me.held === 'wall' ? heldRot : 0);
   const circles = [];
   for (const p of players) if (p.state !== 'dead' && !p.suspended) circles.push({ x: p.x, y: p.y, r: balance.player.radiusPx });
   for (const m of snap.mobs) circles.push({ x: m[2], y: m[3], r: balance.mobs[m[1]].radiusPx });
   const limit = balance.items[me.held].limit;
-  const valid = placementValid({
-    grid, tiles, playerX: me.x, playerY: me.y, circles, tilePx,
+  const rot = me.held === 'wall' ? heldRot : 0;
+  const t = placeTarget({
+    grid, kind: me.held, rot, playerX: me.x, playerY: me.y, aimX: aim.x, aimY: aim.y, circles, tilePx,
     maxRangeTiles: balance.player.placeRangeTiles,
-    limitReached: limit != null && activeCount(snap.items, me.held) >= limit,
+    limitReached: me.held !== 'wall' && limit != null && activeCount(snap.items, me.held) >= limit,
   });
-  return { tiles, valid };
+  return { tiles: footprint(me.held, t.tx, t.ty, rot), valid: t.valid };
 }
 
 function rectDist(x, y, tx, ty, tp) {
@@ -286,8 +332,8 @@ function rectDist(x, y, tx, ty, tp) {
   return Math.hypot(dx, dy);
 }
 
-function pickupHint(me, items) {
-  if (me.state !== 'alive') return null;
+function pickupTarget(me, items) {
+  if (me.state !== 'alive' || me.held) return null;
   const tp = balance.map.tilePx;
   const range = balance.player.pickupRangeTiles * tp;
   let best = null;
@@ -303,12 +349,15 @@ function pickupHint(me, items) {
       bestD = d;
     }
   }
-  return best ? balance.items[best.kind].name : null;
+  return best;
 }
 
 function frame(now) {
   requestAnimationFrame(frame);
   const playing = (mode === 'game' || mode === 'results') && latest && sprites;
+  const dt = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
+  lastFrameMs = now;
+  fx.update(now, dt);
   document.body.classList.toggle('playing', mode === 'game' && !paused);
   if (!playing) {
     wctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -340,6 +389,7 @@ function frame(now) {
     cam.follow(Math.round(me.x), Math.round(me.y));
   }
   effects = effects.filter((e) => now - e.start < e.durMs);
+  const pickTarget = me && mode === 'game' ? pickupTarget(me, latest.items) : null;
   const view = {
     cam, balance, sprites, frame: Math.floor(now / (1000 / 60)), players,
     mobs: lerpEntities(a.mobs, b.mobs, alpha, MOB_KEY),
@@ -347,13 +397,14 @@ function frame(now) {
     items: b.items, myId, mobAngles, gore, seed: latest.seed,
     droplets: lerpEntities(a.droplets ?? [], b.droplets ?? [], alpha, BULLET_KEY),
     rockets: lerpEntities(a.rockets ?? [], b.rockets ?? [], alpha, BULLET_KEY),
-    effects, shakes, nowMs: now, pxScale: scale,
+    effects, shakes, nowMs: now, pxScale: scale, fx,
+    highlightId: pickTarget?.id ?? null,
     ghost: me && mode === 'game' ? ghostFor(me, latest, players, aimWorld()) : null,
   };
   renderWorld(wctx, view);
   renderHud(hctx, scale, offset, {
     snap: latest, balance, sprites, cam, me, players, status, tab, nowMs: now,
-    hint: me && mode === 'game' ? pickupHint(me, latest.items) : null,
+    hint: pickTarget ? balance.items[pickTarget.kind].name : null, fx,
     mouse: input.mouse, showCursor: mode === 'game' && !paused,
     deny: now < denyUntil,
     flash: flash && now - flash.start < FLASH_MS ? { ...flash, k: (now - flash.start) / FLASH_MS } : null,

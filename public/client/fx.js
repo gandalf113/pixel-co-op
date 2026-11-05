@@ -24,6 +24,9 @@ export class Fx {
     this.muzzles = [];
     this.rings = [];
     this.mobFlash = new Map();
+    this.mobKnock = new Map();
+    this.shells = [];
+    this.hitMarkerUntil = 0;
     this.playerFlash = new Map();
     this.recoil = new Map();
     this.wear = new Map();
@@ -53,11 +56,19 @@ export class Fx {
     this.rubble = rubble.slice();
   }
 
-  mobHit(now, e) {
-    this.mobFlash.set(e.mob, now + 70);
-    this.#burst(now, e.x, e.y, Math.floor(rand(3, 6)), { colors: BLOOD, speed: 60, life: 0.3, angle: e.a, spread: 1.2 });
-    this.#burst(now, e.x, e.y, 1, { colors: SPARK, speed: 10, life: 0.05 });
-    if (e.dmg) this.numbers.push({ x: e.x, y: e.y - 6, v: e.dmg, born: now });
+  mobHit(now, e, myId) {
+    this.mobFlash.set(e.mob, now + 100);
+    this.mobKnock.set(e.mob, { a: e.a, until: now + 100 });
+    this.#burst(now, e.x, e.y, Math.floor(rand(6, 9)), { colors: BLOOD, speed: 90, life: 0.3, angle: e.a, spread: 0.9 });
+    this.#burst(now, e.x, e.y, 2, { colors: SPARK, speed: 20, life: 0.05 });
+    if (e.dmg) this.numbers.push({ x: e.x, y: e.y - 8, v: e.dmg, born: now });
+    if (e.by === myId) this.hitMarkerUntil = now + 100;
+  }
+
+  knock(id, now) {
+    const k = this.mobKnock.get(id);
+    if (!k || now >= k.until) return { x: 0, y: 0 };
+    return { x: Math.round(Math.cos(k.a) * 2), y: Math.round(Math.sin(k.a) * 2) };
   }
 
   objHit(now, x, y, bullet) {
@@ -105,14 +116,21 @@ export class Fx {
     this.#burst(now, e.x, e.y, Math.floor(rand(4, 7)), { colors: [...BLOOD, '#4f6e2a'], speed: 50, life: 0.3, settle: true });
   }
 
-  shot(now, e, isPlayer) {
-    this.muzzles.push({ x: e.x, y: e.y, a: e.angle ?? 0, born: now });
+  shot(now, e, isPlayer, originX, originY) {
+    const a = e.angle ?? 0;
+    this.muzzles.push({ x: originX + Math.cos(a) * 9, y: originY + Math.sin(a) * 9, a, born: now });
     if (!isPlayer) return;
-    this.recoil.set(e.id, now + 60);
-    const side = (e.angle ?? 0) + Math.PI / 2;
-    this.#particle({
-      x: e.x, y: e.y, vx: Math.cos(side) * 35, vy: Math.sin(side) * 35, born: now, life: 0.35, color: '#d9b53a', size: 1, settle: false,
-    });
+    this.recoil.set(e.id, { a, until: now + 60 });
+    const side = a + Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+    const v = rand(25, 40);
+    this.shells.push({ x: originX, y: originY, vx: Math.cos(side) * v, vy: Math.sin(side) * v, born: now });
+    if (this.shells.length > 150) this.shells.shift();
+  }
+
+  recoilOf(id, now) {
+    const r = this.recoil.get(id);
+    if (!r || now >= r.until) return { x: 0, y: 0 };
+    return { x: -Math.round(Math.cos(r.a)), y: -Math.round(Math.sin(r.a)) };
   }
 
   ff(now, e, myId, nickOf) {
@@ -139,8 +157,16 @@ export class Fx {
       return true;
     });
     this.numbers = this.numbers.filter((n) => now - n.born < 400);
+    this.shells = this.shells.filter((s) => {
+      const age = (now - s.born) / 1000;
+      if (age < 0.3) {
+        s.x += s.vx * dt;
+        s.y += s.vy * dt;
+      }
+      return age < 2.3;
+    });
     this.collapses = this.collapses.filter((c) => now - c.born < 400);
-    this.muzzles = this.muzzles.filter((m) => now - m.born < 50);
+    this.muzzles = this.muzzles.filter((m) => now - m.born < 70);
     this.rings = this.rings.filter((r) => now - r.born < 500);
   }
 
@@ -168,6 +194,8 @@ export class Fx {
       ctx.fillRect(x + ox, y + oy, 1, 1);
     }
     for (const [kind, tx, ty, rot] of this.rubble) sprites.rubble(ctx, kind, tx, ty, rot, ox, oy);
+    ctx.fillStyle = '#c9a23a';
+    for (const s of this.shells) ctx.fillRect(Math.round(s.x + ox), Math.round(s.y + oy), 1, 1);
   }
 
   drawTop(ctx, ox, oy, now, sprites, tp) {
@@ -195,17 +223,7 @@ export class Fx {
       ctx.fillRect(Math.round(p.x + ox), Math.round(p.y + oy), p.size, p.size);
     }
     ctx.globalAlpha = 1;
-    for (const m of this.muzzles) {
-      const x = Math.round(m.x + ox + Math.cos(m.a) * 3);
-      const y = Math.round(m.y + oy + Math.sin(m.a) * 3);
-      ctx.fillStyle = '#fff6d0';
-      ctx.fillRect(x - 1, y - 1, 3, 3);
-      ctx.fillStyle = '#ffd23a';
-      ctx.fillRect(x - 2, y, 1, 1);
-      ctx.fillRect(x + 2, y, 1, 1);
-      ctx.fillRect(x, y - 2, 1, 1);
-      ctx.fillRect(x, y + 2, 1, 1);
-    }
+    for (const m of this.muzzles) sprites.muzzle(ctx, m.x + ox, m.y + oy, m.a, now - m.born < 35 ? 0 : 1);
   }
 
   drawHud(ctx, now, toScreen, scale, text, small) {

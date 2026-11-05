@@ -9,14 +9,14 @@ const T = 16;
 const c = (t) => (t + 0.5) * T;
 const run = (w, s) => { for (let t = 0; t < s; t += 1 / 30) updateUltimate(w, 1 / 30); };
 
-test('droplet picked by one player charges everyone (UL1) and expires (UL3)', () => {
-  const w = makeWorld({ players: [{ x: c(20), y: c(20) }, { x: c(60), y: c(50) }] });
+test('droplet picked by one player charges everyone (UL1) and expires out of magnet range (UL3)', () => {
+  const w = makeWorld({ players: [{ x: c(20), y: c(20) }, { x: c(70), y: c(55) }] });
   killMob(w, addMob(w, 'slime', c(21), c(20)), 'p1');
-  killMob(w, addMob(w, 'slime', c(40), c(40)), 'p1');
+  killMob(w, addMob(w, 'slime', c(45), c(5)), 'p1');
   run(w, 1);
-  assert.equal(w.players.get('p1').ult, 1);
-  assert.equal(w.players.get('p2').ult, 1);
-  run(w, 20);
+  assert.equal(w.players.get('p1').ult, 5);
+  assert.equal(w.players.get('p2').ult, 5);
+  run(w, 30);
   assert.equal(w.droplets.length, 0);
 });
 
@@ -55,4 +55,14 @@ test('freeze II stops mobs and they take 150% damage (UL11)', () => {
   useUltimate(w, w.players.get('p1'));
   assert.equal(m.frozen, 5);
   assert.equal(m.vuln, 1.5);
+});
+
+test('magnet pulls droplet from 13 tiles, ignores it at 15 (UL2)', () => {
+  const w = makeWorld({ players: [{ x: c(20), y: c(20) }] });
+  w.droplets.push({ id: 1, x: c(33), y: c(20), age: 0 }, { id: 2, x: c(35), y: c(20), age: 0 });
+  run(w, 0.5);
+  assert.ok(w.droplets[0].x < c(33) && w.droplets[0].x > c(28));
+  run(w, 2);
+  assert.deepEqual(w.droplets.map((d) => d.id), [2]);
+  assert.equal(w.droplets[0].x, c(35));
 });

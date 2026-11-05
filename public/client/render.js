@@ -1,8 +1,9 @@
 import { DECOR_SPRITES } from './sprites.js';
 import { footprint } from '../shared/world.js';
+import { rifleStats } from '../shared/weapon.js';
 
-export const VIEW_W = 480;
-export const VIEW_H = 270;
+export const VIEW_W = 560;
+export const VIEW_H = 315;
 const DECOR_PERCENT = 12;
 const SPLAT_VARIANTS = 4;
 const THROW_ARC_PX = 8;
@@ -126,6 +127,132 @@ function splatSprite(big, variant) {
   return img;
 }
 
+function baked(key, w, h, paint) {
+  let img = goreCache.get(key);
+  if (img) return img;
+  img = canvas(w, h);
+  paint(img.getContext('2d'), img);
+  goreCache.set(key, img);
+  return img;
+}
+
+const silhouettes = new Map();
+
+function silhouette(src, color) {
+  let byColor = silhouettes.get(color);
+  if (!byColor) silhouettes.set(color, (byColor = new WeakMap()));
+  let img = byColor.get(src);
+  if (img) return img;
+  img = canvas(src.width, src.height);
+  const c = img.getContext('2d');
+  c.drawImage(src, 0, 0);
+  c.globalCompositeOperation = 'source-in';
+  c.fillStyle = color;
+  c.fillRect(0, 0, img.width, img.height);
+  byColor.set(src, img);
+  return img;
+}
+
+function wallWear(sprites, stage) {
+  return baked(`wall_dmg_${stage}`, 16, 16, (c) => {
+    c.drawImage(sprites.get('wall'), 0, 0);
+    if (stage >= 1) c.drawImage(sprites.get('decor_crack_0'), 0, 0);
+    if (stage >= 3) c.drawImage(sprites.get('decor_crack_1'), 0, 0);
+    if (stage < 2) return;
+    let s = tileHash(stage, 99);
+    const rnd = () => ((s = tileHash(s, 7)) % 1000) / 1000;
+    const chipChance = stage === 2 ? 0.25 : 0.5;
+    for (let i = 0; i < 16; i++) {
+      for (const [x, y] of [[i, 0], [i, 15], [0, i], [15, i]]) {
+        if (rnd() < chipChance) c.clearRect(x, y, 1, 1);
+        if (stage === 3 && rnd() < 0.3) c.clearRect(x === 0 ? 1 : x === 15 ? 14 : x, y === 0 ? 1 : y === 15 ? 14 : y, 1, 1);
+      }
+    }
+    for (const [x, y] of [[0, 0], [15, 0], [0, 15], [15, 15]]) c.clearRect(x - 1, y - 1, 3, 3);
+    if (stage === 3) {
+      for (let i = 0; i < 3; i++) {
+        const hx = 3 + Math.floor(rnd() * 9);
+        const hy = 3 + Math.floor(rnd() * 9);
+        c.clearRect(hx, hy, 2, 2);
+        c.clearRect(hx + 1, hy - 1, 1, 1);
+      }
+    }
+  });
+}
+
+function rubbleSprite(variant) {
+  return baked(`rubble_${variant}`, 16, 16, (c) => {
+    let s = tileHash(variant, 41);
+    const rnd = () => ((s = tileHash(s, 13)) % 1000) / 1000;
+    const colors = ['#7d766b', '#58534b', '#4a4139', '#3b342d', '#8a826f'];
+    for (let i = 0; i < 18; i++) {
+      const x = Math.floor(1 + rnd() * 14);
+      const y = Math.floor(3 + rnd() * 12);
+      const w = 1 + Math.floor(rnd() * 3);
+      c.fillStyle = colors[Math.floor(rnd() * colors.length)];
+      c.fillRect(x, y, w, w > 2 ? 2 : w);
+    }
+  });
+}
+
+function wreckSprite(sprites) {
+  return baked('turret_wreck', 16, 16, (c) => {
+    c.filter = 'brightness(0.35) saturate(0.3)';
+    c.drawImage(sprites.get('turret_0'), 0, 0);
+    c.filter = 'none';
+    c.fillStyle = '#14120f';
+    c.fillRect(4, 6, 3, 2);
+    c.fillRect(9, 9, 2, 3);
+  });
+}
+
+function muzzleSprite(frame) {
+  return baked(`muzzle_${frame}`, 8, 8, (c) => {
+    if (frame === 0) {
+      c.fillStyle = '#ff9a2a';
+      c.fillRect(1, 2, 6, 4);
+      c.fillRect(2, 1, 4, 6);
+      c.fillStyle = '#ffe07a';
+      c.fillRect(2, 3, 5, 2);
+      c.fillRect(3, 2, 3, 4);
+      c.fillStyle = '#ffffff';
+      c.fillRect(3, 3, 3, 2);
+    } else {
+      c.fillStyle = '#ff9a2a';
+      c.fillRect(2, 3, 4, 2);
+      c.fillStyle = '#ffe07a';
+      c.fillRect(3, 3, 2, 2);
+    }
+  });
+}
+
+export function fxSprites(sprites) {
+  return {
+    rubble(ctx, kind, tx, ty, rot, ox, oy) {
+      const tp = 16;
+      if (kind === 'turret30') {
+        ctx.drawImage(wreckSprite(sprites), tx * tp + ox, ty * tp + oy);
+        return;
+      }
+      for (const [x, y] of footprint(kind, tx, ty, rot)) ctx.drawImage(rubbleSprite(tileHash(x, y) % 2), x * tp + ox, y * tp + oy);
+    },
+    collapse(ctx, c, k, ox, oy, tp) {
+      const frame = Math.min(2, Math.floor(k * 3));
+      const img = c.kind === 'turret30' ? wreckSprite(sprites) : wallWear(sprites, 3);
+      const sq = [0.85, 0.6, 0.3][frame];
+      ctx.globalAlpha = 1 - frame * 0.3;
+      for (const [x, y] of c.tiles) {
+        const h = Math.round(tp * sq);
+        ctx.drawImage(img, x * tp + ox, y * tp + oy + (tp - h), tp, h);
+      }
+      ctx.globalAlpha = 1;
+    },
+    muzzle(ctx, x, y, a, frame) {
+      drawCentered(ctx, muzzleSprite(frame), x, y, a);
+    },
+  };
+}
+
 function onScreen(view, x, y) {
   const { cam } = view;
   return Math.abs(x - cam.x) < VIEW_W / 2 + 16 && Math.abs(y - cam.y) < VIEW_H / 2 + 16;
@@ -146,6 +273,14 @@ function drawGore(ctx, view, ox, oy) {
 
 const SHAKE_MS = 160;
 
+function outline(ctx, img, x, y, view) {
+  const on = Math.floor(view.nowMs / 250) % 2 === 0;
+  const sil = silhouette(img, on ? '#ffffff' : '#e8e2d4');
+  ctx.globalAlpha = on ? 1 : 0.6;
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) ctx.drawImage(sil, x + dx, y + dy);
+  ctx.globalAlpha = 1;
+}
+
 function drawItems(ctx, view, ox, oy) {
   const { balance, sprites, frame } = view;
   const tp = balance.map.tilePx;
@@ -156,10 +291,13 @@ function drawItems(ctx, view, ox, oy) {
       const sx = ox + shake;
       if (it.kind === 'wall') {
         const frac = it.maxHp ? it.hp / it.maxHp : 1;
+        const center = (w) => ({ x: (w.tx + (w.rot ? 0.5 : 1)) * tp, y: (w.ty + (w.rot ? 1 : 0.5)) * tp });
+        const stage = view.fx ? view.fx.wearStage(view.nowMs, it, frac, tp, center) : 0;
+        const lit = it.id === view.highlightId;
         for (const [tx, ty] of footprint('wall', it.tx, it.ty, it.rot)) {
-          ctx.drawImage(sprites.get('wall'), tx * tp + sx, ty * tp + oy);
-          if (frac < 0.66) ctx.drawImage(sprites.get('decor_crack_0'), tx * tp + sx, ty * tp + oy);
-          if (frac < 0.33) ctx.drawImage(sprites.get('decor_crack_1'), tx * tp + sx, ty * tp + oy);
+          const img = stage ? wallWear(sprites, stage) : sprites.get('wall');
+          if (lit) outline(ctx, img, tx * tp + sx, ty * tp + oy - 1, view);
+          ctx.drawImage(img, tx * tp + sx, ty * tp + oy - (lit ? 1 : 0));
         }
       } else {
         const base = it.kind === 'turret30' ? 'turret' : 'mine';
@@ -172,7 +310,10 @@ function drawItems(ctx, view, ox, oy) {
       const y = y0 + (y1 - y0) * p - Math.sin(p * Math.PI) * THROW_ARC_PX;
       drawCentered(ctx, sprites.get(`item_${it.kind}`), x + ox, y + oy);
     } else if (it.state === 'ground') {
-      drawCentered(ctx, sprites.get(`item_${it.kind}`), it.x + ox, it.y + oy);
+      const img = sprites.get(`item_${it.kind}`);
+      const lit = it.id === view.highlightId;
+      if (lit) outline(ctx, img, Math.round(it.x + ox - img.width / 2), Math.round(it.y + oy - img.height / 2) - 1, view);
+      drawCentered(ctx, img, it.x + ox, it.y + oy - (lit ? 1 : 0));
     }
   }
 }
@@ -184,7 +325,10 @@ function drawMobs(ctx, view, ox, oy) {
     const angle = view.mobAngles?.get(id) ?? 0;
     const flip = Math.abs(angle) > Math.PI / 2;
     if (stunned && !frozen) ctx.globalAlpha = (frame >> 2) & 1 ? 0.5 : 1;
-    drawCentered(ctx, sprites.get(`${type}_${frozen ? 0 : ((frame >> 3) + id) & 1}`), x + ox, y + oy, angle, flip);
+    const k = view.fx ? view.fx.knock(id, view.nowMs) : { x: 0, y: 0 };
+    let img = sprites.get(`${type}_${frozen ? 0 : ((frame >> 3) + id) & 1}`);
+    if (view.fx && view.nowMs < (view.fx.mobFlash.get(id) ?? 0)) img = silhouette(img, '#ffffff');
+    drawCentered(ctx, img, x + ox + k.x, y + oy + k.y, angle, flip);
     ctx.globalAlpha = 1;
     const r = view.balance.mobs[type].radiusPx + 1;
     if (frozen) {
@@ -215,8 +359,12 @@ function drawPlayers(ctx, view, ox, oy) {
       ctx.globalAlpha = 0.7;
     }
     if (p.suspended) ctx.globalAlpha = 0.4;
-    drawCentered(ctx, sprites.get(`player_${walk}@${p.color}`), p.x + ox, p.y + oy, p.state === 'downed' ? 0 : p.angle);
+    const rc = view.fx ? view.fx.recoilOf(p.id, view.nowMs) : { x: 0, y: 0 };
+    let img = sprites.get(`player_${walk}@${p.color}`);
+    if (view.fx && view.nowMs < (view.fx.playerFlash.get(p.id) ?? 0)) img = silhouette(img, '#ff3a2a');
+    drawCentered(ctx, img, p.x + ox + rc.x, p.y + oy + rc.y, p.state === 'downed' ? 0 : p.angle);
     ctx.restore();
+    drawReloadRing(ctx, view, p, ox, oy);
     if (p.frenzyLeft > 0) {
       ctx.strokeStyle = (frame >> 2) & 1 ? '#ff5a4a' : '#ffd23a';
       ctx.lineWidth = 1;
@@ -232,6 +380,44 @@ function drawPlayers(ctx, view, ox, oy) {
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
       ctx.restore();
     }
+  }
+}
+
+const reloadSeen = new Map();
+const RING_FLASH_MS = 150;
+
+function drawReloadRing(ctx, view, p, ox, oy) {
+  const mine = p.id === view.myId;
+  const total = rifleStats(view.balance, p.weaponLv ?? 1).reloadS;
+  const x = p.x + ox;
+  const y = p.y + oy;
+  const r = 14;
+  if (p.reloadLeft > 0) {
+    reloadSeen.set(p.id, 0);
+    const k = Math.max(0, Math.min(1, 1 - p.reloadLeft / total));
+    ctx.lineWidth = mine ? 2 : 1;
+    if (mine) {
+      ctx.strokeStyle = 'rgba(20, 18, 15, 0.7)';
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = mine ? '#e8e2d4' : p.color;
+    ctx.beginPath();
+    ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k);
+    ctx.stroke();
+    return;
+  }
+  if (reloadSeen.get(p.id) === 0) reloadSeen.set(p.id, view.nowMs);
+  const doneAt = reloadSeen.get(p.id);
+  if (doneAt && view.nowMs - doneAt < RING_FLASH_MS) {
+    ctx.globalAlpha = 1 - (view.nowMs - doneAt) / RING_FLASH_MS;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = mine ? 2 : 1;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -332,10 +518,13 @@ export function renderWorld(ctx, view) {
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.setTransform(view.pxScale, 0, 0, view.pxScale, 0, 0);
-  const ox = Math.round(VIEW_W / 2 - view.cam.x);
-  const oy = Math.round(VIEW_H / 2 - view.cam.y);
+  const shake = view.fx ? view.fx.shakeOffset(view.nowMs) : { x: 0, y: 0 };
+  const ox = Math.round(VIEW_W / 2 - view.cam.x) + shake.x;
+  const oy = Math.round(VIEW_H / 2 - view.cam.y) + shake.y;
+  const fxs = fxSprites(view.sprites);
   drawGround(ctx, view, ox, oy);
   drawGore(ctx, view, ox, oy);
+  view.fx?.drawGround(ctx, ox, oy, fxs);
   drawDroplets(ctx, view, ox, oy);
   drawItems(ctx, view, ox, oy);
   drawGhost(ctx, view, ox, oy);
@@ -344,6 +533,7 @@ export function renderWorld(ctx, view) {
   const bullet = view.sprites.get('bullet');
   for (const [, x, y] of view.bullets) drawCentered(ctx, bullet, x + ox, y + oy);
   drawRockets(ctx, view, ox, oy);
+  view.fx?.drawTop(ctx, ox, oy, view.nowMs, fxs, view.balance.map.tilePx);
   drawEffects(ctx, view, ox, oy);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
