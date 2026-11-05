@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.3 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.7 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -18,6 +18,8 @@ Wersja: 0.3 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | C1 | WSAD w 8 kierunkach | PRD-CTRL-01 | Ruch po skosie nie szybszy niż prosto (zmierzyć czas przejścia 10 kafelków) |
 | C2 | Krąż myszką wokół postaci | PRD-CTRL-02, 09 | Postać obraca się płynnie do kursora (bez skoków co 45 stopni), celownik pod kursorem |
 | C3 | Spacja raz / przytrzymanie | PRD-CTRL-03 | Jeden pocisk / seria z cooldownem, lecą w stronę kursora |
+| C7 | Prędkość pocisku: strzał na 14 kafelków | PRD-PLR-03 | Pocisk dolatuje w ok. 0.4 s (600 px/s), wrażenie "szybki" |
+| C8 | Dwóch graczy rozchodzi się powoli na 40 kafelków, potem wraca | PRD-MAP-07 | Widok oddala się płynnie do max 0.5, obaj widoczni; powyżej zasięgu strzałka; po powrocie zoom wraca do 1.0; piksele ostre |
 | C4 | Idź do krawędzi mapy | PRD-MAP-01, 04 | Nie da się wyjść; postać zostaje na środku ekranu, za krawędzią pustka |
 | C5 | Zmień rozmiar okna | PRD-MAP-05 | Piksele ostre, bez rozmycia, proporcje OK |
 | C6 | Esc, Tab | PRD-CTRL-07, 08 | Menu nie pauzuje hosta; Tab pokazuje graczy i HP |
@@ -32,6 +34,7 @@ Wersja: 0.3 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | W4 | W przerwie nic nie atakuje | PRD-LOOP-03 | Zero obrażeń przez całą przerwę |
 | W5 | Potwory spawnują się przy krawędziach, z różnych stron | PRD-MAP-02 | Obserwacja z 3 pozycji na mapie |
 | W6 | Fala 1 nie powala nikogo kto się rusza | 03 sekcja 5 | 3 próby, 0 powaleń |
+| W7 | Stój nieruchomo, obserwuj 10 ślimaków z daleka | 03 sekcja 1 (błądzenie) | Nie idą w jednej prostej kolejce, widać odchylenia i rozglądanie; ostatnie 4 kafelki prosto |
 
 ## 4. Walka i friendly fire
 
@@ -71,6 +74,10 @@ Wersja: 0.3 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | I16 | Dwóch graczy E na ten sam przedmiot w tej samej klatce | ITM-GEN-06 | Dokładnie jeden go ma, drugi ma puste ręce |
 | I17 | Rozłącz gracza z przedmiotem w rękach | ITM-GEN-10, PRD-SES-07 | Przedmiot leży tam, gdzie stał |
 | I18 | Osiłek vs ściana na drodze | MOB-03, ITM-GEN-09 | Atakuje ścianę (50 obr. na cios), ściana pęka po 3 ciosach |
+| I20 | Jeden ślimak vs ściana, gracz za ścianą nie strzela | 03 sekcja 1, ITM-GEN-09 | Ślimak nie stoi bezczynnie: bije co 1 s po 5, ściana pada po ok. 30 s; widać 3 stany pęknięć |
+| I21 | Pełne okrążenie 8 ścian, 2 graczy w środku nie strzela, fala 3 | 03 sekcja 1 | Mur pada przed końcem fali; potwory wchodzą |
+| I22 | Mur z luką 3 kafelki dalej | 03 sekcja 1 | Biegacze idą luką; Osiłek przegryza, gdy luka daleko |
+| I23 | Ślimak bije ścianę, gracz podchodzi na 1 kafelek | 03 sekcja 1 | Ślimak przełącza się na gracza |
 | I19 | Kolce w korytarzu, przepuść ślimaki | ITM-H-03 | 8 obr. / 0.5 s na każdym; gracz na kolcach traci 0.8 / 0.5 s |
 
 ## 6. Trudność
@@ -93,6 +100,10 @@ Wersja: 0.3 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, P
 | N4 | Zamknij hosta | PRD-SES-07 | Klienci dostają komunikat o końcu sesji |
 | N5 | Próba dołączenia po starcie gry | PRD-SES-06 | Odrzucone z komunikatem "gra w toku", nie wpływa na graczy |
 | N6 | Dołączenie: czas od wpisania adresu do lobby | PRD-PERF-04 | < 5 s |
+
+## 7b. ULTIMATE
+
+Testy UL1-UL13 w `08-ULTIMATE.md`, sekcja 6.
 
 ## 8. Testy balansu (sesje grywalnościowe)
 

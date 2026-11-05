@@ -1,26 +1,34 @@
 # 03 - Potwory, fale, trudność
 
-Wersja: 0.3 (2026-11-05)
+Wersja: 0.7 (2026-11-05)
 
 Liczby to **wartości startowe do balansu**. Zmieniamy je po testach (patrz `05-TEST-PLAN.md`, sekcja "Testy balansu"). Developer powinien trzymać je w jednym pliku konfiguracyjnym (np. `balance.json`), żeby dało się stroić bez grzebania w kodzie.
 
 ## 1. Typy potworów
 
-| ID | Nazwa | HP | Obr. | Prędkość (kaf./s) | Atak | Od fali | Drop szansa | Uwagi |
-|---|---|---|---|---|---|---|---|---|
-| MOB-01 | **Ślimak** (slime) | 30 | 8 | 2.5 | wręcz, co 1 s | 1 | 25% | Mięso armatnie. Powolny. |
-| MOB-02 | **Biegacz** | 20 | 6 | 6 | wręcz, co 0.6 s | 2 | 20% | Szybki, słaby. Omija fortyfikacje, szuka dziur. |
-| MOB-03 | **Osiłek** | 150 | 25 | 1.8 | wręcz, co 1.5 s; ścianom x2 | 4 | 50% | Niszczy fortyfikacje. Priorytet: hard objecty na drodze. |
-| MOB-04 | **Plujka** | 40 | 12 | 2.2 | pocisk, zasięg 7 kaf., co 2 s | 6 | 35% | Trzyma dystans 5 kafelków. Pocisk da się zestrzelić? **[PROPOZYCJA]** nie. Pocisk NIE przechodzi przez ściany. |
-| MOB-05 | **Rój** (3 małe naraz) | 10 x 3 | 4 | 4 | wręcz, co 0.8 s | 8 | 10% każdy | Spawnuje się trójkami. Przechodzi przez kolce bez obrażeń? Nie: otrzymuje. |
-| MOB-06 | **Boss** | 1200 | 40 | 1.5 | wręcz co 2 s (obszar 2 kaf.) + co 10 s wzywa 4 ślimaki | co 5 fal (5, 10, 15...) | 100% x3 | Niszczy ściany jednym ciosem (100 obr. ścianom). Niewrażliwy na klatkę. Pasek HP na górze ekranu. |
+| ID | Nazwa | HP | Obr. | Obr. obiektom / cios | Prędkość (kaf./s) | Atak | Od fali | Drop szansa | Uwagi |
+|---|---|---|---|---|---|---|---|---|---|
+| MOB-01 | **Ślimak** (slime) | 30 | 8 | 5 | 2.5 | wręcz, co 1 s | 1 | 25% | Mięso armatnie. Powolny. |
+| MOB-02 | **Biegacz** | 20 | 6 | 3 | 6 | wręcz, co 0.6 s | 2 | 20% | Szybki, słaby. Omija fortyfikacje, szuka dziur. |
+| MOB-03 | **Osiłek** | 150 | 25 | 50 | 1.8 | wręcz, co 1.5 s | 4 | 50% | Niszczy fortyfikacje. Priorytet: hard objecty na drodze. |
+| MOB-04 | **Plujka** | 40 | 12 | 6 (pocisk) | 2.2 | pocisk 250 px/s, zasięg 7 kaf., co 2 s | 6 | 35% | Trzyma dystans 5 kafelków. Pocisku nie da się zestrzelić. Pocisk NIE przechodzi przez ściany. Celowo wolniejszy niż pociski graczy, żeby dało się uskoczyć. |
+| MOB-05 | **Rój** (3 małe naraz) | 10 x 3 | 4 | 2 | 4 | wręcz, co 0.8 s | 8 | 10% każdy | Spawnuje się trójkami. Przechodzi przez kolce bez obrażeń? Nie: otrzymuje. |
+| MOB-06 | **Boss** | 1200 | 40 | 100 | 1.5 | wręcz co 2 s (obszar 2 kaf.) + co 10 s wzywa 4 ślimaki | co 5 fal (5, 10, 15...) | 100% x3 | Niszczy ściany jednym ciosem (100 obr. ścianom). Niewrażliwy na klatkę. Pasek HP na górze ekranu. |
 
 Zachowanie wspólne:
 
 - Potwór idzie do **najbliższego żywego gracza** (powalony liczy się jako cel o niższym priorytecie: tylko gdy brak innych w zasięgu 10 kafelków).
+- **Błądzenie** (feedback z testu silnika 2026-11-05): potwór NIE idzie idealnie po linii. Do kierunku z pathfindingu dodawany jest szum (wander): losowy kąt +/- 35 stopni zmieniany co 0.5-1.5 s, oraz co 4-8 s krótka faza "rozglądania" (1-2 s wolniejszego ruchu w losowym kierunku), o ile gracz jest dalej niż 4 kafelki. W zasięgu 4 kafelków od celu potwór idzie prosto. Biegacz błądzi najmniej (+/- 15 stopni), Ślimak najwięcej (+/- 50). Osiłek i Boss nie mają fazy rozglądania. Efekt ma być widoczny: stado nie tworzy jednej prostej kolejki.
 - Pathfinding na siatce kafelków (A* lub flow field od graczy). Przeliczanie co 0.5 s lub po zmianie fortyfikacji.
-- Gdy droga zablokowana: Osiłek i Boss atakują ścianę od razu. Reszta szuka obejścia; jeśli obejście > 3x dłuższe lub nie istnieje, atakują najbliższy hard object.
-- Potwory nie atakują działek celowo, ale działko stojące na drodze traktują jak hard object.
+- **Potwory MUSZĄ powoli niszczyć obiekty graczy** (decyzja właścicieli R30, w MVP). Fortyfikacja kupuje czas, nie daje nieśmiertelności. Zasady:
+  - Pathfinding traktuje obiekty graczy (hard objecty, działka, klatki) jako **przechodnie z kosztem**, nie jako mur: koszt kafelka = `HP_obiektu / obr_obiektom_potwora` sekund marszu. Potwór wybiera, co szybsze: obejść czy przegryźć. W praktyce krótkie obejście wybiera, długi mur przegryza.
+  - Potwór, który dotyka obiektu gracza leżącego na jego trasie (lub stoi zablokowany przez dowolny obiekt), **atakuje go swoim normalnym rytmem ataku** z obrażeniami z kolumny "Obr. obiektom / cios". Nie czeka, nie stoi bezczynnie.
+  - Potwór atakujący obiekt przełącza się na gracza, gdy gracz wejdzie w zasięg ataku.
+  - Kolce nie blokują, więc nie są celem; potwór stojący na kolcach uderza w nie co drugi atak (kolce 80 HP to ok. 32 ciosy ślimaka).
+  - Platformy lecznicze nie blokują i nie są atakowane.
+  - Tempo odniesienia na Normalnym: kawałek ściany (150 HP) pada po 30 ciosach ślimaka (30 s jednego ślimaka, 6 s pięciu), po 3 ciosach Osiłka (4.5 s), po 2 ciosach Bossa. Głaz (400 HP): 80 ciosów ślimaka, 8 Osiłka. Czyli mur bez obrony pada w jednej fali, mur broniony trzyma.
+  - Trudność skaluje obrażenia obiektom tak samo jak obrażenia graczom (mnożnik z sekcji 4).
+  - Obiekt atakowany pokazuje pęknięcia (3 stany wizualne: 100-66%, 66-33%, poniżej 33%) i trzęsie się przy ciosie, żeby gracze widzieli, gdzie mur pęka.
 - Potwory nie kolidują ze sobą sztywno (miękkie rozpychanie), żeby nie blokować się w korytarzach.
 
 ## 2. Skalowanie fal

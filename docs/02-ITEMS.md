@@ -1,6 +1,6 @@
 # 02 - Przedmioty
 
-Wersja: 0.3 (2026-11-05)
+Wersja: 0.7 (2026-11-05)
 
 Logika akcji (sekcja 3) jest **zatwierdzona przez właścicieli produktu**. Statystyki w sekcjach 4-5 to wartości startowe do balansu, do strojenia po testach.
 
@@ -25,7 +25,7 @@ Obie kategorie dropią z potworów i leżą na ziemi do podniesienia. **Używaln
 | ITM-GEN-06 | Host jest źródłem prawdy o stanie przedmiotu. Dwóch graczy nie może podnieść tego samego: pierwsza akcja, która dotrze do hosta, wygrywa. |
 | ITM-GEN-07 | Hard objectu nie da się odłożyć na inny obiekt, gracza ani potwora. Ghost pokazuje, czy miejsce jest dozwolone (zielony / czerwony). |
 | ITM-GEN-08 | Odłożony hard object **da się ponownie podnieść** (`E` przy nim), o ile nie jest zniszczony. Power-up po użyciu (`R`) już nie. |
-| ITM-GEN-09 | Hard objecty mają HP: niszczą je potwory (gdy blokują drogę) i pociski graczy (pełne obrażenia, nie 10%). |
+| ITM-GEN-09 | Hard objecty mają HP i **są powoli niszczone przez każdego potwora, który je dotyka na swojej drodze** (nie tylko gdy nie ma obejścia), oraz przez pociski graczy (pełne obrażenia, nie 10%). Tempo i obrażenia per potwór w `03-WAVES-DIFFICULTY.md`, sekcja 1. Obiekt pokazuje pęknięcia w 3 stanach. |
 | ITM-GEN-10 | Gracz powalony lub rozłączony upuszcza trzymany przedmiot pod nogi (`NA_ZIEMI`). |
 
 ## 3. Logika akcji (zatwierdzona)
@@ -77,7 +77,7 @@ Rzucony power-up: zadaje obrażenia trafionemu potworowi (wartość z tabeli w s
 
 Zasady:
 
-- Potwory, którym fortyfikacja blokuje najkrótszą drogę, próbują obejść. Jeśli obejście > 3x dłuższe lub nie istnieje, atakują najbliższy hard object (Osiłek i Boss atakują od razu).
+- Potwory wybierają między obejściem a przegryzieniem na podstawie kosztu (HP obiektu / ich obrażenia obiektom). Każdy potwór dotykający obiektu na trasie atakuje go. Mur bez obrony pada w ciągu jednej fali; broniony trzyma. Szczegóły w `03`, sekcja 1.
 - Zniszczony hard object znika z animacją odłamków. Nie zostawia dropu.
 - Odkładanie: max 2 kafelki od gracza, nie przez ścianę.
 
@@ -97,7 +97,7 @@ Zasady:
 
 Zasady:
 
-- Limity aktywnych na mapie: działka 8, platformy 4, miny 20. Przy limicie ghost czerwony, `R` nie działa, można dalej trzymać. **[PROPOZYCJA]**
+- Limity aktywnych na mapie: działka 8, platformy 4, miny 20 (zatwierdzone). Przy limicie ghost czerwony, `R` nie działa, można dalej trzymać.
 - Power-up z czasem po wygaśnięciu znika z animacją.
 - Czas działania liczy się **także w przerwie** (decyzja właścicieli). Gracz sam decyduje, kiedy użyć; HUD pokazuje czas.
 
