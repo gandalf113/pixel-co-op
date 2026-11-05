@@ -236,3 +236,14 @@ test('mob kill and hit leave gore', () => {
   assert.equal(w.gore.corpses.length, 1);
   assert.equal(w.gore.splats.length, 4);
 });
+
+test('friendly fire daje jedno hurt i jedno ff (klient nie dubluje efektu)', () => {
+  const w = makeWorld({ players: [{ x: c(20), y: c(20), angle: 0 }, { x: c(23), y: c(20) }] });
+  const [a, b] = [...w.players.values()];
+  a.angle = 0;
+  a.input.aimX = b.x;
+  a.input.aimY = b.y;
+  shoot(w, a);
+  assert.equal(w.events.filter((e) => e.type === 'hurt' && e.id === b.id && e.source === 'ff').length, 1);
+  assert.equal(w.events.filter((e) => e.type === 'ff' && e.id === b.id).length, 1);
+});

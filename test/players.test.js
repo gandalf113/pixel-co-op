@@ -177,3 +177,43 @@ test('allDown counts suspended', () => {
   assert.equal(allDown(w), false);
   assert.equal(allDown(makeWorld()), false);
 });
+
+const hurts = (w) => w.events.filter((e) => e.type === 'hurt');
+
+test('hurt leci przy ciosie potwora, minie i friendly fire, z faktyczną utratą HP', () => {
+  for (const source of ['mob', 'mine', 'ff', 'spikes']) {
+    const w = makeWorld({ players: [{ hp: 50 }] });
+    const p = first(w);
+    damagePlayer(w, p, 12, source);
+    assert.deepEqual(hurts(w), [{ type: 'hurt', id: 'p1', amount: 12, source, x: p.x, y: p.y }]);
+  }
+});
+
+test('hurt przy powaleniu niesie tylko realnie utracone HP, obok down', () => {
+  const w = makeWorld({ players: [{ hp: 5 }] });
+  damagePlayer(w, first(w), 40, 'mob');
+  assert.equal(hurts(w).length, 1);
+  assert.equal(hurts(w)[0].amount, 5);
+  assert.ok(w.events.some((e) => e.type === 'down'));
+});
+
+test('hurt nie leci, gdy obrażenia nie weszły', () => {
+  const inv = makeWorld({ players: [{ invuln: 1 }] });
+  damagePlayer(inv, first(inv), 10, 'mob');
+  const downed = makeWorld({ players: [{ state: 'downed', hp: 0, deathLeft: 10 }] });
+  damagePlayer(downed, first(downed), 10, 'mob');
+  const susp = makeWorld({ players: [{ suspended: true }] });
+  damagePlayer(susp, first(susp), 10, 'mob');
+  const brk = makeWorld({ players: [{ hp: 1 }] });
+  brk.phase = 'break';
+  damagePlayer(brk, first(brk), 10, 'mob');
+  for (const w of [inv, downed, susp, brk]) assert.equal(hurts(w).length, 0);
+});
+
+test('w przerwie hurt niesie obcięte obrażenia (do 1 HP)', () => {
+  const w = makeWorld({ players: [{ hp: 5 }] });
+  w.phase = 'break';
+  damagePlayer(w, first(w), 10, 'mob');
+  assert.equal(hurts(w)[0].amount, 4);
+  assert.equal(first(w).hp, 1);
+});

@@ -44,13 +44,14 @@ export function createPlayer({ id, nick, color, ultKind = null }, rules, index) 
 
 export function damagePlayer(world, player, amount, source) {
   if (player.state !== 'alive' || player.suspended || player.invuln > 0) return;
+  const before = player.hp;
   player.hp -= amount;
-  if (world.phase === 'break') {
-    player.hp = Math.max(1, player.hp);
-    return;
-  }
-  if (player.hp > 0) return;
-  player.hp = 0;
+  if (world.phase === 'break') player.hp = Math.max(1, player.hp);
+  else player.hp = Math.max(0, player.hp);
+  // amount = faktycznie utracone HP (w przerwie obcięte do 1, przy powaleniu do 0); zero = nic nie weszło
+  const lost = before - player.hp;
+  if (lost > 0) world.events.push({ type: 'hurt', id: player.id, amount: lost, source, x: player.x, y: player.y });
+  if (world.phase === 'break' || player.hp > 0) return;
   player.state = 'downed';
   player.downs++;
   player.deathLeft = world.rules.downedDeathTime();

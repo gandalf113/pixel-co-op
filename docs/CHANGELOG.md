@@ -1,5 +1,11 @@
 # Changelog dokumentacji
 
+## 0.23 - 2026-11-05
+- PRD-FX-09: reakcja na obrazenia gracza (blysk, winieta, wstrzas, mignieciе paska HP, obrys przy niskim HP, dzwiek) — FX-03 pokrywal wylacznie friendly fire.
+- Punkt M (V3-M-01..05): brak JAKIEJKOLWIEK reakcji na obrazenia gracza — damagePlayer wysyla zdarzenie tylko dla friendly fire, wiec cios potwora i mina nie daja ani blysku, ani dzwieku. Do PRD jako FX-09.
+- V3-C-07: przeladowanie slychac — trzyczesciowa wymiana magazynka na caly czas reloadu, wlasne glosniej i bez tlumienia (stara recepta "dwa kliki po 8 ms" ginela w serii).
+- V3-C-06: poglos — lekki na karabinie, dlugi na wybuchach, przez ConvolverNode z generowana odpowiedzia impulsowa (bez plikow IR).
+
 ## 0.22 - 2026-11-05
 - 10-BACKLOG-V3: backlog zgloszony po hostowaniu gry (punkty A-L) rozpisany na wymagania z ID (V3-A-01..V3-L-01), z audytem luk wobec PRD i kolejnoscia realizacji.
 - R52 skala ulamkowa: gra wypelnia wysokosc okna, HUD wylacznie na planszy; uchyla calkowita krotnosc (PRD-MAP-05, V3-B-01).

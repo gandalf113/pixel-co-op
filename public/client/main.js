@@ -1,6 +1,7 @@
 import { COLORS } from '../shared/protocol.js';
 import { buildGrid, footprint, placeTarget, setItemDefs, itemDef, itemLimitReached } from '../shared/world.js';
-import { Fx } from './fx.js';
+import { Fx, LOW_HP } from './fx.js';
+import { rifleStats } from '../shared/weapon.js';
 import { Connection, stored } from './net.js';
 import { InputState } from './input.js';
 import { Predictor, SnapshotBuffer, lerpEntities } from './predict.js';
@@ -234,10 +235,25 @@ function onEvent(e) {
       if (e.mob) playSfx('hit', e, tp);
       break;
     case 'objHit': case 'destroyed': case 'explode': case 'pickup': case 'place':
-    case 'drop': case 'reload': case 'down': case 'revive': case 'death':
+    case 'drop': case 'down': case 'revive': case 'death':
     case 'droplet': case 'ff': case 'expire':
       playSfx(e.type, e, tp);
       break;
+    case 'reload': {
+      const lv = latest?.players.find((p) => p.id === e.id)?.weaponLv ?? 1;
+      playSfx('reload', e, tp, { own: e.id === myId, dur: rifleStats(balance, lv).reloadS });
+      break;
+    }
+    case 'hurt': {
+      // friendly fire gra własny dźwięk ze zdarzenia `ff` — drugi nałożyłby się na niego
+      if (e.source === 'ff') break;
+      if (e.id === myId) {
+        const me = latest?.players.find((p) => p.id === myId);
+        const low = me ? Math.min(me.hp, me.hp - e.amount) / me.maxHp < LOW_HP : false;
+        sfx.play(low ? 'hurtMeLow' : 'hurtMe', { own: true });
+      } else playSfx('hurtAlly', e, tp);
+      break;
+    }
     case 'deny': case 'ultDeny':
       if (e.id === myId) sfx.play(e.type); // cudze odmowy to szum
       break;
@@ -272,6 +288,9 @@ function onEvent(e) {
       fx.shot(now, e, !!shooter, origin.x, origin.y);
       break;
     }
+    case 'hurt':
+      fx.hurt(now, e, myId);
+      break;
     case 'ff':
       fx.ff(now, e, myId, (id) => latest?.players.find((p) => p.id === id)?.nick ?? '?');
       break;

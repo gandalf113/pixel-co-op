@@ -9,6 +9,7 @@ const BONE = '#e8e2d4';
 const BLOOD = ['#8a1a10', '#6e140c', '#a8321f'];
 const DEBRIS = ['#7d766b', '#58534b', '#4a4139', '#8a7a4a'];
 const SPARK = ['#ffe07a', '#ffd23a', '#ffffff'];
+export const LOW_HP = 0.3;
 const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -37,6 +38,8 @@ export class Fx {
     this.wear = new Map();
     this.shake = { until: 0, amp: 0 };
     this.vignetteUntil = 0;
+    this.hpFlashUntil = 0; // mignięcie paska HP własnego gracza
+    this.lostHp = null; // { v, until } — liczba utraconych HP przy pasku
     this.message = null;
   }
 
@@ -138,10 +141,21 @@ export class Fx {
     return { x: -Math.round(Math.cos(r.a)), y: -Math.round(Math.sin(r.a)) };
   }
 
-  ff(now, e, myId, nickOf) {
+  // Każde skuteczne obrażenie gracza (PRD-FX-09), niezależnie od źródła.
+  hurt(now, e, myId) {
     this.playerFlash.set(e.id, now + 120);
     if (e.id !== myId) return;
     this.vignetteUntil = now + 200;
+    this.hpFlashUntil = now + 250;
+    // kilka ciosów z rzędu sumuje się w jednej liczbie, zamiast migać osobno
+    const acc = this.lostHp && now < this.lostHp.until ? this.lostHp.v : 0;
+    this.lostHp = { v: acc + e.amount, until: now + 900 };
+    if (!reducedMotion) this.shake = { until: now + 100 + Math.min(150, e.amount * 6), amp: Math.min(4, Math.max(1, e.amount / 8)) };
+  }
+
+  // Sam komunikat "kto trafił"; błysk i winieta przychodzą ze zdarzenia hurt (bez podwójnego efektu).
+  ff(now, e, myId, nickOf) {
+    if (e.id !== myId) return;
     this.message = { text: `${nickOf(e.by)} trafił cię`, until: now + 1000 };
   }
 
@@ -238,7 +252,7 @@ export class Fx {
     for (const m of this.muzzles) sprites.muzzle(ctx, m.x + ox, m.y + oy, m.a, now - m.born < 35 ? 0 : 1);
   }
 
-  drawHud(ctx, now, toScreen, scale, text, small) {
+  drawHud(ctx, now, toScreen, scale, text, small, me = null) {
     for (const n of this.numbers) {
       const k = (now - n.born) / 400;
       const s = toScreen(n.x, n.y - k * 8);
@@ -252,6 +266,15 @@ export class Fx {
       const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
       g.addColorStop(0, 'rgba(168, 50, 31, 0)');
       g.addColorStop(1, `rgba(168, 50, 31, ${0.5 * ((this.vignetteUntil - now) / 200)})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    if (me && me.state === 'alive' && me.maxHp > 0 && me.hp / me.maxHp < LOW_HP) {
+      // stały obrys; pulsuje, chyba że gracz prosi o mniej ruchu
+      const pulse = reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(now / 160);
+      const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.max(W, H) * 0.68);
+      g.addColorStop(0, 'rgba(168, 50, 31, 0)');
+      g.addColorStop(1, `rgba(168, 50, 31, ${0.25 + 0.3 * pulse})`);
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, H);
     }

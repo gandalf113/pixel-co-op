@@ -1,6 +1,7 @@
 import { VIEW_W, VIEW_H } from './render.js';
 import { formatTime } from './ui.js';
 import { rifleStats } from '../shared/weapon.js';
+import { LOW_HP } from './fx.js';
 import { footprint, itemDef, setItemDefs } from '../shared/world.js';
 
 const PAD = 12;
@@ -260,7 +261,14 @@ export function renderHud(ctx, scale, state) {
       if (me.ultKind && balance.ultimate) drawUltBar(ctx, state, me, scale, fs, small);
     } else if (me) {
       const bw = 60 * scale;
-      bar(ctx, PAD, H - PAD - 6 * scale, bw, 6 * scale, me.hp / me.maxHp, me.hp / me.maxHp > 0.3 ? '#55b04a' : '#a8321f');
+      const flashing = state.fx && state.nowMs < state.fx.hpFlashUntil && Math.floor(state.nowMs / 60) % 2 === 0;
+      bar(ctx, PAD, H - PAD - 6 * scale, bw, 6 * scale, me.hp / me.maxHp, flashing ? '#ffffff' : me.hp / me.maxHp > LOW_HP ? '#55b04a' : '#a8321f');
+      const lost = state.fx?.lostHp;
+      if (lost && state.nowMs < lost.until) {
+        ctx.globalAlpha = Math.min(1, (lost.until - state.nowMs) / 300);
+        text(ctx, `-${Math.ceil(lost.v)}`, PAD + bw + 6, H - PAD - 10 * scale, { size: small, color: '#ff5a4a', base: 'middle' });
+        ctx.globalAlpha = 1;
+      }
       text(ctx, String(Math.floor(me.hp)), PAD + bw / 2, H - PAD - 3 * scale, { size: small, align: 'center', base: 'middle' });
       const lvStr = `BROŃ LV ${me.weaponLv}`;
       text(ctx, lvStr, PAD + bw + 10, H - PAD - 3 * scale, { size: fs, base: 'middle' });
@@ -282,7 +290,7 @@ export function renderHud(ctx, scale, state) {
       }
     }
 
-    state.fx?.drawHud(ctx, state.nowMs, toScreen, scale, text, small);
+    state.fx?.drawHud(ctx, state.nowMs, toScreen, scale, text, small, me);
 
     if (state.hint) text(ctx, `[E] podnieś: ${state.hint}`, W / 2, H - PAD - 24 * scale, { size: fs, align: 'center' });
 

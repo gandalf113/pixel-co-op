@@ -68,6 +68,8 @@ Wnioski dla nas (co faktycznie kopiujemy):
 | V3-C-03 | **Głośność i wyciszenie w menu pauzy** (domyka PRD-CTRL-07, dziś pauza ma tylko "wróć / pełny ekran / wyjdź"). Ustawienie trzymane w `localStorage`. Limit jednoczesnych głosów i odstęp minimalny między tym samym dźwiękiem, żeby seria z karabinu nie zrobiła piły. |
 | V3-C-04 | Dźwięk przestrzenny per odległość od kamery (głośność maleje z dystansem, zero powyżej ok. 20 kafelków), żeby fala potworów z drugiego końca mapy nie zagłuszała własnego karabinu. |
 | V3-C-05 | Muzyka **poza zakresem** tego etapu (zostaje w `07-BACKLOG-V2.md` B3). |
+| V3-C-06 | **Poglos** (zgloszenie z gry 2026-11-05): karabin ma dostac **lekki** poglos (krotki, ok. 0.2-0.3 s, raczej "klaps" pomieszczenia niz hala), a **wybuchy wyrazny, dlugi** (ok. 1-1.5 s). Realizacja: `ConvolverNode` z **generowana proceduralnie** odpowiedzia impulsowa (szum z wykladniczym zanikiem) - zadnych plikow IR, bo gra ma dzialac bez internetu. Osobna szyna "wet" z regulowanym udzialem per dzwiek, zeby strzal mial go malo, a wybuch duzo. |
+| V3-C-07 | **Przeladowanie slychac** (zgloszenie z gry 2026-11-05). Dotychczasowa recepta ("dwa kliki po 8 ms") jest **za cicha i za krotka** — ginie w serii z karabinu. Ma to byc **trzyczesciowa wymiana magazynka rozciagnieta na caly czas przeladowania** (1.5 s, skraca sie z poziomem broni, wiec dzwiek musi brac `reloadS` z `rifleStats`, a nie stala): (1) metaliczny klik wyjecia magazynka na starcie, (2) glebszy "thunk" wbicia nowego w ok. 60% czasu, (3) ostry szczek zamka na koniec, zgrany z zamknieciem pierscienia (PRD-HUD-11). Wlasne przeladowanie **bez tlumienia odlegloscia i glosniej** niz cudze — to jest informacja taktyczna, ma przebic sie przez walke. |
 
 ### Research: recepty syntezy (2026-11-05)
 
@@ -194,6 +196,22 @@ Dziś: formularz nick + kod pokoju, brak jakiegokolwiek endpointu listującego; 
 | V3-K-03 | **Pokój bez graczy jest DEAD**: znika z listy **natychmiast** po wyjściu ostatniego gracza i nie da się do niego dołączyć. Fizyczne skasowanie zostaje po 90 s, bo inaczej odświeżenie karty (30 s grace na reconnect) kasowałoby pokój z ludźmi w środku. |
 | V3-K-04 | **Ekran "Sterowanie"**: ładny wizualnie obrazek klawiatury i myszy z opisem każdej akcji (pixel-art, generowany z kodu jak reszta grafiki). Aktualizowany razem z R54. Dostępny też z menu pauzy. |
 | V3-K-05 | Lista pokojów odświeża się co ok. 5 s, gdy ekran jest otwarty, i nigdy w trakcie gry. |
+
+## M. Brak reakcji na obrazenia gracza (zgloszenie z gry, 2026-11-05)
+
+**Gracz obrywa i nie dzieje sie NIC**: nie miga, nie brzmi, ekran nie reaguje. Sprawdzone w kodzie:
+`damagePlayer` w `server/players.js` wysyla zdarzenie **wylacznie dla friendly fire** (`ff`).
+Cios potwora, pocisk potwora i wlasna mina nie generuja zadnego zdarzenia, wiec klient nie ma
+z czego zrobic efektu. PRD-FX-03 opisuje tylko friendly fire - to jest luka w samym PRD, nie
+tylko w kodzie.
+
+| ID | Wymóg |
+|---|---|
+| V3-M-01 | **Zdarzenie `hurt` przy kazdym obrazeniu gracza**, niezaleznie od zrodla (`mob`, `ff`, `mine`, pocisk potwora): `id`, `amount`, `source`, pozycja. `ff` zostaje osobno, bo niesie informacje, kto strzelil. |
+| V3-M-02 | **Reakcja u trafionego**: czerwony blysk sylwetki, winieta ekranu (jest juz `vignetteUntil` w `fx.js`, dzis uzywana tylko przy `ff`), **wstrzas kamery** proporcjonalny do obrazen (wylaczony przy `prefers-reduced-motion`, PRD-FX-07), **mignieciе paska HP** i liczba utraconych HP. Przy HP ponizej 30% dodatkowo staly, pulsujacy obrys ekranu - gracz ma czuc, ze jest o krok od powalenia. |
+| V3-M-03 | **Reakcja u pozostalych**: sylwetka trafionego sojusznika blyska czerwono (mechanizm `playerFlash` juz istnieje dla `ff`, wystarczy go wpiac w `hurt`). |
+| V3-M-04 | **Dzwiek obrazen**: osobny dla "oberwales ty" i "oberwal sojusznik", wyraznie inny niz trafienie potwora. Przy niskim HP wariant bardziej alarmowy. |
+| V3-M-05 | Dopisac do PRD jako **PRD-FX-09** (obrazenia gracza), bo dzis FX-03 pokrywa wylacznie friendly fire. |
 
 ## L. Magnes kropelek za mocny
 
