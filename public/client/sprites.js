@@ -1,0 +1,455 @@
+// Pixel art wygenerowany przez Claude (TECH-05). '.' = przezroczysty,
+// 'P' = kolor gracza, 'Q' = ten sam kolor przyciemniony (podmieniane w bakeSprites).
+export const PALETTE = {
+  '.': null,
+  P: '#5ec85e',
+  Q: '#3a8a3a',
+  K: '#181a22',
+  W: '#f6f4ec',
+  G: '#3b3f4a',
+  g: '#6b7080',
+  s: '#9aa0ad',
+  S: '#c9cdd6',
+  B: '#4a3020',
+  b: '#8a5a34',
+  d: '#2f5e38',
+  D: '#3d7a46',
+  e: '#4f9456',
+  y: '#ffd94a',
+  o: '#ff8c2a',
+  r: '#d63a3a',
+  R: '#8f1f1f',
+  c: '#58d0e8',
+  C: '#247a92',
+  m: '#a04ad6',
+  M: '#5c2a86',
+  l: '#7ee07e',
+  L: '#3f9a3f',
+  n: '#262a34',
+  f: '#f2c9a0',
+};
+
+export const SPRITES = {
+  // Gracz widziany z góry, patrzy w prawo (kąt 0): włosy na środku, ramiona u góry i dołu, broń po prawej.
+  player_0: [
+    '................',
+    '................',
+    '.....KKKKK......',
+    '....KPPPPPK.....',
+    '...KPPPPPPPK....',
+    '..KPPPbbbPPPK...',
+    '..KPPbbbbbPPKK..',
+    '..KPPbbbbbPKfnnn',
+    '..KPPbbbbbPKfnnn',
+    '..KPPPbbbPPPKK..',
+    '..KQPPPPPPPQK...',
+    '...KQQPPPQQK....',
+    '....KQQQQQK.....',
+    '.....KKKKK......',
+    '................',
+    '................',
+  ],
+  player_1: [
+    '................',
+    '................',
+    '.....KKKKK......',
+    '....KPPPPPK.....',
+    '...KPPPPPPPK....',
+    '..KPPPbbbPPPKK..',
+    '..KPPbbbbbPPKfK.',
+    '..KPPbbbbbPKfnnn',
+    '..KPPbbbbbPKfnnn',
+    '..KPPPbbbPPPK...',
+    '..KQPPPPPPPQK...',
+    '...KQQPPPQQK....',
+    '....KQQQQQK.....',
+    '.....KKKKK......',
+    '................',
+    '................',
+  ],
+  // Ślimak: zielona galareta, dwa oczy, lekko się rozpłaszcza w klatce 1.
+  slime_0: [
+    '................',
+    '................',
+    '................',
+    '.....KKKKKK.....',
+    '....KllllllK....',
+    '...KllWlllWlK...',
+    '...KlKKllKKlK...',
+    '..KllllllllllK..',
+    '..KllllllllllK..',
+    '..KlllllllllLK..',
+    '..KLlllllllLLK..',
+    '..KLLLLLLLLLLK..',
+    '...KKKKKKKKKK...',
+    '................',
+    '................',
+    '................',
+  ],
+  slime_1: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....KKKKKK.....',
+    '...KKllllllKK...',
+    '..KllWlllWlllK..',
+    '..KlKKllKKllLK..',
+    '.KllllllllllllK.',
+    '.KlllllllllLLLK.',
+    '.KLLLLLLLLLLLLK.',
+    '..KKKKKKKKKKKK..',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  // Biegacz: chudy, pomarańczowy, wydłużony w kierunku biegu (prawo), nogi zmieniają się między klatkami.
+  runner_0: [
+    '................',
+    '................',
+    '................',
+    '......KK........',
+    '.....KooKKKK....',
+    '....KooooooKK...',
+    '...KooooooooWK..',
+    '..KoooooooooKK..',
+    '..KoooooooooK...',
+    '...KooooooooK...',
+    '....KooRRooK....',
+    '...KK.KRRK.KK...',
+    '..K.....K....K..',
+    '................',
+    '................',
+    '................',
+  ],
+  runner_1: [
+    '................',
+    '................',
+    '................',
+    '......KK........',
+    '.....KooKKKK....',
+    '....KooooooKK...',
+    '...KooooooooWK..',
+    '..KoooooooooKK..',
+    '..KoooooooooK...',
+    '...KooooooooK...',
+    '....KooRRooK....',
+    '.....KRRRRK.....',
+    '....K.KK.K......',
+    '...K......K.....',
+    '................',
+    '................',
+  ],
+  // Osiłek: szeroki, fioletowy, masywne barki, dwie ciemne pięści.
+  brute_0: [
+    '................',
+    '..KK........KK..',
+    '.KMMK......KMMK.',
+    '.KMmmKKKKKKmmMK.',
+    '.KmmmmmmmmmmmmK.',
+    '..KmmmmmmmmmmK..',
+    '..KmmWmmmmWmmK..',
+    '..KmmKmmmmKmmK..',
+    '..KmmmmmmmmmmK..',
+    '..KmmmRRRRmmmK..',
+    '..KmmmmmmmmmmK..',
+    '..KMmmmmmmmmMK..',
+    '..KMMmmmmmmMMK..',
+    '...KMMMMMMMMK...',
+    '....KKKKKKKK....',
+    '................',
+  ],
+  brute_1: [
+    '................',
+    '................',
+    '..KK........KK..',
+    '.KMMKKKKKKKKMMK.',
+    '.KMmmmmmmmmmmMK.',
+    '.KmmmmmmmmmmmmK.',
+    '..KmmWmmmmWmmK..',
+    '..KmmKmmmmKmmK..',
+    '..KmmmmmmmmmmK..',
+    '..KmmmRRRRmmmK..',
+    '..KmmmmmmmmmmK..',
+    '..KMmmmmmmmmMK..',
+    '..KMMmmmmmmMMK..',
+    '...KMMMMMMMMK...',
+    '....KKKKKKKK....',
+    '................',
+  ],
+  // Podłoże: trzy warianty trawy / ziemi, różnią się drobnymi plamkami.
+  ground_0: [
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDeDDDDDDDDDDD',
+    'DDDDDDDDDDDDdDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDdDDDDDDDDDDDDD',
+    'DDDDDDDDDeDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDdDDDDDDDDD',
+    'DDDDDDDDDDDDDDeD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+  ],
+  ground_1: [
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDdDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDeDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDeDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDdDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDeDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDdDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDdDD',
+  ],
+  ground_2: [
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDeeDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDdDDDDDDDDDDdDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+    'DDDDDDDDDDDDDDDD',
+  ],
+  // Kafelek ściany: kamienne bloki z fugami. Ściana 2x1 = dwa takie kafelki.
+  wall: [
+    'KKKKKKKKKKKKKKKK',
+    'KSSSSSSSKSSSSSSK',
+    'KSsssssgKSsssssK',
+    'KSsssssgKSsssssK',
+    'KSsssssgKSsssssK',
+    'KggggggGKggggggK',
+    'KKKKKKKKKKKKKKKK',
+    'KSSSKSSSSSSSKSSK',
+    'KssgKSsssssgKssK',
+    'KssgKSsssssgKssK',
+    'KggGKggggggGKggK',
+    'KKKKKKKKKKKKKKKK',
+    'KSSSSSSSKSSSSSSK',
+    'KSsssssgKSsssssK',
+    'KggggggGKggggggK',
+    'KKKKKKKKKKKKKKKK',
+  ],
+  // Działko postawione: szara podstawa, lufa w prawo, cyjanowa lampka (klatka 1 jaśniejsza).
+  turret_0: [
+    '................',
+    '................',
+    '.....KKKKKK.....',
+    '....KssssssK....',
+    '...KsSSSSSSsK...',
+    '...KsSCCCSSsK...',
+    '...KsSCcCSSsKKKK',
+    '...KsSCCCSSsKnnK',
+    '...KsSSSSSSsKnnK',
+    '...KssssssssKKKK',
+    '...KgssssssgK...',
+    '....KggggggK....',
+    '...KKKKKKKKKK...',
+    '..KGGGGGGGGGGK..',
+    '...KKKKKKKKKK...',
+    '................',
+  ],
+  turret_1: [
+    '................',
+    '................',
+    '.....KKKKKK.....',
+    '....KssssssK....',
+    '...KsSSSSSSsK...',
+    '...KsScccSSsK...',
+    '...KsScWcSSsKKKK',
+    '...KsScccSSsKnnK',
+    '...KsSSSSSSsKnnK',
+    '...KssssssssKKKK',
+    '...KgssssssgK...',
+    '....KggggggK....',
+    '...KKKKKKKKKK...',
+    '..KGGGGGGGGGGK..',
+    '...KKKKKKKKKK...',
+    '................',
+  ],
+  // Mina postawiona: płaski dysk, czerwona dioda miga (klatka 1 jasna).
+  mine_0: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....KKKKKK.....',
+    '....KggggggK....',
+    '...KgGGGGGGgK...',
+    '...KgGGRRGGgK...',
+    '...KgGGRRGGgK...',
+    '...KgGGGGGGgK...',
+    '....KggggggK....',
+    '.....KKKKKK.....',
+    '................',
+    '................',
+    '................',
+  ],
+  mine_1: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....KKKKKK.....',
+    '....KggggggK....',
+    '...KgGGGGGGgK...',
+    '...KgGGrrGGgK...',
+    '...KgGGrWGGgK...',
+    '...KgGGGGGGgK...',
+    '....KggggggK....',
+    '.....KKKKKK.....',
+    '................',
+    '................',
+    '................',
+  ],
+  // Przedmioty na ziemi / w rękach. Hard object: kamienny klocek. Power-upy: z żółtą obwódką-lampką.
+  item_wall: [
+    '................',
+    '................',
+    '................',
+    '..KKKKKKKKKKKK..',
+    '.KSSSSSSKSSSSSK.',
+    '.KSsssssKSssssK.',
+    '.KSsssssKSssssK.',
+    '.KggggggKgggggK.',
+    '.KKKKKKKKKKKKKK.',
+    '.KSSSKSSSSSSKSK.',
+    '.KsssKSsssssKsK.',
+    '.KgggKggggggKgK.',
+    '..KKKKKKKKKKKK..',
+    '................',
+    '................',
+    '................',
+  ],
+  item_turret30: [
+    '................',
+    '.....yyyyyy.....',
+    '....yKKKKKKy....',
+    '...yKssssssKy...',
+    '..yKsSSSSSSsKy..',
+    '..yKsSCCCSSsKKy.',
+    '..yKsSCcCSSsKnKy',
+    '..yKsSCCCSSsKnKy',
+    '..yKsSSSSSSsKKy.',
+    '..yKssssssssKy..',
+    '...yKggggggKy...',
+    '....yKKKKKKy....',
+    '.....yyyyyy.....',
+    '................',
+    '................',
+    '................',
+  ],
+  item_mine: [
+    '................',
+    '................',
+    '................',
+    '.....yyyyyy.....',
+    '....yKKKKKKy....',
+    '...yKggggggKy...',
+    '..yKgGGGGGGgKy..',
+    '..yKgGGrrGGgKy..',
+    '..yKgGGrWGGgKy..',
+    '..yKgGGGGGGgKy..',
+    '...yKggggggKy...',
+    '....yKKKKKKy....',
+    '.....yyyyyy.....',
+    '................',
+    '................',
+    '................',
+  ],
+  // Pocisk 4x4: żółty z jasnym środkiem.
+  bullet: [
+    '.yy.',
+    'yWWy',
+    'yWWy',
+    '.yy.',
+  ],
+  // Celownik 9x9: biały krzyż z czarnym obrysem, pusty środek.
+  crosshair: [
+    '....K....',
+    '...KWK...',
+    '...KWK...',
+    '....K....',
+    'KK.....KK',
+    '....K....',
+    '...KWK...',
+    '...KWK...',
+    '....K....',
+  ],
+};
+
+export const PLAYER_SPRITES = Object.keys(SPRITES).filter(n => SPRITES[n].some(row => /[PQ]/.test(row)));
+
+function hexToRgb(hex) {
+  const v = parseInt(hex.slice(1), 16);
+  return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+}
+
+function shade(rgb, k) {
+  return rgb.map(ch => Math.round(ch * k));
+}
+
+function paint(doc, rows, palette) {
+  const h = rows.length;
+  const w = rows[0].length;
+  const canvas = doc.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(w, h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const rgb = palette[rows[y][x]];
+      if (!rgb) continue;
+      const i = (y * w + x) * 4;
+      img.data[i] = rgb[0];
+      img.data[i + 1] = rgb[1];
+      img.data[i + 2] = rgb[2];
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+// Zwraca Map: nazwa -> canvas. Sprite'y z kolorem gracza są pod kluczem `nazwa@#rrggbb` dla każdego koloru.
+export function bakeSprites(doc, playerColors) {
+  const base = {};
+  for (const [ch, hex] of Object.entries(PALETTE)) base[ch] = hex ? hexToRgb(hex) : null;
+  const out = new Map();
+  for (const [name, rows] of Object.entries(SPRITES)) {
+    if (PLAYER_SPRITES.includes(name)) {
+      for (const color of playerColors) {
+        const rgb = hexToRgb(color);
+        out.set(`${name}@${color}`, paint(doc, rows, { ...base, P: rgb, Q: shade(rgb, 0.62) }));
+      }
+    } else {
+      out.set(name, paint(doc, rows, base));
+    }
+  }
+  return out;
+}
