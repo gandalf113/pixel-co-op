@@ -31,15 +31,14 @@ Wersja: 0.5 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr 
 | R23 | Mapa | 80 x 60 kafelków po 16 px, render 480 x 270 | 2026-11-05 |
 | R24 | Pociski (po teście silnika) | Szybkie: 600 px/s | 2026-11-05 |
 | R25 | Ruch potworów (po teście silnika) | Nie tylko do gracza: błądzenie / szum kierunku (03 sekcja 1) | 2026-11-05 |
+| R27 | Mur awaryjny | Kawalek podniesiony przez gracza traci timer, zostaje na stale (08 sekcja 4) | 2026-11-05 |
+| R28 | Rakieta | Nie niszczy fortyfikacji graczy | 2026-11-05 |
+| R29 | Ultimate vs boss | 0.5 obrazen, kontrola max 1 s | 2026-11-05 |
 | R26 | Kamera (po teście silnika) | Dynamiczny zoom-out w miarę rozchodzenia graczy do rozsądnego maksimum, dalej strzałki (PRD-MAP-07) | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu
 
-| # | Pytanie | Nasza propozycja | Gdzie |
-|---|---|---|---|
-| Q13 | Ściany z Muru awaryjnego: podniesione przez gracza zostają na stałe? | Tak | 08 sekcja 4 |
-| Q14 | Rakieta niszczy fortyfikacje graczy? | Nie | 08 sekcja 4 |
-| Q15 | Ultimate na bossa: 0.5 obrażeń i kontrola skrócona do 1 s? | Tak | 08 sekcja 4 |
+Brak. Q13-Q15 zatwierdzone 2026-11-05 (R27-R29).
 
 ## Otwarte: dla developera
 

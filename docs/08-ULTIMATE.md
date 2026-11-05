@@ -1,6 +1,6 @@
 # 08 - ULTIMATE
 
-Wersja: 0.1 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
+Wersja: 0.2 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
 
 ## 1. Założenia (zatwierdzone)
 
@@ -54,8 +54,8 @@ Zasady wspólne: ultimate **nie rani sojuszników** (brak friendly fire), **nisz
 
 Zasady szczegółowe:
 
-- Ściany z Muru awaryjnego to zwykłe hard objecty (potwory je atakują, gracze mogą je podnieść i przestawić; podniesiony kawałek traci timer i zostaje na stałe). **[PROPOZYCJA]**
-- Rakieta nie niszczy fortyfikacji graczy. **[PROPOZYCJA]**
+- Ściany z Muru awaryjnego to zwykłe hard objecty (potwory je atakują, gracze mogą je podnieść i przestawić; podniesiony kawałek traci timer i zostaje na stałe). Zatwierdzone (R27).
+- Rakieta nie niszczy fortyfikacji graczy. Zatwierdzone (R28).
 - Zamrożony potwór nie atakuje, nie rusza się, nie wzywa posiłków (boss).
 - Działko szerokie i Rakieta: celowanie w kierunku kursora w chwili `F`, bez dodatkowego potwierdzania.
 

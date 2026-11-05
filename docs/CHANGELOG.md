@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.6 - 2026-11-05
+- Q13-Q15 zatwierdzone (R27-R29): Mur awaryjny podniesiony zostaje na stale, Rakieta nie niszczy fortyfikacji graczy, ultimate vs boss 0.5 obrazen i kontrola max 1 s. Brak otwartych pytan dla wlascicieli.
+
 ## 0.5 - 2026-11-05
 - ULTIMATE przeniesiony z backlogu do MVP: nowy 08-ULTIMATE.md (zalozenia zatwierdzone R16-R21, 7 umiejetnosci z 3 progami, HUD, testy UL1-UL13).
 - Feedback z testu silnika: pociski szybkie 600 px/s (PRD-PLR-03), potwory bladza zamiast isc po linii (03 sekcja 1), dynamiczny zoom kamery (PRD-MAP-07).
