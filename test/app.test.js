@@ -23,6 +23,17 @@ function client(port) {
   };
 }
 
+test('healthz reports version', async () => {
+  const srv = await startServer({ port: 0 });
+  try {
+    const j = await (await fetch(`http://127.0.0.1:${srv.port}/healthz`)).json();
+    assert.equal(typeof j.version, 'string');
+    assert.ok(j.version.length > 0);
+  } finally {
+    await srv.close?.();
+  }
+});
+
 test('http static and websocket flow', async () => {
   const srv = await startServer({ port: 0 });
   try {

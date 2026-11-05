@@ -94,23 +94,14 @@ export function onObjectDestroyed(world, item) {
   });
 }
 
-function rectDist(px, py, tx, ty, tilePx) {
-  const nx = Math.max(tx * tilePx, Math.min(px, (tx + 1) * tilePx));
-  const ny = Math.max(ty * tilePx, Math.min(py, (ty + 1) * tilePx));
-  return Math.hypot(px - nx, py - ny);
-}
-
 function nearestPickable(world, player) {
   const { tilePx, balance } = world.rules;
   const range = balance.player.pickupRangeTiles * tilePx;
   let best = null;
   let bestD = Infinity;
   for (const it of world.items.values()) {
-    let d = Infinity;
-    if (it.state === 'ground') d = Math.hypot(it.x - player.x, it.y - player.y);
-    else if (it.kind === 'wall' && it.state === 'placed') {
-      for (const [tx, ty] of footprint(it.kind, it.tx, it.ty, it.rot)) d = Math.min(d, rectDist(player.x, player.y, tx, ty, tilePx));
-    }
+    if (it.state !== 'ground') continue;
+    const d = Math.hypot(it.x - player.x, it.y - player.y);
     if (d <= range && d < bestD) {
       best = it;
       bestD = d;
@@ -175,7 +166,6 @@ export function spawnUltWall(world, tx, ty, rot, hp, expireS) {
 }
 
 function pickUp(world, player, item) {
-  item.expireLeft = 0;
   const wasBlocking = blocking(item);
   Object.assign(item, { state: 'held', holder: player.id, x: player.x, y: player.y });
   player.held = item.id;
@@ -237,12 +227,13 @@ export function handleAction(world, player, action) {
       if (target) pickUp(world, player, target);
     } else if (item.kind === 'wall') {
       placeWallItem(world, player, item);
-    } else if (item) {
-      dropHeld(world, player);
+    } else {
+      usePower(world, player, item);
     }
   } else if (action === 'r' && item) {
-    if (item.kind === 'wall') item.rot ^= 1;
-    else usePower(world, player, item);
+    dropHeld(world, player);
+  } else if (action === 'q' && item?.kind === 'wall') {
+    item.rot ^= 1;
   } else if (action === 'space' && item) {
     throwItem(world, player, item);
   }

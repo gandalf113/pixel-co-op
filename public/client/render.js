@@ -296,12 +296,14 @@ function drawPlayers(ctx, view, ox, oy) {
     const walk = p.moving ? (frame >> 3) & 1 : 0;
     ctx.save();
     if (p.state === 'downed') {
-      ctx.filter = 'grayscale(1)';
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = 0.85;
     }
     if (p.suspended) ctx.globalAlpha = 0.4;
     const rc = view.fx ? view.fx.recoilOf(p.id, view.nowMs) : { x: 0, y: 0 };
-    let img = sprites.get(`player_${walk}@${p.color}`);
+    // powalony macha ręką ok. 2 razy na sekundę (frame liczy 60 fps)
+    let img = p.state === 'downed'
+      ? sprites.get(`player_down_${(frame >> 5) & 1}@${p.color}`)
+      : sprites.get(`player_${walk}@${p.color}`);
     if (view.fx && view.nowMs < (view.fx.playerFlash.get(p.id) ?? 0)) img = silhouette(img, '#ff3a2a');
     drawCentered(ctx, img, p.x + ox + rc.x, p.y + oy + rc.y, p.state === 'downed' ? 0 : p.angle);
     ctx.restore();
@@ -333,32 +335,32 @@ function drawReloadRing(ctx, view, p, ox, oy) {
   const x = p.x + ox;
   const y = p.y + oy;
   const r = 14;
+  const dot = mine ? 2 : 1;
+  const baseA = mine ? 0.45 : 0.3;
+  // klocki po okręgu zamiast gładkiego łuku — ma wyglądać jak pixel-art
+  const ring = (fromK, toK, color, alpha) => {
+    ctx.fillStyle = color;
+    ctx.globalAlpha = alpha;
+    const steps = 36;
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps;
+      if (t < fromK || t >= toK) continue;
+      const a = -Math.PI / 2 + t * Math.PI * 2;
+      ctx.fillRect(Math.round(x + Math.cos(a) * r - dot / 2), Math.round(y + Math.sin(a) * r - dot / 2), dot, dot);
+    }
+    ctx.globalAlpha = 1;
+  };
   if (p.reloadLeft > 0) {
     reloadSeen.set(p.id, 0);
     const k = Math.max(0, Math.min(1, 1 - p.reloadLeft / total));
-    ctx.lineWidth = mine ? 2 : 1;
-    if (mine) {
-      ctx.strokeStyle = 'rgba(20, 18, 15, 0.7)';
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.strokeStyle = mine ? '#e8e2d4' : p.color;
-    ctx.beginPath();
-    ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k);
-    ctx.stroke();
+    if (mine) ring(0, 1, '#14120f', baseA * 0.5);
+    ring(0, k, mine ? '#e8e2d4' : p.color, baseA);
     return;
   }
   if (reloadSeen.get(p.id) === 0) reloadSeen.set(p.id, view.nowMs);
   const doneAt = reloadSeen.get(p.id);
   if (doneAt && view.nowMs - doneAt < RING_FLASH_MS) {
-    ctx.globalAlpha = 1 - (view.nowMs - doneAt) / RING_FLASH_MS;
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = mine ? 2 : 1;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+    ring(0, 1, '#ffffff', 0.5 * (1 - (view.nowMs - doneAt) / RING_FLASH_MS));
   }
 }
 

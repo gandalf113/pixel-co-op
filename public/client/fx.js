@@ -1,5 +1,8 @@
 const MAX_PARTICLES = 500;
 const MAX_CHIPS = 400;
+const SHELL_MAX = 400;
+const SHELL_LIFE_S = 8;
+const SHELL_FADE_S = 1.5;
 const BONE = '#e8e2d4';
 const BLOOD = ['#8a1a10', '#6e140c', '#a8321f'];
 const DEBRIS = ['#7d766b', '#58534b', '#4a4139', '#8a7a4a'];
@@ -124,7 +127,7 @@ export class Fx {
     const side = a + Math.PI / 2 + (Math.random() - 0.5) * 0.6;
     const v = rand(25, 40);
     this.shells.push({ x: originX, y: originY, vx: Math.cos(side) * v, vy: Math.sin(side) * v, born: now });
-    if (this.shells.length > 150) this.shells.shift();
+    if (this.shells.length > SHELL_MAX) this.shells.shift();
   }
 
   recoilOf(id, now) {
@@ -141,6 +144,7 @@ export class Fx {
   }
 
   update(now, dt) {
+    this.lastNow = now;
     this.particles = this.particles.filter((p) => {
       const age = (now - p.born) / 1000;
       if (age >= p.life) {
@@ -163,7 +167,7 @@ export class Fx {
         s.x += s.vx * dt;
         s.y += s.vy * dt;
       }
-      return age < 2.3;
+      return age < SHELL_LIFE_S;
     });
     this.collapses = this.collapses.filter((c) => now - c.born < 400);
     this.muzzles = this.muzzles.filter((m) => now - m.born < 70);
@@ -195,7 +199,13 @@ export class Fx {
     }
     for (const [kind, tx, ty, rot] of this.rubble) sprites.rubble(ctx, kind, tx, ty, rot, ox, oy);
     ctx.fillStyle = '#c9a23a';
-    for (const s of this.shells) ctx.fillRect(Math.round(s.x + ox), Math.round(s.y + oy), 1, 1);
+    for (const s of this.shells) {
+      // blednięcie w ostatnich SHELL_FADE_S, żeby łuska nie znikała skokowo
+      const left = SHELL_LIFE_S - ((this.lastNow ?? s.born) - s.born) / 1000;
+      ctx.globalAlpha = left < SHELL_FADE_S ? Math.max(0, left / SHELL_FADE_S) : 1;
+      ctx.fillRect(Math.round(s.x + ox), Math.round(s.y + oy), 1, 1);
+    }
+    ctx.globalAlpha = 1;
   }
 
   drawTop(ctx, ox, oy, now, sprites, tp) {

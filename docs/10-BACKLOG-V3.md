@@ -34,17 +34,73 @@ Realna robota jest w zachowaniach i w snapshocie.
 |---|---|
 | V3-B-01 | **Gra wypełnia okno w pionie** (R52): wewnętrzna rozdzielczość zostaje stała 560 x 315 (16:9), canvas skalowany **ułamkowo** do pełnej wysokości okna z zachowaniem proporcji; w poziomie zostają pasy tylko przy oknie szerszym niż 16:9. `computeScale` przestaje zaokrąglać w dół. Uchyla całkowitą krotność z PRD-MAP-05. Powód: wszyscy gracze widzą **dokładnie to samo** pole gry niezależnie od rozmiaru okna; kosztem jest niecałkowity piksel. |
 | V3-B-02 | **Cały HUD leży na planszy.** Canvas HUD pokrywa się co do piksela z prostokątem gry, nic nie rysuje się na pasach. Marginesy HUD liczone od krawędzi planszy, nie okna. |
-| V3-B-03 | **Pasek ULTIMATE w stylu Street Fighter Alpha 2** (research + wierne odwzorowanie): proporcje, skos segmentów, ramka, kolor wypełnienia, animacja przy pełnym pasku, napis poziomu. Dzisiejszy pasek (PRD-HUD-10, R47) ma już 3 segmenty, połysk i pulsowanie - to jest dociągnięcie wyglądu, nie przepisanie. |
+| V3-B-03 | **Pasek ULTIMATE w stylu Street Fighter Alpha 2** (research niżej): proporcje, ramka, kolor wypełnienia, licznik poziomu, animacja przy pełnym pasku. Dzisiejszy pasek (PRD-HUD-10, R47) ma już 3 segmenty, połysk i pulsowanie - to jest dociągnięcie wyglądu, nie przepisanie. |
+
+### Research: Super Combo Gauge z SFA2 (2026-11-05)
+
+Co jest potwierdzone w źródłach: seria Alpha wprowadziła **trzystopniowy** Super Combo Gauge;
+w wersji SNES pasek siedzi **na dole ekranu, pod paskiem energii**, obok Timera i Technical
+Points; ładuje się od zadawanych ciosów, specjali **i od obrywania**; **przenosi się między
+rundami**, ale nie między walkami; od poziomu 1 wzwyż odblokowuje Custom Combo.
+
+Czego w sieci **nie ma**: ripu HUD-u. Spriters Resource ma dla SNES-owej Alpha 2 tylko
+postacie (Ryu, Nash, Dan) i ekran wyboru - 22 assety, zero elementów interfejsu; na forach
+potwierdzają, że dla tej wersji zripowano wyłącznie Nasha i Ryu. Czyli: **nie da się
+podebrać gotowych pikseli**, trzeba odwzorować ze zrzutu ekranu przy implementacji.
+
+Wnioski dla nas (co faktycznie kopiujemy):
+- pasek **poziomy, długi, niski**, z grubą ciemną ramką i jasnym wypełnieniem w gradiencie
+  żółć → pomarańcz (mamy już ten gradient);
+- **licznik poziomu obok paska** jako duża cyfra / rzymska liczba, która błyska w momencie
+  przeskoku progu - u nas dziś jest statyczne `I / II / III`, ma **mrugnąć przy awansie**;
+- przy pełnym pasku **cały pasek migocze** zamiast samego napisu;
+- zgodność z ULT-06: pasek **nie resetuje się** między falami - to jest dokładnie ta sama
+  zasada co "przenosi się między rundami", więc zachowanie mamy już zgodne z pierwowzorem.
+- różnica świadoma: u nas pasek jest w **lewym górnym rogu** (R47), nie na dole, bo dół
+  zajmuje HP i amunicja.
 
 ## C. Proceduralne SFX
 
 | ID | Wymóg |
 |---|---|
-| V3-C-01 | **Research** syntezy: szum biały/różowy z filtrem, oscylatory (sine/square/saw), obwiednie ADSR, modulacja FM, pitch sweep (strzał, wybuch), bitcrush. Wynik: krótka tabela "zdarzenie → recepta" w tym dokumencie. |
+| V3-C-01 | **Research zrobiony 2026-11-05**, tabela recept niżej. |
 | V3-C-02 | **Warstwa dźwięku wpięta w istniejący strumień eventów** (`onEvent` w `main.js`): `shot`, `hit`, `objHit`, `destroyed`, `explode`, `pickup`, `place`, `drop`, `deny`, `ult`, `ultDeny`, `reload`, `down`, `revive`, `death`, `droplet`, `ff`, `expire`. Zero plików audio (PRD-CON-01, TECH-01): wyłącznie Web Audio. |
 | V3-C-03 | **Głośność i wyciszenie w menu pauzy** (domyka PRD-CTRL-07, dziś pauza ma tylko "wróć / pełny ekran / wyjdź"). Ustawienie trzymane w `localStorage`. Limit jednoczesnych głosów i odstęp minimalny między tym samym dźwiękiem, żeby seria z karabinu nie zrobiła piły. |
 | V3-C-04 | Dźwięk przestrzenny per odległość od kamery (głośność maleje z dystansem, zero powyżej ok. 20 kafelków), żeby fala potworów z drugiego końca mapy nie zagłuszała własnego karabinu. |
 | V3-C-05 | Muzyka **poza zakresem** tego etapu (zostaje w `07-BACKLOG-V2.md` B3). |
+
+### Research: recepty syntezy (2026-11-05)
+
+Zasady ogólne, zanim cokolwiek zabrzmi:
+- **Jeden `AudioContext`, tworzony przy pierwszym geście użytkownika** (polityka autoplay
+  blokuje wcześniejszy start) i `resume()` po powrocie z tła.
+- Łańcuch: źródło → gain (obwiednia) → ewentualny filtr → **master gain** →
+  `DynamicsCompressorNode` jako limiter → wyjście. Bez limitera seria z karabinu plus wybuch
+  przesterują miks.
+- **Limit głosów** (ok. 24) i **minimalny odstęp** między tym samym dźwiękiem (ok. 30 ms):
+  7 strzałów/s x 4 graczy to inaczej piła tarczowa, a nie karabin.
+- Bufor szumu generujemy **raz** i odtwarzamy z losowym offsetem i `playbackRate`; tworzenie
+  bufora per strzał to zbędny GC.
+- Każdy dźwięk dostaje **losowy detune ±5-8%** - bez tego powtórzenia brzmią mechanicznie.
+- Głośność maleje z odległością od kamery, zero powyżej ok. 20 kafelków (V3-C-04).
+
+| Zdarzenie | Recepta |
+|---|---|
+| `shot` (karabin) | biały szum 10-15 ms z wykładniczą obwiednią (`exp(-t/0.01)`) + square 220 → 60 Hz w 40 ms, lowpass 3.5 kHz. Krótki atak = "punch", bez ogona |
+| `shot` (działko) | jak wyżej, ale lowpass 1.8 kHz i pitch niżej - ma się odróżniać od broni gracza |
+| `hit` (potwór) | szum 20-25 ms przez bandpass ok. 900 Hz + sine 180 → 90 Hz; mokry, mięsisty |
+| `objHit` (ściana) | szum 8-12 ms przez highpass 2 kHz + klik 2 ms; sucho, kamiennie |
+| `destroyed` | brown noise 0.4 s, lowpass 800 Hz z opadającym sweepem do 200 Hz, + trzask na starcie |
+| `explode` (mina, rakieta) | brown noise 0.6-0.8 s, gain ok. 0.4, lowpass 800 → 200 Hz + sine 60 → 30 Hz "thump" pod spodem. To jest wzorzec wprost z dokumentacji melonjs |
+| `pickup` | sine 440 → 880 Hz w 80 ms, krótki fade |
+| `place` | square 200 Hz, 40 ms + klik; twardo, "postawione" |
+| `deny` | dwa impulsy square 160 Hz po 40 ms z 60 ms przerwy |
+| `reload` | dwa kliki szumowe (8 ms) w odstępie ok. 120 ms, drugi niżej |
+| `droplet` | triangle 1200 → 1600 Hz, 60 ms, lekka modulacja FM (indeks niski) - ma być "cyfrowo", inaczej niż reszta |
+| `ult` | FM sweep 100 → 1200 Hz w 0.3 s + warstwa szumu, głośniej dla progu III |
+| `down` / `death` | sine 300 → 80 Hz w 0.5 s, długi ogon |
+| `revive` | trzy tony w górę (arpeggio) po 70 ms |
+| `ff` (trafiony przez sojusznika) | ten sam dźwięk co `hit`, ale z krótkim, wyraźnym tonem ostrzegawczym - gracz ma wiedzieć, że to był swój |
 
 ## D. Brakujące dropy
 

@@ -1,11 +1,15 @@
 const MOVE = { KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
-const EDGE = { KeyE: 'e', KeyR: 'r', KeyG: 'g', KeyF: 'f', Escape: 'esc' };
+const EDGE = { KeyE: 'e', KeyR: 'r', KeyQ: 'q', KeyG: 'g', KeyF: 'f', Escape: 'esc' };
+
+// Kółko generuje serię zdarzeń przy gładkim scrollu; jedno "kliknięcie" = jeden obrót.
+const WHEEL_THROTTLE_MS = 120;
 
 export class InputState {
   constructor(canvasEl) {
     this.canvas = canvasEl;
     this.down = new Set();
     this.fire = false;
+    this.lastWheel = -Infinity;
     this.mouse = { x: 0, y: 0 };
     this.handlers = [];
     addEventListener('keydown', (e) => this.#key(e, true));
@@ -16,12 +20,29 @@ export class InputState {
     });
     addEventListener('blur', () => this.clear());
     canvasEl.ownerDocument.addEventListener('mousedown', (e) => {
-      if (e.button === 0) this.#emit('prev', true);
+      if (e.button === 0 && this.#fromGame(e)) this.fire = true;
       else if (e.button === 2) this.#emit('next', true);
     });
+    canvasEl.ownerDocument.addEventListener('mouseup', (e) => {
+      if (e.button === 0) this.fire = false;
+    });
+    canvasEl.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const t = performance.now();
+      if (t - this.lastWheel < WHEEL_THROTTLE_MS) return;
+      this.lastWheel = t;
+      this.#emit('q', true);
+    }, { passive: false });
     canvasEl.ownerDocument.addEventListener('contextmenu', (e) => {
       if (!(e.target instanceof HTMLInputElement)) e.preventDefault();
     });
+  }
+
+  // LPM w panelach UI (#ui, formularze) nie może strzelać.
+  #fromGame(e) {
+    const t = e.target;
+    if (!(t instanceof Element)) return true;
+    return !t.closest('#ui, input, textarea, select, button');
   }
 
   #key(e, isDown) {

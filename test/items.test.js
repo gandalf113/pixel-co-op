@@ -99,10 +99,10 @@ test('deny placement on mob / 5 tiles away (I4)', () => {
   assert.equal(w.events.filter((e) => e.type === 'deny').length, 2);
 });
 
-test('rotate wall with r', () => {
+test('rotate wall with q', () => {
   const { w, p } = oneWorld();
   const it = give(w, p, 'wall');
-  handleAction(w, p, 'r');
+  handleAction(w, p, 'q');
   assert.equal(it.rot, 1);
   aim(p, 42, 30);
   handleAction(w, p, 'e');
@@ -125,20 +125,50 @@ test('throw wall at mob damages 15 and stuns (I5)', () => {
   assert.equal(it.state, 'ground');
 });
 
-test('pick placed wall back up (I6)', () => {
+test('placed wall cannot be picked back up (R53)', () => {
   const { w, p } = oneWorld();
   const wall = placeWall(w, 41, 30, 0);
   handleAction(w, p, 'e');
-  assert.equal(wall.state, 'held');
-  assert.equal(p.held, wall.id);
-  assert.ok(!w.grid.isWall(41, 30));
+  assert.equal(p.held, null);
+  assert.equal(wall.state, 'placed');
+  assert.ok(w.grid.isWall(41, 30));
+});
+
+test('r drops held wall at feet (R54)', () => {
+  const { w, p } = oneWorld();
+  const wall = give(w, p, 'wall');
+  handleAction(w, p, 'r');
+  assert.equal(p.held, null);
+  assert.equal(wall.state, 'ground');
+});
+
+test('r drops held power-up at feet, e uses it (R54)', () => {
+  const a = oneWorld();
+  const m1 = give(a.w, a.p, 'mine');
+  handleAction(a.w, a.p, 'r');
+  assert.equal(m1.state, 'ground');
+  assert.equal(a.p.held, null);
+  const b = oneWorld();
+  const m2 = give(b.w, b.p, 'mine');
+  aim(b.p, 41, 30);
+  handleAction(b.w, b.p, 'e');
+  assert.equal(m2.state, 'active');
+});
+
+test('q does nothing for non-wall items and without item', () => {
+  const { w, p } = oneWorld();
+  handleAction(w, p, 'q');
+  const mine = give(w, p, 'mine');
+  handleAction(w, p, 'q');
+  assert.equal(mine.state, 'held');
+  assert.equal(mine.rot, 0);
 });
 
 test('turret active shoots nearest mob and expires after 30 s (I7)', () => {
   const { w, p } = oneWorld();
   const it = give(w, p, 'turret30');
   aim(p, 42, 30);
-  handleAction(w, p, 'r');
+  handleAction(w, p, 'e');
   assert.equal(it.state, 'active');
   assert.equal(it.owner, 'p1');
   assert.equal(w.grid.isSolid(42, 30), true);
@@ -158,10 +188,10 @@ test('turret active shoots nearest mob and expires after 30 s (I7)', () => {
   assert.equal(w.grid.isSolid(42, 30), false);
 });
 
-test('e with turret drops it inactive (I8)', () => {
+test('r with turret drops it inactive (I8)', () => {
   const { w, p } = oneWorld();
   const it = give(w, p, 'turret30');
-  handleAction(w, p, 'e');
+  handleAction(w, p, 'r');
   assert.equal(it.state, 'ground');
   assert.equal(p.held, null);
   assert.equal(it.x, p.x);
@@ -193,7 +223,7 @@ test('thrown turret at limit lands inactive (I9c)', () => {
   assert.equal(it.state, 'ground');
 });
 
-test('r at turret limit denied', () => {
+test('e at turret limit denied', () => {
   const { w, p } = oneWorld();
   for (let i = 0; i < balance.items.turret30.limit; i++) {
     const t = spawnDrop(w, 'turret30', 0, 0);
@@ -201,7 +231,7 @@ test('r at turret limit denied', () => {
   }
   const it = give(w, p, 'turret30');
   aim(p, 42, 30);
-  handleAction(w, p, 'r');
+  handleAction(w, p, 'e');
   assert.equal(it.state, 'held');
   assert.equal(w.events.at(-1).type, 'deny');
 });
@@ -210,7 +240,7 @@ test('mine arms after 1 s, explodes for 60, player in radius loses 6 (I12, F5)',
   const { w, p } = oneWorld();
   const it = give(w, p, 'mine');
   aim(p, 41, 30);
-  handleAction(w, p, 'r');
+  handleAction(w, p, 'e');
   assert.equal(it.state, 'active');
   runItems(w, 0.5);
   const mob = addMob(w, 'brute', C(41), C(30));
@@ -271,9 +301,10 @@ test('e with item in hands never picks up another (I4e)', () => {
   const a = give(w, p, 'mine');
   const b = spawnDrop(w, 'turret30', p.x + 4, p.y);
   b.x = p.x + 4;
+  aim(p, 42, 30);
   handleAction(w, p, 'e');
   assert.equal(p.held, null);
-  assert.equal(a.state, 'ground');
+  assert.equal(a.state, 'active');
   assert.equal(b.state, 'ground');
 });
 

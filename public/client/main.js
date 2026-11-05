@@ -40,6 +40,7 @@ let latest = null;
 let grid = null;
 let seq = 0;
 let heldRot = 0;
+let version = null;
 let tickTimer = null;
 let lobbyDelayUntil = 0;
 let lobbyTimer = null;
@@ -125,6 +126,7 @@ function onMessage(msg) {
       myId = msg.id;
       if (msg.room) setUrlRoom(msg.room);
       balance = msg.balance;
+      version = msg.version ?? null;
       sprites ??= bakeSprites(document, COLORS);
       predictor ??= new Predictor(balance);
       if (!tickTimer) tickTimer = setInterval(tick, 1000 / balance.tickHz);
@@ -301,7 +303,7 @@ input.onAction((a, down) => {
     if (myView(latest)?.state === 'dead') cycleSpectate(a === 'next' ? 1 : -1);
     return;
   }
-  if (a === 'r' && myView(latest)?.held === 'wall') heldRot ^= 1;
+  if (a === 'q' && myView(latest)?.held === 'wall') heldRot ^= 1;
   conn.send({ t: 'act', a });
 });
 
@@ -401,12 +403,6 @@ function ghostFor(me, snap, players, aim) {
   return { tiles: footprint(me.held, t.tx, t.ty, rot), valid: t.valid };
 }
 
-function rectDist(x, y, tx, ty, tp) {
-  const dx = Math.max(tx * tp - x, 0, x - (tx + 1) * tp);
-  const dy = Math.max(ty * tp - y, 0, y - (ty + 1) * tp);
-  return Math.hypot(dx, dy);
-}
-
 function pickupTarget(me, items) {
   if (me.state !== 'alive' || me.held) return null;
   const tp = balance.map.tilePx;
@@ -414,11 +410,8 @@ function pickupTarget(me, items) {
   let best = null;
   let bestD = Infinity;
   for (const it of items) {
-    let d = Infinity;
-    if (it.state === 'ground') d = Math.hypot(it.x - me.x, it.y - me.y);
-    else if (it.kind === 'wall' && it.state === 'placed') {
-      for (const [tx, ty] of footprint('wall', it.tx, it.ty, it.rot)) d = Math.min(d, rectDist(me.x, me.y, tx, ty, tp));
-    }
+    if (it.state !== 'ground') continue;
+    const d = Math.hypot(it.x - me.x, it.y - me.y);
     if (d <= range && d < bestD) {
       best = it;
       bestD = d;
@@ -438,7 +431,7 @@ function frame(now) {
     wctx.setTransform(1, 0, 0, 1, 0, 0);
     wctx.fillStyle = '#000';
     wctx.fillRect(0, 0, worldCanvas.width, worldCanvas.height);
-    renderHud(hctx, scale, offset, { status, mouse: input.mouse, showCursor: false, sprites, cam });
+    renderHud(hctx, scale, offset, { version, status, mouse: input.mouse, showCursor: false, sprites, cam });
     return;
   }
   const { a, b, alpha } = buffer.sample(now);
@@ -480,7 +473,7 @@ function frame(now) {
   };
   renderWorld(wctx, view);
   renderHud(hctx, scale, offset, {
-    snap: latest, balance, sprites, cam, me, players, status, tab, nowMs: now,
+    version, snap: latest, balance, sprites, cam, me, players, status, tab, nowMs: now,
     hint: pickTarget ? balance.items[pickTarget.kind].name : null, fx,
     spectating: specId ? players.find((p) => p.id === specId) ?? null : null,
     mouse: input.mouse, showCursor: mode === 'game' && !paused,

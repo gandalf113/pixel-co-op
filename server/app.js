@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { loadBalance } from './balance.js';
@@ -89,6 +90,15 @@ async function serveStatic(req, res) {
   }
 }
 
+export function appVersion() {
+  if (process.env.APP_VERSION) return process.env.APP_VERSION;
+  try {
+    return JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version ?? 'dev';
+  } catch {
+    return 'dev';
+  }
+}
+
 export function startServer({
   port, host = undefined, balance = loadBalance(), seed = Date.now(),
   rooms = false, trustProxy = false, telemetry = null,
@@ -97,19 +107,20 @@ export function startServer({
 } = {}) {
   return new Promise((resolve, reject) => {
     const started = Date.now();
+    const version = appVersion();
     const hash = hasher(statsSalt);
     const roomSeed = (() => { let n = seed; return () => n++; })();
     const manager = rooms
-      ? new Rooms({ balance, telemetry, seed: roomSeed, maxRooms, emptyTtlS })
+      ? new Rooms({ balance, version, telemetry, seed: roomSeed, maxRooms, emptyTtlS })
       : null;
-    const single = rooms ? null : new Session({ balance, seed, addresses: [], telemetry });
+    const single = rooms ? null : new Session({ balance, seed, addresses: [], telemetry, version });
     const createLimit = new RateLimit({ max: roomsPerIp, windowMs: roomsPerIpWindowMs });
 
     const server = http.createServer((req, res) => {
       if (req.url === '/healthz') {
         const stats = manager ? manager.stats() : { rooms: single.playerCount ? 1 : 0, players: single.playerCount, games: single.game ? 1 : 0 };
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: true, mode: rooms ? 'rooms' : 'lan', uptimeS: Math.round((Date.now() - started) / 1000), ...stats }));
+        res.end(JSON.stringify({ ok: true, version, mode: rooms ? 'rooms' : 'lan', uptimeS: Math.round((Date.now() - started) / 1000), ...stats }));
         return;
       }
       serveStatic(req, res);

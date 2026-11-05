@@ -10,9 +10,10 @@ export class Session {
   constructor({
     balance, addresses = [], seed = 1, makeToken = randomUUID,
     code = null, hostPolicy = 'local', telemetry = null, onEmpty = null,
-    realPlay = REAL_PLAY, now = () => Date.now(),
+    realPlay = REAL_PLAY, version = null, now = () => Date.now(),
   }) {
     this.balance = balance;
+    this.version = version;
     this.addresses = addresses;
     this.seed = seed;
     this.makeToken = makeToken;
@@ -182,7 +183,7 @@ export class Session {
   }
 
   #welcome(p) {
-    p.conn.send({ t: 'welcome', id: p.id, token: p.token, room: this.code, balance: this.balance });
+    p.conn.send({ t: 'welcome', id: p.id, token: p.token, room: this.code, balance: this.balance, version: this.version });
     if (this.game) p.conn.send({ t: 'gore', ...this.game.world.gore });
   }
 
@@ -205,7 +206,7 @@ export class Session {
   }
 
   #act(p, m) {
-    if (!this.game || !['e', 'r', 'g', 'f'].includes(m.a)) return;
+    if (!this.game || !['e', 'r', 'q', 'g', 'f'].includes(m.a)) return;
     this.game.action(p.id, m.a);
   }
 

@@ -57,12 +57,12 @@ test('freeze II stops mobs and they take 150% damage (UL11)', () => {
   assert.equal(m.vuln, 1.5);
 });
 
-test('magnet pulls droplet from 13 tiles, ignores it at 15 (UL2)', () => {
+test('magnet pulls droplet from 8 tiles, ignores it at 10 (UL2)', () => {
   const w = makeWorld({ players: [{ x: c(20), y: c(20) }] });
-  w.droplets.push({ id: 1, x: c(33), y: c(20), age: 0 }, { id: 2, x: c(35), y: c(20), age: 0 });
+  w.droplets.push({ id: 1, x: c(28), y: c(20), age: 0 }, { id: 2, x: c(30), y: c(20), age: 0 });
   run(w, 0.5);
-  assert.ok(w.droplets[0].x < c(33) && w.droplets[0].x > c(28));
+  assert.ok(w.droplets[0].x < c(28) && w.droplets[0].x > c(23));
   run(w, 2);
   assert.deepEqual(w.droplets.map((d) => d.id), [2]);
-  assert.equal(w.droplets[0].x, c(35));
+  assert.equal(w.droplets[0].x, c(30));
 });

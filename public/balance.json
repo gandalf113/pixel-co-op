@@ -37,7 +37,7 @@
   "drops": { "hardShare": 0.55, "scatterPx": 8, "groundLimit": 200 },
   "throw": { "rangeTiles": 4, "flightS": 0.5, "stunS": 0.5 },
   "ultimate": {
-    "barMax": 300, "tierPoints": 100, "magnetTiles": 14, "magnetMinPx": 40, "magnetBoostPx": 700, "absorbPx": 6, "lifeS": 30, "scatterPx": 6,
+    "barMax": 300, "tierPoints": 100, "magnetTiles": 9, "magnetMinPx": 40, "magnetBoostPx": 380, "absorbPx": 6, "lifeS": 30, "scatterPx": 6,
     "droplets": { "slime": 1, "runner": 1, "brute": 3 },
     "kinds": {
       "shockwave": { "name": "Fala uderzeniowa", "icon": "◎", "sprite": "ult_shockwave", "blurb": "Odpycha i rani potwory wokół ciebie.", "tiers": [

@@ -136,6 +136,9 @@ export function renderHud(ctx, scale, offset, state) {
     return { x: offset.x + v.x * scale, y: offset.y + v.y * scale, vx: v.x, vy: v.y };
   };
 
+  // Wersja widoczna takze przed startem gry — po to jest, zeby dalo sie powiedziec, w co sie gralo.
+  if (state.version) text(ctx, `v${state.version}`, W - 6 * scale, 4 * scale, { size: small, color: '#5a4f44', align: 'right', base: 'top' });
+
   if (snap) {
     for (const p of state.players) {
       if (p.state === 'dead') continue;

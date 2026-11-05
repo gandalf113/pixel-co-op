@@ -13,11 +13,12 @@ export function makeCode(length = 4, rnd = randomBytes) {
 
 export class Rooms {
   constructor({
-    balance, telemetry = null, seed = () => Date.now(), now = () => Date.now(),
+    balance, version = null, telemetry = null, seed = () => Date.now(), now = () => Date.now(),
     maxRooms = 40, emptyTtlS = 90, codeLength = 4,
     makeToken = randomUUID, codeImpl = makeCode,
   } = {}) {
     this.balance = balance;
+    this.version = version;
     this.telemetry = telemetry;
     this.seed = seed;
     this.now = now;
@@ -65,6 +66,7 @@ export class Rooms {
       code,
       hostPolicy: 'first',
       telemetry: this.telemetry,
+      version: this.version,
       now: this.now,
       onEmpty: () => this.emptySince.set(code, this.now()),
     });
