@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.18 (2026-11-05)
+Wersja: 0.19 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -36,6 +36,7 @@ MVP to wersja, którą da się zagrać we 2-4 osoby na LAN-ie przez 15 minut i "
 - Podnoszenie / odkładanie / rzucanie (z obrażeniami) / używanie przedmiotów (E / E / Spacja / R).
 - Potwory powoli niszczą obiekty graczy (HP obiektów, 4 stany zużycia z kruszeniem krawędzi, animacja zawalenia, rumowisko; PRD-FX-08).
 - Trupy potworów i krew zostają na ziemi (PRD-MAP-09).
+- 7 losowych, częściowo zniszczonych ścian wokół spawnu na start gry (PRD-MAP-10).
 - Widoczne trafienia pocisków w potwory i widoczny wybuch miny (PRD-FX-01, PRD-FX-04).
 - Suwak trudności, 4 poziomy, wybierany przez hosta przed startem.
 - ULTIMATE: kropelki, wspólny pasek, 3 progi, 7 umiejętności do wyboru w lobby, użycie `F` (`08-ULTIMATE.md`).
@@ -80,6 +81,7 @@ Nie ma celowania klawiaturą ani sterowania padem w MVP.
 | PRD-MAP-01 | Mapa na start: płaska, prostokątna arena 80 x 60 kafelków po 16 px (1280 x 960 px świata). Z nieprzekraczalną granicą (ściana/krawędź). |
 | PRD-MAP-02 | Potwory spawnują się przy krawędziach mapy, poza polem widzenia graczy, jeśli to możliwe. Punkty spawnu rozłożone wzdłuż całego obwodu. |
 | PRD-MAP-03 | Gracze spawnują się na środku mapy, obok siebie. |
+| PRD-MAP-10 | **Startowe ruiny** (R50): na start każdej gry serwer stawia **7 kawałków ściany** (zwykłe hard objecty `wall`, 2 x 1, do podniesienia, przestawienia i zniszczenia jak każde inne) **losowo w okolicy spawnu graczy**: w pierścieniu 4-9 kafelków od środka mapy, losowa orientacja (pozioma / pionowa), min. 2 kafelki odstępu między nimi i min. 2 kafelki od punktu spawnu graczy, nigdy na kafelkach spawnu. **Każda na innym, losowym poziomie zniszczenia**: HP losowane z przedziałów 4 stanów (PRD-FX-08) tak, żeby w 7 ścianach były co najmniej 2 stany poza pełnym; przykładowo 2 pełne, 2 pęknięte, 2 wykruszone, 1 prawie zawalona. Losowanie z seedu gry (ten sam układ u wszystkich graczy, inny w każdej grze). Ruiny nie liczą się do limitu przedmiotów na ziemi. Dają pierwszą osłonę i od razu pokazują stany zniszczenia. Liczba, promień i rozkład stanów w `balance.json`. |
 | PRD-MAP-04 | Kamera: postać lokalnego gracza zawsze na środku ekranu. Kamera nie zatrzymuje się na krawędzi mapy (poza mapą rysujemy "pustkę" / ciemność). |
 | PRD-MAP-05 | Skalowanie: render w natywnej rozdzielczości pixel-art **560 x 315** (PRD-MAP-07) i powiększenie całkowitą krotnością do okna. Bez wygładzania (nearest neighbour). |
 | PRD-MAP-06 | Tło: brązowo-szara, spękana ziemia (klimat post-apo), 3 warianty kafelka, żeby ruch był widoczny. |

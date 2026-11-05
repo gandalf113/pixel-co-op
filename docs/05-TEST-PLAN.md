@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.18 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.19 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -26,6 +26,8 @@ Wersja: 0.18 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | C10 | R z pustymi rękami przy 12 / 30 | PRD-PLR-03 | Przeładunek 1.5 s, licznik 30; R przy 30 / 30 nic nie robi |
 | C7 | Prędkość pocisku: strzał na 14 kafelków | PRD-PLR-03 | Pocisk dolatuje w ok. 0.5 s (450 px/s): szybki, ale widać lot |
 | C8 | Dwóch graczy rozchodzi się na 40 kafelków, potem wraca | PRD-MAP-07 | Skala NIE zmienia się; widok 560 x 315 świata; sojusznik poza ekranem = strzałka; piksele ostre |
+| M1 | Start 3 gier pod rząd, obejrzyj okolicę spawnu | PRD-MAP-10 | Za każdym razem 7 ścian w innym układzie, 4-9 kafelków od środka, nie na spawnie; widać różne stany zniszczenia (min. 2 poza pełnym); u wszystkich graczy ten sam układ |
+| M2 | Podnieś startową ścianę w stanie 3 i postaw gdzie indziej | PRD-MAP-10, ITM-GEN-08 | Da się; po postawieniu ma ten sam stan zniszczenia |
 | C4 | Idź do krawędzi mapy | PRD-MAP-01, 04 | Nie da się wyjść; postać zostaje na środku ekranu, za krawędzią pustka |
 | C5 | Zmień rozmiar okna | PRD-MAP-05 | Piksele ostre, bez rozmycia, proporcje OK |
 | C6 | Esc, Tab | PRD-CTRL-07, 08 | Menu nie pauzuje hosta; Tab pokazuje graczy i HP |
