@@ -128,7 +128,7 @@ test('snapshot shape', () => {
   const g = makeGame();
   run(g, 15.1);
   const s = g.snapshot(1);
-  for (const k of ['t', 'phase', 'wave', 'breakLeft', 'readyLock', 'mobsLeft', 'you', 'players', 'mobs', 'bullets', 'items']) {
+  for (const k of ['t', 'seed', 'phase', 'wave', 'breakLeft', 'readyLock', 'mobsLeft', 'you', 'players', 'mobs', 'bullets', 'items']) {
     assert.ok(k in s, k);
   }
   assert.equal(s.phase, 'wave');
@@ -136,11 +136,11 @@ test('snapshot shape', () => {
   assert.deepEqual(Object.keys(s.you), ['id', 'ackSeq']);
   assert.equal(s.you.id, 1);
   assert.deepEqual(Object.keys(s.players[0]).sort(), [
-    'angle', 'busy', 'color', 'deathLeft', 'held', 'hp', 'id', 'invuln', 'maxHp', 'nick',
-    'ready', 'reviveProgress', 'state', 'suspended', 'weaponLv', 'x', 'y',
+    'ammo', 'angle', 'busy', 'color', 'deathLeft', 'frenzyLeft', 'held', 'hp', 'id', 'invuln', 'maxHp', 'nick',
+    'ready', 'reloadLeft', 'reviveProgress', 'speedMult', 'state', 'suspended', 'ult', 'ultKind', 'weaponLv', 'x', 'y',
   ]);
   assert.ok(s.mobs.length > 0);
-  assert.equal(s.mobs[0].length, 7);
+  assert.equal(s.mobs[0].length, 9);
   assert.equal(s.mobsLeft, g.world.mobs.length + g.director.pending);
   assert.ok(g.director.pending > 0);
   for (const v of [s.t, s.players[0].x, s.players[0].angle, s.mobs[0][2], s.mobs[0][3]]) {
@@ -156,7 +156,7 @@ test('snapshot shape', () => {
   assert.ok(s2.bullets.length > 0);
   assert.equal(s2.bullets[0].length, 3);
   assert.deepEqual(s2.items.map((i) => i.id), [500]);
-  assert.deepEqual(Object.keys(s2.items[0]).sort(), ['armed', 'flight', 'hp', 'id', 'kind', 'rot', 'state', 'timeLeft', 'tx', 'ty', 'x', 'y']);
+  assert.deepEqual(Object.keys(s2.items[0]).sort(), ['armed', 'flight', 'hp', 'id', 'kind', 'maxHp', 'rot', 'state', 'timeLeft', 'tx', 'ty', 'x', 'y']);
   assert.equal(s2.items[0].armed, true);
   assert.equal(s2.items[0].flight, null);
 });

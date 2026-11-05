@@ -73,7 +73,7 @@ function rowBlocked(grid, row, x, r, tilePx) {
 function moveAxis(pos, d, r, tilePx, blocked) {
   const next = pos + d;
   if (d > 0) {
-    const first = Math.ceil((pos + r) / tilePx);
+    const first = Math.floor((pos + r) / tilePx);
     const last = Math.ceil((next + r) / tilePx) - 1;
     for (let i = first; i <= last; i++) if (blocked(i)) return i * tilePx - r;
   } else if (d < 0) {

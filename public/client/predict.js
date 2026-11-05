@@ -30,7 +30,7 @@ export class Predictor {
 
   #step(pos, input, ctx) {
     const b = this.balance;
-    return stepPlayer(pos, input, 1 / b.tickHz, playerSpeedPx(b, ctx.heldKind), ctx.grid, b);
+    return stepPlayer(pos, input, 1 / b.tickHz, playerSpeedPx(b, ctx.heldKind, ctx.speedMult ?? 1), ctx.grid, b);
   }
 }
 

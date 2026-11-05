@@ -1,5 +1,5 @@
 import { damagePlayer, setDropHeld } from './players.js';
-import { spawnBullet, killMob } from './combat.js';
+import { spawnBullet, damageMob, mobHit } from './combat.js';
 import { pickWeighted } from './rng.js';
 import { buildGrid, footprint, placementValid, segmentBlocked, tileOf } from '../public/shared/world.js';
 
@@ -148,7 +148,30 @@ function activate(world, item, tx, ty, owner) {
   world.events.push({ type: 'place', id: item.id, kind: item.kind, tx, ty });
 }
 
+export function spawnUltWall(world, tx, ty, rot, hp, expireS) {
+  const tiles = footprint('wall', tx, ty, rot);
+  const { tilePx } = world.rules;
+  const cs = circles(world);
+  for (const [x, y] of tiles) {
+    if (!world.grid.inside(x, y) || world.grid.isSolid(x, y)) return null;
+    for (const c of cs) {
+      const nx = Math.max(x * tilePx, Math.min(c.x, (x + 1) * tilePx));
+      const ny = Math.max(y * tilePx, Math.min(c.y, (y + 1) * tilePx));
+      if ((c.x - nx) ** 2 + (c.y - ny) ** 2 < c.r * c.r) return null;
+    }
+  }
+  const item = {
+    id: world.nextId(), kind: 'wall', state: 'placed', tx, ty, rot, hp, maxHp: hp, x: 0, y: 0,
+    holder: null, owner: null, groundSince: world.time, timeLeft: 0, armLeft: 0, cooldown: 0, flight: null, expireLeft: expireS,
+  };
+  world.items.set(item.id, item);
+  rebuildGrid(world);
+  world.events.push({ type: 'place', id: item.id, kind: 'wall', tx, ty });
+  return item;
+}
+
 function pickUp(world, player, item) {
+  item.expireLeft = 0;
   const wasBlocking = blocking(item);
   Object.assign(item, { state: 'held', holder: player.id, x: player.x, y: player.y });
   player.held = item.id;
@@ -294,10 +317,9 @@ function updateFlight(world, item, dt) {
   if (world.grid.isSolid(tileOf(nx, tilePx), tileOf(ny, tilePx))) return land(world, item, item.x, item.y);
   const hit = firstBodyHit(world, item, item.x, item.y, nx, ny);
   if (hit?.mob) {
-    hit.mob.hp -= cfg.throwDamage;
-    if (isHard(world, item)) hit.mob.stun = balance.throw.stunS;
-    world.events.push({ type: 'hit', x: hit.x, y: hit.y });
-    if (hit.mob.hp <= 0) killMob(world, hit.mob, f.thrower);
+    if (isHard(world, item)) hit.mob.stun = Math.max(hit.mob.stun, balance.throw.stunS);
+    mobHit(world, hit.x, hit.y);
+    damageMob(world, hit.mob, cfg.throwDamage, f.thrower);
     return land(world, item, hit.x, hit.y);
   }
   if (hit?.player) {
@@ -335,7 +357,7 @@ function updateTurret(world, item, dt) {
   if (!target) return;
   spawnBullet(world, {
     owner: item.owner, fromTurret: true, x: cx, y: cy, angle: Math.atan2(target.y - cy, target.x - cx),
-    damage: cfg.damage, speedPx: balance.pistol.speedPx, rangePx: range,
+    damage: cfg.damage, speedPx: balance.rifle.speedPx, rangePx: range,
   });
   item.cooldown = cfg.cooldownS;
   world.events.push({ type: 'shot', id: item.id, x: cx, y: cy });
@@ -354,8 +376,7 @@ function updateMine(world, item, dt) {
   world.items.delete(item.id);
   for (const m of [...world.mobs]) {
     if (Math.hypot(m.x - cx, m.y - cy) > r) continue;
-    m.hp -= cfg.damage;
-    if (m.hp <= 0) killMob(world, m, item.owner);
+    damageMob(world, m, cfg.damage, item.owner);
   }
   for (const p of world.players.values()) {
     if (p.state === 'alive' && Math.hypot(p.x - cx, p.y - cy) <= r) damagePlayer(world, p, cfg.damage * balance.friendlyFire, 'mine');
@@ -374,6 +395,13 @@ export function updateItems(world, dt) {
       }
     } else if (item.state === 'flying') {
       updateFlight(world, item, dt);
+    } else if (item.state === 'placed' && item.expireLeft > 0) {
+      item.expireLeft -= dt;
+      if (item.expireLeft <= EPS) {
+        world.items.delete(item.id);
+        rebuildGrid(world);
+        world.events.push({ type: 'destroyed', id: item.id, kind: item.kind, x: (item.tx + 1) * world.rules.tilePx, y: (item.ty + 0.5) * world.rules.tilePx });
+      }
     } else if (item.state === 'active' && item.kind === 'turret30') {
       updateTurret(world, item, dt);
     } else if (item.state === 'active' && item.kind === 'mine') {

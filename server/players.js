@@ -3,6 +3,10 @@ import { stepPlayer, playerSpeedPx } from '../public/shared/movement.js';
 const EPS = 1e-9;
 let dropHeld = () => {};
 
+export function speedMultOf(p) {
+  return p.frenzyLeft > 0 ? p.frenzy?.speedMult ?? 1 : 1;
+}
+
 export function setDropHeld(fn) {
   dropHeld = fn;
 }
@@ -15,7 +19,7 @@ function spawnPos(rules, index) {
   };
 }
 
-export function createPlayer({ id, nick, color }, rules, index) {
+export function createPlayer({ id, nick, color, ultKind = null }, rules, index) {
   const { x, y } = spawnPos(rules, index);
   const hp = rules.playerMaxHp();
   return {
@@ -23,6 +27,8 @@ export function createPlayer({ id, nick, color }, rules, index) {
     state: 'alive', suspended: false, suspendLeft: 0,
     reviveProgress: 0, deathLeft: 0, invuln: 0, cooldown: 0, busy: 0,
     held: null, ready: false, kills: 0, weaponLv: 1,
+    ammo: rules.balance.rifle.magazine, reloadLeft: 0,
+    ult: 0, ultKind, frenzy: null, frenzyLeft: 0,
     inputQueue: [],
     input: { seq: 0, mx: 0, my: 0, aimX: x + 1, aimY: y, fire: false },
     ackSeq: 0,
@@ -94,7 +100,7 @@ export function updatePlayers(world, dt) {
 
     if (input && p.state === 'alive' && !p.suspended && p.busy <= 0) {
       const heldKind = p.held != null ? world.items.get(p.held)?.kind ?? null : null;
-      const pos = stepPlayer(p, input, dt, playerSpeedPx(balance, heldKind), world.grid, balance);
+      const pos = stepPlayer(p, input, dt, playerSpeedPx(balance, heldKind, speedMultOf(p)), world.grid, balance);
       p.x = pos.x;
       p.y = pos.y;
     }

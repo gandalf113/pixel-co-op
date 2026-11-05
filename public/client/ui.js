@@ -42,7 +42,17 @@ export function showNickForm(onSubmit, initial = '') {
   input.focus();
 }
 
-export function showLobby(msg, { difficulties, onDifficulty, onStart }) {
+function ultPicker(msg, ultimates, myId, onUlt) {
+  const mine = msg.players.find((p) => p.id === myId)?.ultKind;
+  return el('div', { className: 'ult-grid' }, ...Object.entries(ultimates).map(([kind, u]) =>
+    el('button', { className: `ult-tile${kind === mine ? ' sel' : ''}`, type: 'button', onclick: () => onUlt(kind) },
+      el('div', { className: 'ult-icon' }, u.icon),
+      el('div', { className: 'ult-name' }, u.name),
+      ...u.tiers.map((t, i) => el('div', { className: 'ult-tier' }, `${'I'.repeat(i + 1)}: ${t.desc}`)),
+    )));
+}
+
+export function showLobby(msg, { difficulties, ultimates, myId, onUlt, onDifficulty, onStart }) {
   const level = msg.difficulty;
   const name = el('div', { className: 'diff-name' });
   const desc = el('div', { className: 'muted' });
@@ -56,7 +66,9 @@ export function showLobby(msg, { difficulties, onDifficulty, onStart }) {
     oninput: (e) => describe(Number(e.target.value)),
     onchange: (e) => onDifficulty(Number(e.target.value)),
   });
-  const players = el('ul', {}, ...msg.players.map((p) => el('li', { style: { color: p.color } }, p.nick + (p.host ? ' (host)' : ''))));
+  const players = el('ul', {}, ...msg.players.map((p) => el('li', { style: { color: p.color } },
+    `${p.nick}${p.host ? ' (host)' : ''} · ${p.ultKind ? `${ultimates[p.ultKind].icon} ${ultimates[p.ultKind].name}` : 'wybiera ultimate…'}`)));
+  const allChosen = msg.players.every((p) => p.ultKind);
   const addresses = msg.addresses?.length
     ? el('ul', {}, ...msg.addresses.map((a) => el('li', {}, a)))
     : el('div', { className: 'muted' }, 'brak adresów LAN');
@@ -65,7 +77,10 @@ export function showLobby(msg, { difficulties, onDifficulty, onStart }) {
     el('label', {}, 'Gracze'), players,
     el('label', {}, 'Dołącz z sieci LAN'), addresses,
     el('label', {}, 'Trudność'), slider, name, desc,
-    msg.youAreHost ? el('button', { onclick: onStart }, 'Start') : el('p', { className: 'muted' }, 'Czekam na hosta…'),
+    el('label', {}, 'Twój ULTIMATE [F]'), ultPicker(msg, ultimates, myId, onUlt),
+    msg.youAreHost
+      ? el('button', { onclick: onStart, disabled: !allChosen, title: allChosen ? '' : 'Każdy musi wybrać ultimate' }, allChosen ? 'Start' : 'Start (czekam na wybór ultimate)')
+      : el('p', { className: 'muted' }, 'Czekam na hosta…'),
   ));
 }
 

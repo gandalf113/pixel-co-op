@@ -35,6 +35,7 @@ export class Session {
       case 'input': return this.#input(p, msg);
       case 'act': return this.#act(p, msg);
       case 'difficulty': return this.#difficulty(p, msg);
+      case 'ult': return this.#ult(p, msg);
       case 'start': return this.#start(p);
       case 'toLobby': return this.#toLobby(p);
       case 'leave': return this.#drop(conn, true);
@@ -110,6 +111,7 @@ export class Session {
 
   #welcome(p) {
     p.conn.send({ t: 'welcome', id: p.id, token: p.token, balance: this.balance });
+    if (this.game) p.conn.send({ t: 'gore', ...this.game.world.gore });
   }
 
   #isHost(p) {
@@ -130,7 +132,7 @@ export class Session {
   }
 
   #act(p, m) {
-    if (!this.game || (m.a !== 'e' && m.a !== 'r' && m.a !== 'g')) return;
+    if (!this.game || !['e', 'r', 'g', 'f'].includes(m.a)) return;
     this.game.action(p.id, m.a);
   }
 
@@ -140,13 +142,20 @@ export class Session {
     this.#broadcastLobby();
   }
 
+  #ult(p, m) {
+    if (this.game || typeof m.kind !== 'string' || !Object.hasOwn(this.balance.ultimate.kinds, m.kind)) return;
+    p.ultKind = m.kind;
+    this.#broadcastLobby();
+  }
+
   #start(p) {
     if (this.game || !this.#isHost(p) || this.players.length < 1) return;
+    if (this.players.some((q) => !q.ultKind)) return;
     this.game = new Game({
       balance: this.balance,
       difficulty: this.difficulty,
-      players: this.players.map((q, i) => ({ id: q.id, nick: q.nick, color: COLORS[i] })),
-      seed: this.seed,
+      players: this.players.map((q, i) => ({ id: q.id, nick: q.nick, color: COLORS[i], ultKind: q.ultKind })),
+      seed: this.seed++,
     });
     this.snapAcc = 0;
     this.resultsSent = false;
@@ -204,7 +213,7 @@ export class Session {
   }
 
   #broadcastLobby() {
-    const players = this.players.map((p, i) => ({ id: p.id, nick: p.nick, color: COLORS[i], host: this.#isHost(p) }));
+    const players = this.players.map((p, i) => ({ id: p.id, nick: p.nick, color: COLORS[i], host: this.#isHost(p), ultKind: p.ultKind ?? null }));
     for (const p of this.players) {
       p.conn?.send({
         t: 'lobby', players, difficulty: this.difficulty, addresses: this.addresses, youAreHost: this.#isHost(p),

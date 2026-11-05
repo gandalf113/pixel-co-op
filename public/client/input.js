@@ -1,5 +1,5 @@
 const MOVE = { KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
-const EDGE = { KeyE: 'e', KeyR: 'r', KeyG: 'g', Escape: 'esc' };
+const EDGE = { KeyE: 'e', KeyR: 'r', KeyG: 'g', KeyF: 'f', Escape: 'esc' };
 
 export class InputState {
   constructor(canvasEl) {

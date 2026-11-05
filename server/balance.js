@@ -20,6 +20,7 @@ export function makeRules(balance, difficulty, playerCount) {
       : Math.round(Math.min(w.breakMax, w.breakBase + w.breakPerWave * n) * diff.breakMult),
     mobHp: (type, n) => balance.mobs[type].hp * diff.mobHp * (1 + w.hpPerWave * (n - 1)),
     mobDamage: (type) => balance.mobs[type].damage * diff.mobDamage,
+    mobObjDamage: (type) => balance.mobs[type].objDamage * diff.mobDamage,
     mobSpeedPx: (type) => balance.mobs[type].speedTiles * tilePx * diff.mobSpeed,
     dropChance: (type) => balance.mobs[type].drop * diff.drop,
     playerMaxHp: () => diff.playerHp,

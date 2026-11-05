@@ -19,6 +19,7 @@ function join(s, nick, isLocal = false) {
   const c = conn(isLocal);
   s.connect(c);
   send(s, c, { t: 'hello', token: null, nick });
+  send(s, c, { t: 'ult', kind: 'shockwave' });
   return c;
 }
 function run(s, secs, dt = 0.5) {

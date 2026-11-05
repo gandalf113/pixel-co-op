@@ -43,6 +43,9 @@ test('http static and websocket flow', async () => {
       await c.wait((m) => m.t === 'welcome');
       await c.wait((m) => m.t === 'lobby');
     }
+    a.send({ t: 'ult', kind: 'heal' });
+    b.send({ t: 'ult', kind: 'freeze' });
+    await b.wait((m) => m.t === 'lobby' && m.players.every((p) => p.ultKind));
     a.send({ t: 'start' });
     for (const c of [a, b]) assert.equal((await c.wait((m) => m.t === 'snap')).phase, 'break');
 

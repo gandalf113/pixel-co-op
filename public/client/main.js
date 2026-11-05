@@ -42,6 +42,13 @@ let lobbyDelayUntil = 0;
 let lobbyTimer = null;
 const itemRot = new Map();
 const mobAngles = new Map();
+const gore = { corpses: [], splats: [] };
+const shakes = new Map();
+let effects = [];
+let denyUntil = 0;
+let flash = null;
+const EFFECT_MS = { shockwave: 500, heal: 700, freeze: 700, widegun: 300, rocket: 300, wall: 400, frenzy: 400, explode: 400 };
+const FLASH_MS = 300;
 let scale = 1;
 const offset = { x: 0, y: 0 };
 
@@ -57,6 +64,10 @@ function resetGame() {
   buffer.clear();
   itemRot.clear();
   mobAngles.clear();
+  gore.corpses = [];
+  gore.splats = [];
+  shakes.clear();
+  effects = [];
   paused = false;
   heldRot = 0;
   conn.inGame = false;
@@ -67,6 +78,9 @@ function enterLobbyScreen(msg) {
   resetGame();
   ui.showLobby(msg, {
     difficulties: balance.difficulty,
+    ultimates: balance.ultimate.kinds,
+    myId,
+    onUlt: (kind) => conn.send({ t: 'ult', kind }),
     onDifficulty: (level) => conn.send({ t: 'difficulty', level }),
     onStart: () => conn.send({ t: 'start' }),
   });
@@ -93,7 +107,12 @@ function onMessage(msg) {
       onSnap(msg);
       break;
     case 'ev':
-      for (const e of msg.list) if (e.type === 'pickup' && e.player === myId) heldRot = itemRot.get(e.id) ?? 0;
+      for (const e of msg.list) onEvent(e);
+      break;
+    case 'gore':
+      gore.corpses = msg.corpses.slice();
+      gore.splats = msg.splats.map(([x, y]) => [x, y, 0]);
+      for (const [, x, y] of gore.corpses) gore.splats.push([x, y, 1]);
       break;
     case 'results':
       mode = 'results';
@@ -109,6 +128,29 @@ function onMessage(msg) {
   }
 }
 
+function pushCapped(list, entry, max) {
+  list.push(entry);
+  if (list.length > max) list.splice(0, list.length - max);
+}
+
+function onEvent(e) {
+  const max = balance.gore;
+  if (e.type === 'pickup' && e.player === myId) heldRot = itemRot.get(e.id) ?? 0;
+  else if (e.type === 'hit' && e.mob) pushCapped(gore.splats, [Math.round(e.x), Math.round(e.y), 0], max.maxSplats);
+  else if (e.type === 'objHit') shakes.set(e.id, performance.now());
+  else if (e.type === 'ultDeny' && e.id === myId) denyUntil = performance.now() + 800;
+  else if (e.type === 'ult' || e.type === 'explode') {
+    const now = performance.now();
+    const kind = e.type === 'explode' ? 'explode' : e.kind;
+    const color = latest?.players.find((p) => p.id === e.id)?.color ?? '#ffffff';
+    effects.push({ ...e, kind, color, start: now, durMs: EFFECT_MS[kind] * (e.tier === 3 ? 1.6 : 1) });
+    if (e.type === 'ult') flash = { color, start: now, strong: e.id === myId };
+  } else if (e.type === 'mobDeath') {
+    pushCapped(gore.splats, [Math.round(e.x), Math.round(e.y), 1], max.maxSplats);
+    pushCapped(gore.corpses, [e.mobType, Math.round(e.x), Math.round(e.y), e.a], max.maxCorpses);
+  }
+}
+
 function onStatus(s, reason) {
   status = s;
   if (s !== 'rejected') return;
@@ -121,7 +163,7 @@ function onStatus(s, reason) {
 }
 
 function moveCtx(me) {
-  return { grid, heldKind: me.held, canMove: me.state === 'alive' && !me.suspended && !(me.busy > 0) };
+  return { grid, heldKind: me.held, speedMult: me.speedMult ?? 1, canMove: me.state === 'alive' && !me.suspended && !(me.busy > 0) };
 }
 
 function onSnap(snap) {
@@ -207,6 +249,8 @@ function resize() {
   scale = computeScale(innerWidth, innerHeight);
   const w = VIEW_W * scale;
   const h = VIEW_H * scale;
+  worldCanvas.width = w;
+  worldCanvas.height = h;
   offset.x = Math.floor((innerWidth - w) / 2);
   offset.y = Math.floor((innerHeight - h) / 2);
   Object.assign(worldCanvas.style, { width: `${w}px`, height: `${h}px`, left: `${offset.x}px`, top: `${offset.y}px` });
@@ -267,8 +311,9 @@ function frame(now) {
   const playing = (mode === 'game' || mode === 'results') && latest && sprites;
   document.body.classList.toggle('playing', mode === 'game' && !paused);
   if (!playing) {
+    wctx.setTransform(1, 0, 0, 1, 0, 0);
     wctx.fillStyle = '#000';
-    wctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    wctx.fillRect(0, 0, worldCanvas.width, worldCanvas.height);
     renderHud(hctx, scale, offset, { status, mouse: input.mouse, showCursor: false, sprites, cam });
     return;
   }
@@ -294,11 +339,15 @@ function frame(now) {
     if (i >= 0) players[i] = me;
     cam.follow(Math.round(me.x), Math.round(me.y));
   }
+  effects = effects.filter((e) => now - e.start < e.durMs);
   const view = {
     cam, balance, sprites, frame: Math.floor(now / (1000 / 60)), players,
     mobs: lerpEntities(a.mobs, b.mobs, alpha, MOB_KEY),
     bullets: lerpEntities(a.bullets, b.bullets, alpha, BULLET_KEY),
-    items: b.items, myId, mobAngles,
+    items: b.items, myId, mobAngles, gore, seed: latest.seed,
+    droplets: lerpEntities(a.droplets ?? [], b.droplets ?? [], alpha, BULLET_KEY),
+    rockets: lerpEntities(a.rockets ?? [], b.rockets ?? [], alpha, BULLET_KEY),
+    effects, shakes, nowMs: now, pxScale: scale,
     ghost: me && mode === 'game' ? ghostFor(me, latest, players, aimWorld()) : null,
   };
   renderWorld(wctx, view);
@@ -306,6 +355,8 @@ function frame(now) {
     snap: latest, balance, sprites, cam, me, players, status, tab, nowMs: now,
     hint: me && mode === 'game' ? pickupHint(me, latest.items) : null,
     mouse: input.mouse, showCursor: mode === 'game' && !paused,
+    deny: now < denyUntil,
+    flash: flash && now - flash.start < FLASH_MS ? { ...flash, k: (now - flash.start) / FLASH_MS } : null,
   });
 }
 

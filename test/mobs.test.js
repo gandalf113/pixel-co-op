@@ -20,7 +20,8 @@ test('slime walks toward player', () => {
   const m = addMob(w, 'slime', c(35), c(30));
   const before = dist(m, first(w));
   run(w, 1);
-  assert.ok(Math.abs(before - dist(m, first(w)) - 40) <= 4);
+  const gained = before - dist(m, first(w));
+  assert.ok(gained >= 20 && gained <= 44, `gained ${gained}`);
 });
 
 test('slime attacks every 1 s', () => {

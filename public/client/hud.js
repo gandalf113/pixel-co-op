@@ -1,7 +1,9 @@
 import { VIEW_W, VIEW_H } from './render.js';
 import { formatTime } from './ui.js';
+import { rifleStats } from '../shared/weapon.js';
 
 const PAD = 12;
+const TIER_COLORS = ['#5a4f44', '#6fe0ff', '#d9b53a', '#ff5a4a'];
 
 function text(ctx, str, x, y, { color = '#e8e2d4', size, align = 'left', base = 'alphabetic' }) {
   ctx.font = `bold ${size}px monospace`;
@@ -21,6 +23,15 @@ function bar(ctx, x, y, w, h, frac, color) {
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = color;
   ctx.fillRect(x, y, Math.round(w * Math.max(0, Math.min(1, frac))), h);
+}
+
+function drawMagazine(ctx, x, y, scale) {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x - 1, y - 1, 4 * scale + 2, 7 * scale + 2);
+  ctx.fillStyle = '#d9b53a';
+  ctx.fillRect(x, y, 4 * scale, 7 * scale);
+  ctx.fillStyle = '#7d766b';
+  for (let i = 1; i < 7; i += 2) ctx.fillRect(x, y + i * scale, 4 * scale, Math.max(1, scale / 2));
 }
 
 function drawIcon(ctx, img, x, y, scale) {
@@ -47,7 +58,19 @@ export function renderHud(ctx, scale, offset, state) {
       const s = toScreen(p.x, p.y);
       const top = s.y - 12 * scale;
       text(ctx, p.nick, s.x, top - 4 * scale, { color: p.color, size: small, align: 'center' });
+      if (p.id !== snap.you.id && balance.ultimate) {
+        const tier = Math.min(3, Math.floor((p.ult ?? 0) / balance.ultimate.tierPoints));
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(s.x, top - 4 * scale - small - 2 * scale, 2 * scale + 1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = TIER_COLORS[tier];
+        ctx.beginPath();
+        ctx.arc(s.x, top - 4 * scale - small - 2 * scale, 2 * scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
       bar(ctx, s.x - 8 * scale, top - 2 * scale, 16 * scale, Math.max(2, scale), p.hp / p.maxHp, p.color);
+      if (p.reloadLeft > 0 && p.id !== snap.you.id) drawMagazine(ctx, s.x + 10 * scale, top - 6 * scale, scale);
       if (p.state === 'downed') {
         text(ctx, `✚ ${Math.ceil(p.deathLeft)}`, s.x, s.y + 14 * scale, { color: '#ff5a4a', size: fs, align: 'center' });
         if (p.reviveProgress > 0) bar(ctx, s.x - 8 * scale, s.y + 16 * scale, 16 * scale, Math.max(2, scale), p.reviveProgress / balance.player.reviveTimeS, '#6fc7c9');
@@ -113,7 +136,39 @@ export function renderHud(ctx, scale, offset, state) {
       const bw = 60 * scale;
       bar(ctx, PAD, H - PAD - 6 * scale, bw, 6 * scale, me.hp / me.maxHp, me.hp / me.maxHp > 0.3 ? '#55b04a' : '#a8321f');
       text(ctx, String(Math.floor(me.hp)), PAD + bw / 2, H - PAD - 3 * scale, { size: small, align: 'center', base: 'middle' });
-      text(ctx, `BROŃ LV ${me.weaponLv}`, PAD + bw + 10, H - PAD - 3 * scale, { size: fs, base: 'middle' });
+      const lvStr = `BROŃ LV ${me.weaponLv}`;
+      text(ctx, lvStr, PAD + bw + 10, H - PAD - 3 * scale, { size: fs, base: 'middle' });
+      const gun = rifleStats(balance, me.weaponLv);
+      const low = me.ammo <= 5 && Math.floor(state.nowMs / 250) % 2 === 0;
+      ctx.font = `bold ${fs}px monospace`;
+      text(ctx, `${me.ammo} / ${gun.magazine}`, PAD + bw + 10 + ctx.measureText(lvStr).width + 12, H - PAD - 3 * scale,
+        { size: fs, base: 'middle', color: low ? '#ff5a4a' : '#e8e2d4' });
+
+      if (me.reloadLeft > 0) {
+        const s = toScreen(me.x, me.y);
+        const rw = 24 * scale;
+        bar(ctx, s.x - rw / 2, s.y + 11 * scale, rw, Math.max(3, 2 * scale), 1 - me.reloadLeft / gun.reloadS, '#d9b53a');
+        text(ctx, 'PRZEŁADOWANIE', s.x, s.y + 13 * scale + small + 2, { size: small, align: 'center' });
+      }
+
+      if (me.ultKind && balance.ultimate) {
+        const u = balance.ultimate;
+        const segW = 20 * scale;
+        const segH = 3 * scale;
+        const y = H - PAD - 6 * scale - segH - 4 * scale;
+        const tier = Math.min(3, Math.floor(me.ult / u.tierPoints));
+        const pulse = tier > 0 ? 0.65 + 0.35 * Math.sin(state.nowMs / 150) : 1;
+        for (let i = 0; i < 3; i++) {
+          const frac = (me.ult - i * u.tierPoints) / u.tierPoints;
+          ctx.globalAlpha = i < tier ? pulse : 1;
+          bar(ctx, PAD + i * (segW + 3), y, segW, segH, frac, i < tier ? TIER_COLORS[i + 1] : '#3f7f8f');
+          ctx.globalAlpha = 1;
+        }
+        const kind = u.kinds[me.ultKind];
+        text(ctx, `${kind.icon} [F]`, PAD + 3 * (segW + 3) + 6, y + segH / 2, { size: small, base: 'middle', color: tier > 0 ? TIER_COLORS[tier] : '#7d766b' });
+        if (state.deny) text(ctx, 'ZA MAŁO', PAD + 3 * (segW + 3) + 6, y - small, { size: small, color: '#ff5a4a' });
+        if (me.frenzyLeft > 0) text(ctx, `SZAŁ ${Math.ceil(me.frenzyLeft)} s`, W / 2, H - PAD - 40 * scale, { size: fs, align: 'center', color: '#ff5a4a' });
+      }
 
       const held = me.held;
       const label = held ? balance.items[held].name : 'nic';
@@ -145,6 +200,13 @@ export function renderHud(ctx, scale, offset, state) {
 
   if (state.status === 'lost' || state.status === 'connecting') {
     text(ctx, 'Utracono połączenie — łączę ponownie…', W / 2, H / 2, { color: '#ff5a4a', size: fs, align: 'center' });
+  }
+
+  if (state.flash) {
+    ctx.globalAlpha = (state.flash.strong ? 0.35 : 0.12) * (1 - state.flash.k);
+    ctx.fillStyle = state.flash.color;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
   }
 
   if (state.showCursor) drawIcon(ctx, sprites.get('crosshair'), state.mouse.x, state.mouse.y, scale);

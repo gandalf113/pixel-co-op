@@ -1,9 +1,10 @@
 import { makeRules } from './balance.js';
 import { makeRng } from './rng.js';
 import { composeWave, SpawnDirector } from './waves.js';
-import { createPlayer, updatePlayers, startBreakFor, allDown, setDropHeld } from './players.js';
+import { createPlayer, updatePlayers, startBreakFor, allDown, setDropHeld, speedMultOf } from './players.js';
+import { updateUltimate, useUltimate } from './ultimate.js';
 import { updateMobs } from './mobs.js';
-import { fireWeapons, updateBullets } from './combat.js';
+import { fireWeapons, updateBullets, startReload } from './combat.js';
 import * as items from './items.js';
 import { Grid } from '../public/shared/world.js';
 
@@ -12,6 +13,7 @@ const r1 = (v) => (typeof v === 'number' ? Math.round(v * 10) / 10 : v ?? null);
 
 export class Game {
   constructor({ balance, difficulty, players, seed }) {
+    this.seed = seed;
     const rules = makeRules(balance, difficulty, players.length);
     let next = 1;
     this.world = {
@@ -25,6 +27,9 @@ export class Game {
       bullets: [],
       items: new Map(),
       events: [],
+      gore: { corpses: [], splats: [] },
+      droplets: [],
+      rockets: [],
       rng: makeRng(seed),
       nextId: () => next++,
       fieldsDirty: false,
@@ -66,6 +71,7 @@ export class Game {
     items.updateItems(w, dt);
     updateMobs(w, dt, this.mobHooks);
     updateBullets(w, dt, this.bulletHooks);
+    updateUltimate(w, dt);
     if (w.phase === 'wave') this.#spawn(dt);
 
     if (w.phase === 'break') {
@@ -95,6 +101,14 @@ export class Game {
       if (this.world.phase !== 'break') return;
       p.ready = !p.ready;
       this.#checkReady();
+      return;
+    }
+    if (action === 'f') {
+      useUltimate(this.world, p);
+      return;
+    }
+    if (action === 'r' && p.held === null) {
+      if (p.state === 'alive' && !p.suspended) startReload(this.world, p);
       return;
     }
     items.handleAction(this.world, p, action);
@@ -153,12 +167,13 @@ export class Game {
       const f = it.flight;
       itemViews.push({
         id: it.id, kind: it.kind, state: it.state, x: r1(it.x), y: r1(it.y), tx: it.tx, ty: it.ty, rot: it.rot,
-        hp: r1(it.hp), timeLeft: r1(it.timeLeft), armed: it.state === 'active' && !(it.armLeft > 0),
+        hp: r1(it.hp), maxHp: it.maxHp ?? w.rules.balance.items[it.kind].hp ?? null, timeLeft: r1(it.timeLeft), armed: it.state === 'active' && !(it.armLeft > 0),
         flight: f ? { x0: r1(f.x0), y0: r1(f.y0), x1: r1(f.x1), y1: r1(f.y1), p: r1(f.t / f.dur) } : null,
       });
     }
     return {
       t: r1(w.time),
+      seed: this.seed,
       phase: w.phase,
       wave: w.wave,
       breakLeft: r1(w.phase === 'break' ? Math.max(0, this.breakLeft) : 0),
@@ -166,7 +181,9 @@ export class Game {
       mobsLeft: w.mobs.length + (this.director?.pending ?? 0),
       you: { id, ackSeq: me?.ackSeq ?? 0 },
       players: [...w.players.values()].map((p) => this.#playerView(p)),
-      mobs: w.mobs.map((m) => [m.id, m.type, r1(m.x), r1(m.y), r1(m.hp), r1(m.maxHp), m.stun > 0 ? 1 : 0]),
+      mobs: w.mobs.map((m) => [m.id, m.type, r1(m.x), r1(m.y), r1(m.hp), r1(m.maxHp), m.stun > 0 ? 1 : 0, m.frozen > 0 ? 1 : 0, m.burnLeft > 0 ? 1 : 0]),
+      droplets: w.droplets.map((d) => [d.id, r1(d.x), r1(d.y)]),
+      rockets: w.rockets.map((r) => [r.id, r1(r.x), r1(r.y), r1(Math.atan2(r.vy, r.vx))]),
       bullets: w.bullets.map((b) => [b.id, r1(b.x), r1(b.y)]),
       items: itemViews,
     };
@@ -178,6 +195,8 @@ export class Game {
       hp: r1(p.hp), maxHp: r1(p.maxHp), state: p.state, suspended: p.suspended,
       reviveProgress: r1(p.reviveProgress), deathLeft: r1(p.deathLeft), invuln: r1(p.invuln), busy: r1(p.busy),
       held: items.heldKind(this.world, p), ready: p.ready, weaponLv: p.weaponLv,
+      ammo: p.ammo, reloadLeft: r1(p.reloadLeft),
+      ult: r1(p.ult), ultKind: p.ultKind, frenzyLeft: r1(p.frenzyLeft), speedMult: speedMultOf(p),
     };
   }
 
@@ -207,7 +226,11 @@ export class Game {
     for (const p of w.players.values()) if (p.state !== 'dead' && !p.suspended) positions.push({ x: p.x, y: p.y });
     for (const s of this.director.update(dt, w.mobs.length, positions)) {
       const hp = w.rules.mobHp(s.type, w.wave);
-      w.mobs.push({ id: w.nextId(), type: s.type, x: s.x, y: s.y, hp, maxHp: hp, stun: 0, attackCd: 0 });
+      const r = w.rules.balance.mobs[s.type].radiusPx;
+      const { tilesW, tilesH, tilePx } = w.rules.balance.map;
+      const x = Math.min(tilesW * tilePx - r, Math.max(r, s.x));
+      const y = Math.min(tilesH * tilePx - r, Math.max(r, s.y));
+      w.mobs.push({ id: w.nextId(), type: s.type, x, y, hp, maxHp: hp, stun: 0, attackCd: 0 });
     }
   }
 

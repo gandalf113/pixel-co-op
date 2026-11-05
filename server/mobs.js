@@ -1,5 +1,6 @@
 import { buildField, nextStep } from './flowfield.js';
 import { damagePlayer } from './players.js';
+import { damageMob } from './combat.js';
 import { moveCircle, tileOf } from '../public/shared/world.js';
 
 const EPS = 1e-9;
@@ -79,12 +80,36 @@ function resolveStep(grid, tx, ty, step) {
   return step;
 }
 
+const rand = (rng, a, b) => a + rng() * (b - a);
+
+function updateWander(world, mob, dt) {
+  const ai = world.rules.balance.mobAi;
+  const cfg = world.rules.balance.mobs[mob.type];
+  const w = (mob.wander ??= { offset: 0, changeIn: 0, lookIn: rand(world.rng, ai.lookEveryMinS, ai.lookEveryMaxS), lookLeft: 0, lookDir: 0 });
+  w.changeIn -= dt;
+  if (w.changeIn <= 0) {
+    w.offset = ((world.rng() * 2 - 1) * cfg.wanderDeg * Math.PI) / 180;
+    w.changeIn = rand(world.rng, ai.wanderChangeMinS, ai.wanderChangeMaxS);
+  }
+  if (w.lookLeft > 0) w.lookLeft -= dt;
+  else if (cfg.look) {
+    w.lookIn -= dt;
+    if (w.lookIn <= 0) {
+      w.lookLeft = rand(world.rng, ai.lookMinS, ai.lookMaxS);
+      w.lookDir = world.rng() * Math.PI * 2;
+      w.lookIn = rand(world.rng, ai.lookEveryMinS, ai.lookEveryMaxS);
+    }
+  }
+  return w;
+}
+
 function moveToward(world, mob, gx, gy, maxDist) {
   const dx = gx - mob.x;
   const dy = gy - mob.y;
   const d = Math.hypot(dx, dy);
   if (d < EPS) return;
   const s = Math.min(maxDist, d) / d;
+  mob.angle = Math.atan2(dy, dx);
   const r = world.rules.balance.mobs[mob.type].radiusPx;
   const pos = moveCircle(world.grid, mob.x, mob.y, r, dx * s, dy * s, world.rules.tilePx);
   mob.x = pos.x;
@@ -95,8 +120,9 @@ function attackObject(world, mob, tx, ty, hooks) {
   const item = world.items.get(world.grid.id(tx, ty));
   if (!item || item.hp <= 0 || mob.attackCd > EPS) return;
   const cfg = world.rules.balance.mobs[mob.type];
-  item.hp -= world.rules.mobDamage(mob.type) * cfg.wallMult;
+  item.hp -= world.rules.mobObjDamage(mob.type);
   mob.attackCd = cfg.attackS;
+  world.events.push({ type: 'objHit', id: item.id });
   if (item.hp <= 0) hooks.onObjectDestroyed?.(item);
 }
 
@@ -118,7 +144,7 @@ function updateMob(world, mob, dt, hooks) {
   const ty = tileOf(mob.y, tilePx);
   const { field, siege } = chooseField(world, mob, target.down, tx, ty);
   const raw = nextStep(field, world.grid, tx, ty, siege ? balance.mobAi.wallCost : null);
-  const speed = world.rules.mobSpeedPx(mob.type) * dt;
+  const speed = world.rules.mobSpeedPx(mob.type) * dt * (mob.slowLeft > 0 ? 0.5 : 1);
   if (!raw) {
     moveToward(world, mob, target.player.x, target.player.y, Math.min(speed, target.dist - cfg.radiusPx - playerR));
     return;
@@ -128,7 +154,18 @@ function updateMob(world, mob, dt, hooks) {
     attackObject(world, mob, nx, ny, hooks);
     return;
   }
-  moveToward(world, mob, (nx + 0.5) * tilePx, (ny + 0.5) * tilePx, speed);
+  let gx = (nx + 0.5) * tilePx;
+  let gy = (ny + 0.5) * tilePx;
+  const w = updateWander(world, mob, dt);
+  if (target.dist > balance.mobAi.wanderNearTiles * tilePx) {
+    const look = w.lookLeft > 0;
+    const a = look ? w.lookDir : Math.atan2(gy - mob.y, gx - mob.x) + w.offset;
+    gx = mob.x + Math.cos(a) * tilePx;
+    gy = mob.y + Math.sin(a) * tilePx;
+    moveToward(world, mob, gx, gy, look ? speed * balance.mobAi.lookSpeedMult : speed);
+    return;
+  }
+  moveToward(world, mob, gx, gy, speed);
 }
 
 function separate(world) {
@@ -164,7 +201,18 @@ function separate(world) {
 
 export function updateMobs(world, dt, hooks = {}) {
   refreshFields(world, dt);
-  for (const mob of world.mobs) {
+  for (const mob of [...world.mobs]) {
+    if (mob.burnLeft > 0) {
+      mob.burnLeft -= dt;
+      damageMob(world, mob, mob.burnDps * dt, mob.burnOwner);
+      if (!world.mobs.includes(mob)) continue;
+    }
+    if (mob.frozen > 0) {
+      mob.frozen = Math.max(0, mob.frozen - dt);
+      if (mob.frozen === 0 && mob.slowAfter > 0) mob.slowLeft = mob.slowAfter;
+      continue;
+    }
+    if (mob.slowLeft > 0) mob.slowLeft -= dt;
     if (mob.stun > 0) {
       mob.stun = Math.max(0, mob.stun - dt);
       continue;

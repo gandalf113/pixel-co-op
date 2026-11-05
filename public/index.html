@@ -10,7 +10,7 @@
     #hud { position: absolute; left: 0; top: 0; pointer-events: none; }
     body.playing { cursor: none; }
     #ui { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-    .panel { pointer-events: auto; cursor: default; background: rgba(20, 18, 15, 0.94); border: 2px solid #5a4f44; padding: 24px 28px; min-width: 320px; max-width: 90vw; }
+    .panel { pointer-events: auto; cursor: default; background: rgba(20, 18, 15, 0.94); border: 2px solid #5a4f44; padding: 24px 28px; min-width: 320px; max-width: 90vw; max-height: 94vh; overflow-y: auto; box-sizing: border-box; }
     .panel h1, .panel h2 { margin: 0 0 16px; color: #d9b53a; letter-spacing: 2px; }
     .panel label { display: block; margin: 12px 0 4px; color: #a39b8c; }
     .panel input[type=text] { font: inherit; font-size: 18px; width: 100%; box-sizing: border-box; padding: 6px 8px; background: #23211e; color: #e8e2d4; border: 1px solid #7d766b; }
@@ -22,6 +22,14 @@
     .panel table { border-collapse: collapse; margin-top: 8px; }
     .panel td, .panel th { padding: 2px 12px 2px 0; text-align: left; }
     .muted { color: #7d766b; }
+    .panel button:disabled { background: #5a4f44; cursor: default; }
+    .ult-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; max-height: 45vh; overflow-y: auto; }
+    .panel .ult-tile { margin: 0; padding: 6px 8px; text-align: left; background: #23211e; color: #e8e2d4; border: 2px solid #3b342d; font-size: 12px; }
+    .panel .ult-tile:hover { background: #2e2a25; }
+    .panel .ult-tile.sel { border-color: #6fe0ff; background: #1d2a2e; }
+    .ult-icon { font-size: 22px; color: #6fe0ff; }
+    .ult-name { font-weight: bold; color: #d9b53a; margin-bottom: 2px; }
+    .ult-tier { color: #a39b8c; }
     .msg { color: #e8e2d4; font-size: 18px; }
   </style>
 </head>

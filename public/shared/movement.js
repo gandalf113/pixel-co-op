@@ -1,7 +1,7 @@
 import { moveCircle } from './world.js';
 
-export function playerSpeedPx(balance, heldKind) {
-  const base = balance.player.speedTiles * balance.map.tilePx;
+export function playerSpeedPx(balance, heldKind, mult = 1) {
+  const base = balance.player.speedTiles * balance.map.tilePx * mult;
   const hard = heldKind != null && balance.items[heldKind]?.category === 'hard';
   return hard ? base * balance.player.carryHardSpeedMult : base;
 }
