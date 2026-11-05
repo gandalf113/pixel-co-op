@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.4 - 2026-11-05
+- Nowy 07-BACKLOG-V2: ULTIMATE (shiny droplets laduja wspolny pasek wszystkim, kazdy uzywa swojego kiedy chce, 3 progi, wybor w lobby) + propozycja mechaniki i pytania U1-U5.
+
 ## 0.3 - 2026-11-05
 - Decyzje wlascicieli produktu (06-OPEN-QUESTIONS R4-R15): max 4 graczy; powalenie i podnoszenie; timer power-upow liczy sie w przerwie;
   rzucony power-up AKTYWUJE sie w miejscu ladowania (poza boostem broni); sciana 2x1 z obrotem pod R; "Gotowy" u wszystkich skraca przerwe;
