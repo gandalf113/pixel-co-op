@@ -1,6 +1,6 @@
 # 08 - ULTIMATE
 
-Wersja: 0.3 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
+Wersja: 0.4 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
 
 ## 1. Założenia (zatwierdzone)
 
@@ -34,9 +34,9 @@ Przy standardowej fali na Normalnym: fala 1 to ok. 17 potworów = ok. 85-100 pun
 | ULT-CTRL-01 | `F` - użyj ultimate. Działa od progu I. Poniżej progu I: krótki sygnał "za mało". |
 | ULT-CTRL-02 | Ultimate celowane (Działko szerokie, Rakieta) używają kierunku kursora w momencie naciśnięcia `F`. |
 | ULT-CTRL-03 | Użycie nie przerywa ruchu ani nie wymaga pustych rąk (działa z przedmiotem w rękach). Wyjątek: Szał nie zmienia zasad rzutu. |
-| ULT-HUD-01 | Pasek ULTIMATE nad paskiem HP, 3 segmenty. Osiągnięty próg = segment świeci. Od progu I pasek pulsuje. |
-| ULT-HUD-02 | Ikona wybranego ultimate obok paska. Nad sojusznikiem mała kropka w kolorze progu (szara / I / II / III), żeby wiedzieć, kto ma gotowe. |
-| ULT-HUD-03 | Lobby: wybór ultimate z 7 kafelków z ikoną, nazwą i opisem trzech progów. |
+| ULT-HUD-01 | Pasek ULTIMATE **w lewym górnym rogu**, poziomy, w stylu paska super z bijatyk 16-bit (Street Fighter na SNES): 3 segmenty z przerwami, wypełnianie od lewej, połysk na pełnych segmentach, pulsowanie i napis `ULTI GOTOWE [F]` przy pełnym pasku, licznik `I / II / III`. Szczegóły PRD-HUD-10. |
+| ULT-HUD-02 | Ikona wybranego ultimate 32 x 32 po lewej stronie paska. Nad sojusznikiem mała kropka w kolorze progu (szara / I / II / III), żeby wiedzieć, kto ma gotowe. |
+| ULT-HUD-03 | Lobby: 7 kafelków w jednym rzędzie, bez przewijania, każdy z **ikoną 32 x 32 pixel-art** (`ult_*` w `sprites.js`: `ult_shockwave`, `ult_wall`, `ult_heal`, `ult_rage`, `ult_wide_cannon`, `ult_rocket`, `ult_freeze`), nazwą i jednym zdaniem; progi po najechaniu. Układ: PRD-SES-05. |
 
 ## 4. Lista ultimate (7)
 
@@ -62,7 +62,7 @@ Zasady szczegółowe:
 ## 5. Wygląd (dla generacji pixel art)
 
 - Kropelka: 6 x 6, 2 klatki pulsu, kolor wspólny dla wszystkich (np. cyjan), inny niż power-upy.
-- Każdy ultimate: ikona 16 x 16 do lobby i HUD, efekt ekranowy 0.3 s przy użyciu (błysk w kolorze gracza) i efekt obszarowy (okrąg fali, stożek, wybuch, lód, tarcza).
+- Każdy ultimate: **ikona 32 x 32** do lobby i HUD (gotowe w `sprites.js` jako `ult_*`, z ciemnym tłem kafelka i obrysem), efekt ekranowy 0.3 s przy użyciu (błysk w kolorze gracza) i efekt obszarowy (okrąg fali, stożek, wybuch, lód, tarcza).
 - Próg III ma wyraźniejszy efekt niż I (większy, dłuższy, więcej klatek), żeby było widać, że ktoś użył "pełnego".
 
 ## 6. Testy

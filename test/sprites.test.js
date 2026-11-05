@@ -11,7 +11,8 @@ test('sprites are complete and well-formed', () => {
   for (const [name, rows] of Object.entries(SPRITES)) {
     const w = rows[0].length;
     assert.ok(rows.every(r => r.length === w), `${name}: równe wiersze`);
-    if (!['bullet', 'crosshair'].includes(name)) assert.equal(rows.length, 16, `${name}: 16 wierszy`);
+    if (name.startsWith('ult_')) assert.equal(rows.length, 32, `${name}: 32 wiersze`);
+    else if (!['bullet', 'crosshair'].includes(name)) assert.equal(rows.length, 16, `${name}: 16 wierszy`);
     for (const r of rows) for (const ch of r) assert.ok(ch in PALETTE, `${name}: znak '${ch}' poza paletą`);
   }
 });

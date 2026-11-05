@@ -1,6 +1,6 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.15 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.17 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
@@ -50,6 +50,9 @@ Wersja: 0.15 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr
 | R43 | Ładowanie ULTIMATE | 5x szybciej: kropelka = 5 punktów (08 sekcja 2) | 2026-11-05 |
 | R44 | Magnes kropelek | Zasięg 14 kafelków, prędkość rośnie kwadratowo im bliżej gracza, życie 30 s (ULT-07) | 2026-11-05 |
 | R45 | Muzzle flash i widoczne trafienia | Muzzle flash obowiązkowy (FX-06); FX-01 wzmocnione: pełna biel 3 klatki, odrzut, stożek krwi, liczba, hit marker na celowniku; test X1 blokujący | 2026-11-05 |
+| R46 | Lobby ultimate | Panel szeroki, 7 kafelków w jednym rzędzie, bez przewijania na 1366 x 768, ikony 32 x 32 pixel-art (PRD-SES-05, ULT-HUD-03); ikony `ult_*` w sprites.js | 2026-11-05 |
+| R47 | Pasek ULTIMATE | Lewy górny róg, poziomy, styl paska super z bijatyk 16-bit: 3 segmenty, połysk, pulsowanie, `ULTI GOTOWE [F]` (PRD-HUD-10, ULT-HUD-01) | 2026-11-05 |
+| R48 | Wygląd kruszenia ścian | Więcej pęknięć, rogi zaokrąglają się i wykruszają rosnąco w 3 stanach (PRD-FX-08); sprite'y wall_dmg_1..3, wall_collapse_0..2, rubble_0/1, turret_wreck w sprites.js | 2026-11-05 |
 | R26 | ~~Kamera (po teście silnika)~~ | ~~Dynamiczny zoom-out~~ **uchylone przez R42** | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu
