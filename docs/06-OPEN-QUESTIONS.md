@@ -1,6 +1,6 @@
 # 06 - Otwarte pytania i decyzje
 
-Wersja: 0.13 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
+Wersja: 0.14 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak. Każda odpowiedź trafia do właściwego dokumentu i do `CHANGELOG.md`.
 
 ## Rozstrzygnięte
 
@@ -45,6 +45,7 @@ Wersja: 0.13 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr
 | R38 | Podświetlenie przedmiotu | Najbliższy przedmiot w zasięgu E jest podświetlony pulsującym obrysem, dokładnie jeden, ten sam co wybierze serwer (PRD-HUD-09, ITM-GEN-04) | 2026-11-05 |
 | R39 | Celowanie przy stawianiu | Kursor za daleko = ghost i stawianie na najdalszym dozwolonym kafelku w kierunku kursora; czerwony tylko przy kolizji / braku widoczności / limicie (ITM-PLACE-01) | 2026-11-05 |
 | R40 | Brak zamiany | E z przedmiotem w rękach zawsze odkłada / stawia trzymany; nigdy nie podnosi innego (ITM-GEN-11); sekcja 3.3 skasowana | 2026-11-05 |
+| R41 | Kruszenie ścian | 4 stany zużycia z pęknięciami i wyszczerbionymi krawędziami, odłamki przy zmianie stanu, animacja zawalenia 0.4 s, rumowisko; obiekt znika dopiero po animacji (PRD-FX-08) | 2026-11-05 |
 | R26 | Kamera (po teście silnika) | Dynamiczny zoom-out w miarę rozchodzenia graczy do rozsądnego maksimum, dalej strzałki (PRD-MAP-07) | 2026-11-05 |
 
 ## Otwarte: dla właścicieli produktu

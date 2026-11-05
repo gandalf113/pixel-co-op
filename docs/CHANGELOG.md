@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.14 - 2026-11-05
+- R41 sciany krusza sie wizualnie: 4 stany zuzycia (pekniecia, wyszczerbione krawedzie, dziury), odlamki, drganie, animacja zawalenia, rumowisko, dopiero potem znikaja (PRD-FX-08, ITM-GEN-09, 03 sekcja 1, testy X7-X9). Nowe sprite'y: wall_dmg_1/2/3, wall_collapse_0..2, rubble_0/1, turret_wreck.
+
 ## 0.13 - 2026-11-05
 - R39 stawianie: kursor poza zasiegiem = ghost przyciagany do najdalszego dozwolonego kafelka w kierunku kursora, nie czerwony (ITM-PLACE-01, ITM-GEN-07, testy I4b-I4d).
 - R40 brak zamiany: E z przedmiotem w rekach zawsze odklada/stawia trzymany, nie podnosi innego (ITM-GEN-11, PRD-CTRL-04, test I4e).

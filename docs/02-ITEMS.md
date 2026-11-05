@@ -1,6 +1,6 @@
 # 02 - Przedmioty
 
-Wersja: 0.13 (2026-11-05)
+Wersja: 0.14 (2026-11-05)
 
 Logika akcji (sekcja 3) jest **zatwierdzona przez właścicieli produktu**. Statystyki w sekcjach 4-5 to wartości startowe do balansu, do strojenia po testach.
 
@@ -25,7 +25,7 @@ Obie kategorie dropią z potworów i leżą na ziemi do podniesienia. **Używaln
 | ITM-GEN-06 | Host jest źródłem prawdy o stanie przedmiotu. Dwóch graczy nie może podnieść tego samego: pierwsza akcja, która dotrze do hosta, wygrywa. |
 | ITM-GEN-07 | Hard objectu nie da się odłożyć na inny obiekt, gracza ani potwora. Ghost pokazuje, czy miejsce jest dozwolone (zielony / czerwony). **Zasięg nie jest powodem czerwonego ghosta**: gdy kursor jest dalej niż zasięg stawiania, ghost **przyciąga się do najdalszego dozwolonego kafelka w kierunku kursora** i tam się stawia (ITM-PLACE-01). Czerwony oznacza tylko zajęte miejsce, kolizję z graczem / potworem, brak linii widzenia przez ścianę albo osiągnięty limit. |
 | ITM-GEN-08 | Odłożony hard object **da się ponownie podnieść** (`E` przy nim), o ile nie jest zniszczony. Power-up po użyciu (`R`) już nie. |
-| ITM-GEN-09 | Hard objecty mają HP i **są powoli niszczone przez każdego potwora, który je dotyka na swojej drodze** (nie tylko gdy nie ma obejścia), oraz przez pociski graczy (pełne obrażenia, nie 10%). Tempo i obrażenia per potwór w `03-WAVES-DIFFICULTY.md`, sekcja 1. Obiekt pokazuje pęknięcia w 3 stanach. |
+| ITM-GEN-09 | Hard objecty mają HP i **są powoli niszczone przez każdego potwora, który je dotyka na swojej drodze** (nie tylko gdy nie ma obejścia), oraz przez pociski graczy (pełne obrażenia, nie 10%). Tempo i obrażenia per potwór w `03-WAVES-DIFFICULTY.md`, sekcja 1. Obiekt przechodzi przez **4 stany zużycia** (pęknięcia, wyszczerbione krawędzie, dziury), sypie odłamki przy każdym przejściu, a przy 0 HP **zawala się z animacją** i zostawia rumowisko; znika dopiero po animacji (PRD-FX-08). |
 | ITM-GEN-10 | Gracz powalony lub rozłączony upuszcza trzymany przedmiot pod nogi (`NA_ZIEMI`). |
 | ITM-GEN-11 | **`E` z przedmiotem w rękach zawsze dotyczy trzymanego przedmiotu** (odłóż / postaw), nigdy nie podnosi innego przedmiotu z okolicy. Zamiana przedmiotów nie istnieje: żeby wziąć coś innego, najpierw odkładasz to, co masz. |
 | ITM-PLACE-01 | **Celowanie przy stawianiu**: kafelek docelowy = kafelek pod kursorem, jeśli jest w zasięgu (`placeRangeTiles`, metryka Czebyszewa jak dotąd); jeśli kursor jest dalej, kafelek docelowy = **ostatni kafelek w zasięgu na odcinku od środka gracza do kursora** (idąc po kafelkach od gracza w stronę kursora, bierzemy najdalszy, który jest w zasięgu i dozwolony; jeśli po drodze trafimy na niedozwolony, bierzemy ostatni dozwolony przed nim). Ghost zawsze jest zielony, gdy istnieje jakikolwiek dozwolony kafelek na tym odcinku, i leży na nim. Czerwony tylko, gdy żaden kafelek na odcinku nie jest dozwolony (np. gracz stoi przy ścianie i celuje w nią) albo limit. To samo dla `E` (hard object) i `R` (power-up). Klient i serwer liczą ten sam kafelek z tych samych danych (pozycja gracza, pozycja kursora, siatka), żeby ghost i wynik się zgadzały. |
@@ -80,7 +80,7 @@ Rzucony power-up: zadaje obrażenia trafionemu potworowi (wartość z tabeli w s
 Zasady:
 
 - Potwory wybierają między obejściem a przegryzieniem na podstawie kosztu (HP obiektu / ich obrażenia obiektom). Każdy potwór dotykający obiektu na trasie atakuje go. Mur bez obrony pada w ciągu jednej fali; broniony trzyma. Szczegóły w `03`, sekcja 1.
-- Zniszczony hard object znika z animacją odłamków. Nie zostawia dropu.
+- Zniszczony hard object zawala się (animacja 0.4 s, odłamki, pył) i zostawia bezkolizyjne rumowisko. Nie zostawia dropu. Szczegóły PRD-FX-08.
 - Odkładanie: do 2 kafelków od gracza, nie przez ścianę; kursor dalej = stawianie na granicy zasięgu w kierunku kursora (ITM-PLACE-01).
 
 ## 5. Power-upy

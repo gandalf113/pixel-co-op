@@ -1,6 +1,6 @@
 # 03 - Potwory, fale, trudność
 
-Wersja: 0.9 (2026-11-05)
+Wersja: 0.14 (2026-11-05)
 
 Liczby to **wartości startowe do balansu**. Zmieniamy je po testach (patrz `05-TEST-PLAN.md`, sekcja "Testy balansu"). Developer powinien trzymać je w jednym pliku konfiguracyjnym (np. `balance.json`), żeby dało się stroić bez grzebania w kodzie.
 
@@ -28,7 +28,7 @@ Zachowanie wspólne:
   - Platformy lecznicze nie blokują i nie są atakowane.
   - Tempo odniesienia na Normalnym: kawałek ściany (150 HP) pada po 30 ciosach ślimaka (30 s jednego ślimaka, 6 s pięciu), po 3 ciosach Osiłka (4.5 s), po 2 ciosach Bossa. Głaz (400 HP): 80 ciosów ślimaka, 8 Osiłka. Czyli mur bez obrony pada w jednej fali, mur broniony trzyma.
   - Trudność skaluje obrażenia obiektom tak samo jak obrażenia graczom (mnożnik z sekcji 4).
-  - Obiekt atakowany pokazuje pęknięcia (3 stany wizualne: 100-66%, 66-33%, poniżej 33%) i trzęsie się przy ciosie, żeby gracze widzieli, gdzie mur pęka.
+  - Obiekt atakowany pokazuje zużycie w 4 stanach (pęknięcia, wyszczerbione krawędzie, dziury), sypie odłamki przy zmianie stanu, drga przy ciosie, a przy 0 HP zawala się z animacją i zostawia rumowisko (PRD-FX-08). Gracze mają widzieć z daleka, gdzie mur pęka i który kawałek zaraz padnie.
 - Potwory nie kolidują ze sobą sztywno (miękkie rozpychanie), żeby nie blokować się w korytarzach.
 - Po śmierci potwór zostawia trupa i krew na ziemi (PRD-MAP-09). Trup to dekoracja: nie blokuje, nie jest celem, nie dropuje nic więcej.
 

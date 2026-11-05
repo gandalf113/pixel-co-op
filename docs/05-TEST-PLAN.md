@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.13 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.14 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -98,6 +98,9 @@ Wersja: 0.13 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | X4 | Mina wybucha pod ślimakami, kamera 6 kafelków dalej | PRD-FX-04 | Błysk, pierścień ognia, odłamki, dym, wstrząs kamery, trwały ślad wypalenia; potwory w zasięgu błyskają |
 | X5 | Mina wybucha 20 kafelków dalej (poza ekranem) | PRD-FX-04 | Brak wstrząsu; po dojściu na miejsce ślad wypalenia jest |
 | X6 | 10 min na fali 8+ | PRD-FX-07, PRD-PERF-01 | FPS nie spada przez cząsteczki, stare ślady znikają po limicie |
+| X7 | Ślimak bije ścianę od 150 HP do 0, patrz z 5 kafelków | PRD-FX-08 | Przy 112, 75 i 37 HP ściana zmienia wygląd (pęknięcia, potem ubytki na krawędziach, potem dziury) i sypie odłamki; przy każdym ciosie drga; przy 0 animacja zawalenia 0.4 s, pył, zostaje rumowisko; ściana NIE znika skokowo |
+| X8 | Ściana przy 10 HP, potwór za nią | PRD-FX-08 | Przez dziury widać ziemię, ale ściana nadal blokuje; po zawaleniu potwór wchodzi od razu (kolizja znika przy 0 HP, nie po animacji) |
+| X9 | Działko zniszczone przez potwory | PRD-FX-08 | Iskry, zostaje wrak działka na kafelku, bezkolizyjny |
 
 ## 6. Trudność
 
