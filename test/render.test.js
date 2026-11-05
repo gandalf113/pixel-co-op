@@ -5,8 +5,20 @@ import { computeScale, Camera, VIEW_W, VIEW_H, tileHash } from '../public/client
 test('computeScale never below 1', () => {
   assert.equal(computeScale(100, 100), 1);
   assert.equal(computeScale(0, 0), 1);
-  assert.equal(computeScale(1920, 1080), 3);
-  assert.equal(computeScale(1440, 900), 2);
+  assert.equal(computeScale(1920, 1080), 1080 / VIEW_H);
+});
+
+test('computeScale is fractional and fills the window height at 16:9', () => {
+  const s = computeScale(1920, 1080);
+  assert.ok(Math.abs(VIEW_H * s - 1080) < 1);
+  assert.ok(Math.abs(VIEW_W * s - 1920) < 1);
+  assert.ok(Math.abs(VIEW_H * computeScale(2560, 1080) - 1080) < 1);
+});
+
+test('computeScale is limited by width in windows narrower than 16:9', () => {
+  const s = computeScale(1280, 1024);
+  assert.equal(s, 1280 / VIEW_W);
+  assert.ok(VIEW_H * s < 1024);
 });
 
 test('camera centers the followed point', () => {

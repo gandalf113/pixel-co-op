@@ -351,7 +351,8 @@ test('wave 1 guarantee wired in Game', () => {
     [...g.world.mobs].forEach((m) => killMob(g.world, m, null));
   }
   assert.equal(g.phase, 'break');
-  assert.equal([...g.world.items.values()].filter((i) => i.kind === 'wall').length, 1);
+  // startowe ruiny (7) stoja od poczatku; gwarantowana sciana to jedyna na ziemi
+  assert.equal([...g.world.items.values()].filter((i) => i.kind === 'wall' && i.state === 'ground').length, 1);
 });
 
 test('no guarantee once a hard item dropped this wave', () => {

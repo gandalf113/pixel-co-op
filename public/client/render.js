@@ -9,7 +9,8 @@ const SPLAT_VARIANTS = 4;
 const THROW_ARC_PX = 8;
 
 export function computeScale(winW, winH) {
-  return Math.max(1, Math.floor(Math.min(winW / VIEW_W, winH / VIEW_H)));
+  // Skala ulamkowa: swiat ma stale 560x315, zeby wszyscy gracze widzieli to samo pole gry.
+  return Math.max(1, Math.min(winW / VIEW_W, winH / VIEW_H));
 }
 
 export class Camera {

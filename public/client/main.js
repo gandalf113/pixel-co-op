@@ -272,9 +272,17 @@ function myView(snap) {
   return snap?.players.find((p) => p.id === myId) ?? null;
 }
 
+// Kursor z okna we wspolrzednych planszy (= canvasu HUD); jedyne miejsce tej konwersji.
+function boardMouse() {
+  return { x: input.mouse.x - offset.x, y: input.mouse.y - offset.y };
+}
+
 function aimWorld() {
   const a = input.aimScreen();
-  return cam.viewToWorld(a.x / scale, a.y / scale);
+  // Dzielimy przez faktyczny rozmiar canvasu w px (zaokraglony), nie przez `scale` -
+  // inaczej przy skali ulamkowej celowanie rozjezdzaloby sie o ulamek piksela.
+  const r = worldCanvas.getBoundingClientRect();
+  return cam.viewToWorld(a.x * VIEW_W / (r.width || VIEW_W), a.y * VIEW_H / (r.height || VIEW_H));
 }
 
 function tick() {
@@ -370,15 +378,18 @@ function resume() {
 
 function resize() {
   scale = computeScale(innerWidth, innerHeight);
-  const w = VIEW_W * scale;
-  const h = VIEW_H * scale;
+  // Zaokraglamy wymiary w px, nie skale.
+  const w = Math.round(VIEW_W * scale);
+  const h = Math.round(VIEW_H * scale);
   worldCanvas.width = w;
   worldCanvas.height = h;
   offset.x = Math.floor((innerWidth - w) / 2);
   offset.y = Math.floor((innerHeight - h) / 2);
   Object.assign(worldCanvas.style, { width: `${w}px`, height: `${h}px`, left: `${offset.x}px`, top: `${offset.y}px` });
-  hudCanvas.width = innerWidth;
-  hudCanvas.height = innerHeight;
+  // HUD pokrywa sie co do piksela z plansza: ten sam rozmiar i pozycja co #world.
+  hudCanvas.width = w;
+  hudCanvas.height = h;
+  Object.assign(hudCanvas.style, { width: `${w}px`, height: `${h}px`, left: `${offset.x}px`, top: `${offset.y}px` });
 }
 
 function activeCount(items, kind) {
@@ -431,7 +442,7 @@ function frame(now) {
     wctx.setTransform(1, 0, 0, 1, 0, 0);
     wctx.fillStyle = '#000';
     wctx.fillRect(0, 0, worldCanvas.width, worldCanvas.height);
-    renderHud(hctx, scale, offset, { version, status, mouse: input.mouse, showCursor: false, sprites, cam });
+    renderHud(hctx, scale, { version, status, mouse: boardMouse(), showCursor: false, sprites, cam });
     return;
   }
   const { a, b, alpha } = buffer.sample(now);
@@ -472,11 +483,11 @@ function frame(now) {
     ghost: me && mode === 'game' ? ghostFor(me, latest, players, aimWorld()) : null,
   };
   renderWorld(wctx, view);
-  renderHud(hctx, scale, offset, {
+  renderHud(hctx, scale, {
     version, snap: latest, balance, sprites, cam, me, players, status, tab, nowMs: now,
     hint: pickTarget ? balance.items[pickTarget.kind].name : null, fx,
     spectating: specId ? players.find((p) => p.id === specId) ?? null : null,
-    mouse: input.mouse, showCursor: mode === 'game' && !paused,
+    mouse: boardMouse(), showCursor: mode === 'game' && !paused,
     deny: now < denyUntil,
     flash: flash && now - flash.start < FLASH_MS ? { ...flash, k: (now - flash.start) / FLASH_MS } : null,
   });

@@ -31,6 +31,10 @@ function drawIcon(ctx, img, x, y, scale) {
 }
 
 const ROMAN = ['I', 'II', 'III'];
+const TIER_FLASH_MS = 500;
+// Poprzedni poziom ulta miedzy klatkami (jak reloadSeen w render.js); null = jeszcze nie widzielismy.
+let tierSeen = null;
+let tierFlashAt = -Infinity;
 
 function drawEye(ctx, x, y, scale) {
   ctx.fillStyle = '#000';
@@ -57,6 +61,9 @@ function drawUltBar(ctx, state, me, scale, fs, small) {
   const y0 = PAD;
   const tier = Math.min(3, Math.floor(me.ult / u.tierPoints));
   const full = tier === 3;
+  if (tierSeen !== null && tier > tierSeen) tierFlashAt = now;
+  tierSeen = tier;
+  const flashK = (now - tierFlashAt) / TIER_FLASH_MS;
   const pulse = full ? 0.75 + 0.25 * Math.sin(now / 120) : 1;
   ctx.fillStyle = '#000';
   ctx.fillRect(x0 - 2, y0 - 2, iconPx + 4, iconPx + 4);
@@ -103,11 +110,23 @@ function drawUltBar(ctx, state, me, scale, fs, small) {
     ctx.lineWidth = 1;
     ctx.strokeRect(sx - 0.5, by - 0.5, segW + 1, h + 1);
   }
+  if (full) {
+    // Przy pelnym pasku migocze cala ramka paska, nie tylko napis.
+    const k = 0.5 + 0.5 * Math.sin(now / 80);
+    ctx.fillStyle = `rgba(255, 245, 190, ${0.1 + 0.35 * k})`;
+    ctx.fillRect(bx - 2, by - 2, barW + 4, h + 4);
+    ctx.strokeStyle = k > 0.5 ? '#ffffff' : '#ffb000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bx - 3, by - 3, barW + 6, h + 6);
+  }
   let rx = bx;
   ROMAN.forEach((r, i) => {
     const lit = i < tier;
-    text(ctx, r, rx, by + h + small + 4, { size: small, color: lit ? '#ffd23a' : '#5a4f44' });
-    ctx.font = `bold ${small}px monospace`;
+    // Cyfra aktualnie zdobytego poziomu jest wieksza i biala przez chwile po awansie.
+    const flashing = i === tier - 1 && flashK >= 0 && flashK < 1;
+    const sz = flashing ? Math.round(small * (1 + 0.8 * (1 - flashK))) : small;
+    text(ctx, r, rx, by + h + small + 4, { size: sz, color: flashing ? '#ffffff' : lit ? '#ffd23a' : '#5a4f44' });
+    ctx.font = `bold ${sz}px monospace`;
     rx += ctx.measureText(r).width + 8;
     if (i < 2) {
       text(ctx, '/', rx, by + h + small + 4, { size: small, color: '#5a4f44' });
@@ -123,7 +142,8 @@ function drawUltBar(ctx, state, me, scale, fs, small) {
   }
 }
 
-export function renderHud(ctx, scale, offset, state) {
+// Canvas HUD ma ten sam rozmiar i pozycje co plansza; `mouse` jest juz we wspolrzednych planszy (main.js).
+export function renderHud(ctx, scale, state) {
   const { snap, balance, sprites, cam, me } = state;
   const W = ctx.canvas.width;
   const H = ctx.canvas.height;
@@ -133,7 +153,7 @@ export function renderHud(ctx, scale, offset, state) {
   const small = 4 * scale + 3;
   const toScreen = (x, y) => {
     const v = cam.worldToView(x, y);
-    return { x: offset.x + v.x * scale, y: offset.y + v.y * scale, vx: v.x, vy: v.y };
+    return { x: v.x * scale, y: v.y * scale, vx: v.x, vy: v.y };
   };
 
   // Wersja widoczna takze przed startem gry — po to jest, zeby dalo sie powiedziec, w co sie gralo.
@@ -180,14 +200,17 @@ export function renderHud(ctx, scale, offset, state) {
       const cy = VIEW_H / 2;
       const a = Math.atan2(s.vy - cy, s.vx - cx);
       const k = Math.min((cx - 10) / Math.abs(Math.cos(a) || 1e-9), (cy - 10) / Math.abs(Math.sin(a) || 1e-9));
-      const ax = offset.x + (cx + Math.cos(a) * k) * scale;
-      const ay = offset.y + (cy + Math.sin(a) * k) * scale;
+      const ax = (cx + Math.cos(a) * k) * scale;
+      const ay = (cy + Math.sin(a) * k) * scale;
+      const downed = p.state === 'downed';
+      // Wolanie o pomoc: migajacy alarmowy obrys i sekundy do smierci przy grocie.
+      const alarm = downed && Math.floor(state.nowMs / 200) % 2 === 0;
       ctx.save();
       ctx.translate(ax, ay);
       ctx.rotate(a);
       ctx.fillStyle = p.color;
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = alarm ? '#ff2a1a' : '#000';
+      ctx.lineWidth = downed ? 3 : 2;
       ctx.beginPath();
       ctx.moveTo(6 * scale, 0);
       ctx.lineTo(-4 * scale, -5 * scale);
@@ -196,6 +219,11 @@ export function renderHud(ctx, scale, offset, state) {
       ctx.fill();
       ctx.stroke();
       ctx.restore();
+      if (downed) {
+        // Tekst lezy w strone srodka planszy od grotu, wiec nie wypada poza krawedz.
+        text(ctx, String(Math.ceil(p.deathLeft)), ax - Math.cos(a) * 14 * scale, ay - Math.sin(a) * 14 * scale,
+          { color: p.color, size: small, align: 'center', base: 'middle' });
+      }
     }
 
     let topLine;

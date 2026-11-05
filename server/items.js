@@ -165,6 +165,70 @@ export function spawnUltWall(world, tx, ty, rot, hp, expireS) {
   return item;
 }
 
+// Startowe ruiny (PRD-MAP-10): zwykle sciany w stanie `placed`, ale bez `expireLeft`
+// (nie znikaja same) i z czesciowym hp przy pelnym maxHp - klient rysuje stan zuzycia z hp/maxHp.
+// Luka = liczba pustych kafelkow miedzy zestawami kafelkow (odleglosc Czebyszewa - 1).
+function tileGap(tilesA, tilesB) {
+  let best = Infinity;
+  for (const [ax, ay] of tilesA) for (const [bx, by] of tilesB) best = Math.min(best, Math.max(Math.abs(ax - bx), Math.abs(ay - by)) - 1);
+  return best;
+}
+
+function drawRuinHps(world, count, maxHp) {
+  const { hpBands, minDamagedStates } = world.rules.balance.ruins;
+  const pick = () => Array.from({ length: count }, () => Math.floor(world.rng() * hpBands.length));
+  const damaged = (bands) => new Set(bands.filter((b) => b > 0)).size;
+  const need = Math.min(minDamagedStates, hpBands.length - 1, count);
+  let bands = pick();
+  for (let i = 0; i < 50 && damaged(bands) < need; i++) bands = pick();
+  // zapas, zeby warunek byl gwarantowany, a nie tylko bardzo prawdopodobny
+  for (let i = 0; damaged(bands) < need; i++) bands[i] = i + 1;
+  return bands.map((b) => {
+    const [lo, hi] = hpBands[b];
+    const from = Math.floor(lo * maxHp) + 1;
+    const to = Math.max(from, Math.floor(hi * maxHp));
+    return from + Math.floor(world.rng() * (to - from + 1));
+  });
+}
+
+export function spawnStartingRuins(world) {
+  const cfg = world.rules.balance.ruins;
+  const { tilePx, balance } = world.rules;
+  const maxHp = balance.items.wall.hp;
+  const cx = balance.map.tilesW / 2;
+  const cy = balance.map.tilesH / 2;
+  const spawnTiles = [...world.players.values()].map((p) => [tileOf(p.x, tilePx), tileOf(p.y, tilePx)]);
+  const placed = [];
+  const span = Math.ceil(cfg.maxRadiusTiles) + 1;
+  for (let n = 0; n < cfg.count; n++) {
+    for (let attempt = 0; attempt < cfg.attemptsPerRuin; attempt++) {
+      const rot = world.rng() < 0.5 ? 0 : 1;
+      const tx = Math.floor(cx) - span + Math.floor(world.rng() * (2 * span + 1));
+      const ty = Math.floor(cy) - span + Math.floor(world.rng() * (2 * span + 1));
+      const tiles = footprint('wall', tx, ty, rot);
+      if (!tiles.every(([x, y]) => world.grid.inside(x, y) && !world.grid.isSolid(x, y))) continue;
+      const mx = tiles.reduce((s, [x]) => s + x + 0.5, 0) / tiles.length;
+      const my = tiles.reduce((s, [, y]) => s + y + 0.5, 0) / tiles.length;
+      const dist = Math.hypot(mx - cx, my - cy);
+      if (dist < cfg.minRadiusTiles || dist > cfg.maxRadiusTiles) continue;
+      if (tileGap(tiles, spawnTiles) < cfg.minSpawnGapTiles) continue;
+      if (placed.some((r) => tileGap(tiles, r.tiles) < cfg.minGapTiles)) continue;
+      placed.push({ tx, ty, rot, tiles });
+      break;
+    }
+  }
+  const hps = drawRuinHps(world, placed.length, maxHp);
+  placed.forEach((r, i) => {
+    const item = {
+      id: world.nextId(), kind: 'wall', state: 'placed', tx: r.tx, ty: r.ty, rot: r.rot, hp: hps[i], maxHp,
+      x: 0, y: 0, holder: null, owner: null, groundSince: world.time, timeLeft: 0, armLeft: 0, cooldown: 0, flight: null,
+    };
+    world.items.set(item.id, item);
+  });
+  if (placed.length) rebuildGrid(world);
+  return placed.length;
+}
+
 function pickUp(world, player, item) {
   const wasBlocking = blocking(item);
   Object.assign(item, { state: 'held', holder: player.id, x: player.x, y: player.y });

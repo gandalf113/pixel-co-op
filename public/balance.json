@@ -34,6 +34,10 @@
     "turret30": { "category": "power", "name": "Działko 30 s", "durationS": 30, "rangeTiles": 8, "damage": 8, "cooldownS": 0.3, "hp": 100, "throwDamage": 10, "weight": 20, "limit": 8 },
     "mine":     { "category": "power", "name": "Mina", "armS": 1, "damage": 60, "radiusTiles": 1.5, "throwDamage": 10, "weight": 20, "limit": 20 }
   },
+  "ruins": {
+    "count": 7, "minRadiusTiles": 4, "maxRadiusTiles": 9, "minGapTiles": 2, "minSpawnGapTiles": 2, "attemptsPerRuin": 200, "minDamagedStates": 2,
+    "hpBands": [ [0.75, 1], [0.5, 0.75], [0.25, 0.5], [0, 0.25] ]
+  },
   "drops": { "hardShare": 0.55, "scatterPx": 8, "groundLimit": 200 },
   "throw": { "rangeTiles": 4, "flightS": 0.5, "stunS": 0.5 },
   "ultimate": {

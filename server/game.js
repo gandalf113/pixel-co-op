@@ -44,6 +44,7 @@ export class Game {
       this.roster.push(p);
       this.lastSeq.set(p.id, 0);
     });
+    items.spawnStartingRuins(this.world);
     this.breakLeft = rules.breakLength(0);
     this.readyLock = false;
     this.savedBreakLeft = 0;

@@ -149,6 +149,7 @@ test('snapshot shape', () => {
 
   const me = g.world.players.get(1);
   me.input = { ...me.input, aimX: me.x, aimY: me.y - 100, fire: true };
+  g.world.items.clear(); // bez startowych ruin - test dotyczy ksztaltu widoku
   g.world.items.set(500, { id: 500, kind: 'mine', state: 'active', x: 0, y: 0, tx: 3, ty: 4, rot: 0, hp: 1, timeLeft: 0, armLeft: 0 });
   g.world.items.set(501, { id: 501, kind: 'wall', state: 'held', x: 0, y: 0, hp: 150 });
   g.tick(DT);
