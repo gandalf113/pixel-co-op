@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.11 - 2026-11-05
+- R35 efekty wizualne: nowa sekcja PRD 9b (FX-01..07): widoczne trafienia pocisku w potwora (blysk, krew, liczba), w sciane, w gracza; widoczny wybuch miny (blysk, pierscien, odlamki, dym, wstrzas kamery, slad wypalenia); blysk z lufy; limity czasteczek. Testy X1-X6. Lista sprite'ow FX do zrobienia.
+
 ## 0.10 - 2026-11-05
 - R34 bron startowa to karabin maszynowy: magazynek 30, seria 10 strz./s, 8 obr., przeladunek 1.5 s z paskiem na srodku ekranu, R przeladowuje (PRD-PLR-03, PRD-HUD-04, PRD-HUD-11, testy C9, C10, F1, D2).
 

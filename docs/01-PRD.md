@@ -1,6 +1,6 @@
 # 01 - PRD: pixel-co-op
 
-Wersja: 0.10 (2026-11-05)
+Wersja: 0.11 (2026-11-05)
 Status: draft do przeglądu przez developera
 Właściciele produktu: Aleksander Szczepaniak, Piotr Dejnak
 
@@ -36,6 +36,7 @@ MVP to wersja, którą da się zagrać we 2-4 osoby na LAN-ie przez 15 minut i "
 - Podnoszenie / odkładanie / rzucanie (z obrażeniami) / używanie przedmiotów (E / E / Spacja / R).
 - Potwory powoli niszczą obiekty graczy (HP obiektów, pęknięcia, obrażenia per typ potwora).
 - Trupy potworów i krew zostają na ziemi (PRD-MAP-09).
+- Widoczne trafienia pocisków w potwory i widoczny wybuch miny (PRD-FX-01, PRD-FX-04).
 - Suwak trudności, 4 poziomy, wybierany przez hosta przed startem.
 - ULTIMATE: kropelki, wspólny pasek, 3 progi, 7 umiejętności do wyboru w lobby, użycie `F` (`08-ULTIMATE.md`).
 - HUD: HP, numer fali, odliczanie do następnej fali, trzymany przedmiot, pasek ULTIMATE.
@@ -132,6 +133,22 @@ LOBBY -> START -> [PRZERWA 0 (krótka)] -> FALA 1 -> PRZERWA 1 -> FALA 2 -> PRZE
 | PRD-HUD-08 | Celownik pod kursorem. Kursor systemowy ukryty nad canvasem. |
 | PRD-HUD-09 | Podpowiedź kontekstowa przy przedmiocie w zasięgu: "[E] podnieś: Kawałek ściany". |
 
+## 9b. Efekty wizualne (feedback trafień)
+
+Każde zdarzenie, które zmienia stan walki, musi być widoczne bez patrzenia na HUD. Efekty są czysto kliencie (z eventów `hit`, `mobDeath`, `explode`, `shot`), nie wpływają na symulację.
+
+| ID | Zdarzenie | Efekt (obowiązkowy w MVP) |
+|---|---|---|
+| PRD-FX-01 | **Pocisk trafia potwora** | Potwór **błyska na biało** przez 2 klatki (ok. 70 ms), w miejscu trafienia 3-5 pikseli krwi rozpryskuje się w kierunku lotu pocisku i znika po 0.3 s, na ziemi zostaje mała plamka (PRD-MAP-09). Nad potworem krótko (0.4 s) unosząca się liczba obrażeń, mała, w kolorze kości. Pocisk znika z 1-klatkową iskrą. |
+| PRD-FX-02 | **Pocisk trafia ścianę / obiekt** | Iskra 1-2 klatki i 2-3 odłamki w kolorze obiektu, obiekt drga o 1 px. |
+| PRD-FX-03 | **Pocisk trafia gracza (friendly fire)** | Krótki czerwony błysk sprite'a gracza, u trafionego winieta ekranu na 0.2 s, w HUD komunikat `{nick} trafił cię` na 1 s. |
+| PRD-FX-04 | **Wybuch miny** | Sekwencja 0.5 s: jasny błysk (1 klatka pełny okrąg w promieniu rażenia), potem rozszerzający się pierścień ognia z pomarańczowego w ciemnoszary (4-6 klatek), 8-12 odłamków rozlatujących się promieniście, 2-3 kłęby dymu unoszące się 1 s. **Wstrząs kamery** 0.2 s o amplitudzie 2 px (mniejszy, im dalej od wybuchu, zero powyżej 12 kafelków). Na ziemi zostaje **ślad wypalenia** (ciemny okrąg o średnicy promienia rażenia), trwały jak krew, limit 100. Potwory w zasięgu dostają błysk z FX-01. |
+| PRD-FX-05 | **Śmierć potwora** | Trup i krew (PRD-MAP-09) plus 4-6 odłamków ciała przez 0.3 s. |
+| PRD-FX-06 | **Strzał z karabinu** | Błysk z lufy 1 klatka (sprite `muzzle`), łuska wyrzucana w bok, odrzut sprite'a gracza o 1 px. |
+| PRD-FX-07 | Zasada ogólna | Efekty nie mogą zasłaniać stanu gry: cząsteczki mniejsze niż 3 px, czas życia poniżej 1 s (poza śladami trwałymi), limit 500 cząsteczek na raz, powyżej najstarsze znikają. Przy `prefers-reduced-motion` wstrząs kamery wyłączony. |
+
+Sprite'y do tego (`sprites.js`): `muzzle` (6 x 6, 1 klatka), `spark` (3 x 3), `blood_splat_0/1/2` (plamki na ziemi), `scorch` (32 x 32), `smoke_0/1/2` (8 x 8), `corpse_slime/runner/brute` (16 x 16). Cząsteczki (krew, odłamki, łuski) to pojedyncze piksele z palety, bez sprite'ów.
+
 ## 10. Audio
 
 Poza MVP. Jeśli będzie: proste efekty generowane syntezą (bez plików z sieci), wyciszalne w menu.
@@ -155,6 +172,7 @@ Poza MVP. Jeśli będzie: proste efekty generowane syntezą (bez plików z sieci
 - [ ] Potwory dropią przedmioty obu kategorii; da się podnieść, odstawić, rzucić.
 - [ ] Postawiona ściana blokuje potwory i pociski, ale potwory ją powoli niszczą (ściana bez obrony pada w ciągu fali).
 - [ ] Działko strzela do potworów przez swój czas i znika.
+- [ ] Każde trafienie potwora widać (błysk, krew, liczba), wybuch miny widać z drugiego końca ekranu (błysk, pierścień, wstrząs, ślad).
 - [ ] 4 poziomy trudności dają mierzalnie inne liczby (HP potworów, ilość).
 - [ ] Kropelki ładują pasek wszystkim; `F` od progu I odpala wybrany ultimate z siłą progu; pasek użytego zeruje się, innych nie.
 - [ ] Pociski są szybkie (600 px/s), potwory nie idą idealnie po linii do gracza.

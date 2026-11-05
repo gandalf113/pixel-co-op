@@ -1,6 +1,6 @@
 # 05 - Plan testów
 
-Wersja: 0.10 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
+Wersja: 0.11 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, Piotr Dejnak). Każdy test odwołuje się do ID wymagania. Wynik zapisujemy w `docs/test-reports/YYYY-MM-DD.md` (data, build, trudność, liczba graczy, wynik, uwagi).
 
 ## 1. Smoke (przed każdą sesją testowej)
 
@@ -81,6 +81,17 @@ Wersja: 0.10 (2026-11-05). Testuje zespół produktowy (Aleksander Szczepaniak, 
 | I22 | Mur z luką 3 kafelki dalej | 03 sekcja 1 | Biegacze idą luką; Osiłek przegryza, gdy luka daleko |
 | I23 | Ślimak bije ścianę, gracz podchodzi na 1 kafelek | 03 sekcja 1 | Ślimak przełącza się na gracza |
 | I19 | Kolce w korytarzu, przepuść ślimaki | ITM-H-03 | 8 obr. / 0.5 s na każdym; gracz na kolcach traci 0.8 / 0.5 s |
+
+## 5b. Efekty wizualne
+
+| # | Test | Wymóg | Oczekiwane |
+|---|---|---|---|
+| X1 | Strzelaj do ślimaka z 8 kafelków | PRD-FX-01 | Każde trafienie: biały błysk potwora, rozprysk krwi, liczba 8 nad nim, plamka zostaje na ziemi |
+| X2 | Strzelaj w postawioną ścianę | PRD-FX-02 | Iskra i odłamki przy każdym trafieniu, ściana drga |
+| X3 | Trafienie sojusznika | PRD-FX-03 | Czerwony błysk trafionego, u niego winieta i komunikat z nickiem strzelca |
+| X4 | Mina wybucha pod ślimakami, kamera 6 kafelków dalej | PRD-FX-04 | Błysk, pierścień ognia, odłamki, dym, wstrząs kamery, trwały ślad wypalenia; potwory w zasięgu błyskają |
+| X5 | Mina wybucha 20 kafelków dalej (poza ekranem) | PRD-FX-04 | Brak wstrząsu; po dojściu na miejsce ślad wypalenia jest |
+| X6 | 10 min na fali 8+ | PRD-FX-07, PRD-PERF-01 | FPS nie spada przez cząsteczki, stare ślady znikają po limicie |
 
 ## 6. Trudność
 
