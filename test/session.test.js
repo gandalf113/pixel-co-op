@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Session } from '../server/session.js';
 import { sanitizeNick } from '../public/shared/protocol.js';
+import { applyPlayerDelta, newPlayerState } from '../public/shared/delta.js';
 import { balance } from './helpers.js';
 
 let n = 0;
@@ -78,7 +79,7 @@ test('reconnect within 30 s restores same player', () => {
   send(s, b2, { t: 'hello', token: 'tok2', nick: 'x' });
   assert.equal(last(b2, 'welcome').id, id);
   run(s, 0.1, 0.05);
-  const me = last(b2, 'snap').players.find((p) => p.id === id);
+  const me = applyPlayerDelta(newPlayerState(), last(b2, 'snap')).find((p) => p.id === id);
   assert.equal(me.suspended, false);
 });
 
@@ -90,7 +91,7 @@ test('removed after 30 s', () => {
   const id = s.byConn.get(b).id;
   s.disconnect(b);
   run(s, 31);
-  assert.equal(last(a, 'snap').players.some((p) => p.id === id), false);
+  assert.equal(last(a, 'snap').players.some((p) => p[0] === id), false);
   const b2 = conn();
   send(s, b2, { t: 'hello', token: 'tok2', nick: 'B' });
   assert.equal(last(b2, 'reject').reason, 'Gra w toku');

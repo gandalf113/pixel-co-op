@@ -1,7 +1,8 @@
 import { COLORS } from '../shared/protocol.js';
-import { applyItemDelta } from '../shared/delta.js';
+import { applyItemDelta, applyPlayerDelta, newPlayerState } from '../shared/delta.js';
 import { buildGrid, footprint, placeTarget, setItemDefs, itemDef, itemLimitReached } from '../shared/world.js';
 import { Fx, LOW_HP } from './fx.js';
+import { Gore } from './gore.js';
 import { rifleStats } from '../shared/weapon.js';
 import { MV, MOB_KEY } from '../shared/mobview.js';
 import { Connection, stored } from './net.js';
@@ -54,7 +55,7 @@ let tickTimer = null;
 let lobbyDelayUntil = 0;
 let lobbyTimer = null;
 const itemRot = new Map();
-const gore = { corpses: [], splats: [] };
+const gore = new Gore(null); // cfg ustawiany po otrzymaniu balansu
 const shakes = new Map();
 const fx = new Fx();
 const sfx = createSfx();
@@ -124,8 +125,7 @@ function resetGame() {
   buffer.clear();
   rtt.clear();
   itemRot.clear();
-  gore.corpses = [];
-  gore.splats = [];
+  gore.reset();
   shakes.clear();
   fx.reset();
   specId = null;
@@ -160,6 +160,7 @@ function onMessage(msg) {
       myId = msg.id;
       if (msg.room) setUrlRoom(msg.room);
       balance = msg.balance;
+      gore.cfg = balance.gore;
       // Ksztalty i limity przedmiotow musza byc znane, zanim przyjdzie pierwszy snapshot.
       setItemDefs(balance.items);
       version = msg.version ?? null;
@@ -182,9 +183,7 @@ function onMessage(msg) {
       for (const e of msg.list) onEvent(e);
       break;
     case 'gore':
-      gore.corpses = msg.corpses.slice();
-      gore.splats = msg.splats.map(([x, y]) => [x, y, 0]);
-      for (const [, x, y] of gore.corpses) gore.splats.push([x, y, 1]);
+      gore.restore(msg.corpses, msg.splats);
       fx.restore(msg.scorches ?? [], msg.rubble ?? []);
       break;
     case 'results':
@@ -203,11 +202,7 @@ function onMessage(msg) {
 }
 
 const itemDict = new Map();
-
-function pushCapped(list, entry, max) {
-  list.push(entry);
-  if (list.length > max) list.splice(0, list.length - max);
-}
+const playerState = newPlayerState();
 
 function itemCenter(id) {
   const it = latest?.items.find((i) => i.id === id);
@@ -234,7 +229,6 @@ function playSfx(name, e, tp, opts) {
 }
 
 function onEvent(e) {
-  const max = balance.gore;
   const now = performance.now();
   const tp = balance.map.tilePx;
   switch (e.type) {
@@ -286,7 +280,7 @@ function onEvent(e) {
       break;
     case 'hit':
       if (!e.mob) break;
-      pushCapped(gore.splats, [Math.round(e.x), Math.round(e.y), 0], max.maxSplats);
+      gore.addSplat(Math.round(e.x), Math.round(e.y), 0, now);
       fx.mobHit(now, e, myId);
       break;
     case 'objHit': {
@@ -337,15 +331,15 @@ function onEvent(e) {
       fx.mobFlash.set(e.id, now + 140);
       break;
     case 'mobDeath': {
-      pushCapped(gore.splats, [Math.round(e.x), Math.round(e.y), 1], max.maxSplats);
+      gore.addSplat(Math.round(e.x), Math.round(e.y), 1, now);
       // duza sylwetka = wieksza kaluza: dodatkowe plamy rozrzucone w obrebie ciala
       const rr = balance.mobs[e.mobType]?.radiusPx ?? 0;
       for (let i = 0; i < Math.floor(rr / 6); i++) {
         const a = Math.random() * Math.PI * 2;
         const d = Math.random() * rr * 0.8;
-        pushCapped(gore.splats, [Math.round(e.x + Math.cos(a) * d), Math.round(e.y + Math.sin(a) * d), 1], max.maxSplats);
+        gore.addSplat(Math.round(e.x + Math.cos(a) * d), Math.round(e.y + Math.sin(a) * d), 1, now);
       }
-      pushCapped(gore.corpses, [e.mobType, Math.round(e.x), Math.round(e.y), e.a], max.maxCorpses);
+      gore.addCorpse(e.mobType, Math.round(e.x), Math.round(e.y), e.a, latest?.wave ?? 0);
       fx.mobDeath(now, e);
       break;
     }
@@ -370,6 +364,7 @@ function moveCtx(me) {
 function onSnap(snap) {
   // Delta ZAWSZE, zanim cokolwiek zdecyduje o pominieciu: pominiety pelny snapshot = pusta mapa do konca gry.
   snap.items = applyItemDelta(itemDict, snap);
+  snap.players = applyPlayerDelta(playerState, snap);
   if (mode === 'lobby' || mode === 'nick') {
     mode = 'game';
     ui.hideAll();
@@ -561,6 +556,33 @@ function pickupTarget(me, items) {
   return best;
 }
 
+// Wyjatek w rysowaniu nie moze zabrac graczowi obrazu. Przed v0.12.0 jeden blad w `drawItems`
+// przerywal klatke w polowie: zostawala ziemia i krew, a przedmioty, potwory, gracze i caly HUD
+// znikaly, wiec gracz gral na slepo i nie mial jak tego zglosic. Teraz kazda sekcja leci osobno,
+// blad jest logowany raz i widoczny na ekranie.
+let renderFault = null;
+
+function guardedDraw(label, fn) {
+  try {
+    fn();
+  } catch (e) {
+    if (!renderFault) {
+      renderFault = `${label}: ${e?.message ?? e}`;
+      console.error('[render]', label, e);
+    }
+  }
+}
+
+function drawRenderFault(ctx, pxScale) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#c0261b';
+  ctx.fillRect(0, 0, ctx.canvas.width, 3 * pxScale);
+  ctx.font = `${7 * pxScale}px monospace`;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffd7d2';
+  ctx.fillText(`BLAD RENDERU - ${renderFault}`, 4 * pxScale, 11 * pxScale);
+}
+
 function frame(now) {
   requestAnimationFrame(frame);
   const playing = (mode === 'game' || mode === 'results') && latest && sprites;
@@ -615,15 +637,21 @@ function frame(now) {
     highlightId: pickTarget?.id ?? null,
     ghost: me && mode === 'game' ? ghostFor(me, latest, players, aimWorld()) : null,
   };
-  renderWorld(wctx, view);
-  renderHud(hctx, scale, {
+  gore.setWave(latest.wave ?? 0);
+  if (gore.due(now)) gore.walk(now, [
+    ...players.map((p) => ({ id: `p${p.id}`, x: p.x, y: p.y })),
+    ...view.mobs.map((m) => ({ id: `m${m[MV.id]}`, x: m[MV.x], y: m[MV.y] })),
+  ]);
+  guardedDraw('swiat', () => renderWorld(wctx, view));
+  guardedDraw('hud', () => renderHud(hctx, scale, {
     version, snap: latest, balance, sprites, cam, me, players, status, tab, nowMs: now,
     hint: pickTarget ? balance.items[pickTarget.kind].name : null, fx,
     spectating: specId ? players.find((p) => p.id === specId) ?? null : null,
     mouse: boardMouse(), showCursor: mode === 'game' && !paused,
     deny: now < denyUntil,
     flash: flash && now - flash.start < FLASH_MS ? { ...flash, k: (now - flash.start) / FLASH_MS } : null,
-  });
+  }));
+  if (renderFault) drawRenderFault(hctx, scale);
   if (debugOn) {
     kbps = rxMeter.update(conn.rxBytes, now);
     drawDebug(hctx, scale, debugLines({ rttMs: rtt.rttMs, kbps, delayMs: buffer.delayMs, buffered: buffer.size, fps: fpsEma }));

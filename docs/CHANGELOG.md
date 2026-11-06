@@ -1,5 +1,14 @@
 # Changelog dokumentacji
 
+## 0.26 - 2026-11-06
+- **Punkt P (KRYTYCZNE), naprawiony w v0.12.0**: gracz po kilkunastu sekundach tracil obraz — znikali gracze, potwory, przedmioty i pociski, HUD zamarzal, a dzwieki i trafienia dzialaly dalej. Przyczyna: `cfg` zadeklarowane wewnatrz galezi `placed` w `drawItems`, a uzyte w galezi `ground` przez zlota poswiate boostu z v0.11.0 — `ReferenceError` ubijal klatke renderu, wiec kazdy drop lezacy w polu widzenia oslepial gracza.
+- V3-P-02: `renderWorld` nigdy nie bylo uruchamiane w tescie — stad bezglowy harness renderu dla kazdego przedmiotu, potwora i stadium trupa, zweryfikowany celowym przywroceniem bledu (14 testow czerwonych).
+- V3-P-03: brakujacy sprite i wyjatek w rysowaniu nie moga juz zabrac obrazu — swiat i HUD w osobnych `try`, czerwony pasek z trescia bledu na ekranie.
+- PRD-MAP-11 (nowe) i PRD-MAP-09 (zmienione): pole bitwy sie starzeje — rozklad trupa przez maks. 4 fale, laczenie plam w kaluze, slady butow, wspolny limit 600 plam i sladow.
+- Punkty G i H zrobione w v0.12.0 (rozklad trupow, kaluze, slady butow) — w calosci klientowo, zero kosztu pasma.
+- V3-O-08 zrobione: sekcja `players` 1 241 -> 361 B (310 -> 90 B na gracza); na laczu 6,6 -> 5,6 kB/s.
+- V3-O-04 zrobione: dlawienie per gracz na `ws.bufferedAmount` (16 kB / 150 ms wejscie, 2 kB / 1 s wyjscie, 12 Hz po zdlawieniu), pominiecie przed zbudowaniem snapshotu; `net.throttledStreams` w `/healthz`. Progi do weryfikacji na zywym laczu (O-09).
+
 ## 0.25 - 2026-11-06
 - ITM-P-09 rozpisany zgodnie z R56: boost podnosi poziom I losuje modyfikator (wachlarz / samonaprowadzanie / gwozdziarka); Szal nadpisuje modyfikator na czas trwania.
 - Punkt O zrobiony w v0.9.0: 500 -> 6,5 kB/s na gracza (77x), zmierzone na gnieździe. Zostaje V3-O-08 (sekcja players), O-04 i O-09 (weryfikacja na zywym laczu).

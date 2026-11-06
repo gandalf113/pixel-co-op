@@ -17,7 +17,10 @@
     "homing": { "name": "SAMONAPROWADZANIE", "icon": "(o)", "coneDeg": 25, "turnDegPerS": 180 },
     "nailgun": { "name": "GWOŹDZIARKA", "icon": "|||", "speedPx": 900, "fireIntervalS": 0.05, "damageMult": 0.3, "spreadDeg": 8, "lenPx": 5 }
   },
-  "gore": { "maxCorpses": 300, "maxSplats": 600, "maxScorches": 100, "maxRubble": 200 },
+  "gore": { "maxCorpses": 300, "maxSplats": 600, "maxScorches": 100, "maxRubble": 200,
+           "corpseLifeWaves": 4, "mergePx": 6, "splatLevels": 3, "splatSizes": [5, 14, 22], "cellPx": 8,
+           "footprintSteps": 12, "strideStepPx": 7, "stepOffsetPx": 1.5, "freshPoolS": 8, "checkMs": 80,
+           "bonesFadedAlpha": 0.45 },
   "friendlyFire": 0.1,
   "mobs": {
     "slime":  { "hp": 30,  "damage": 8,  "objDamage": 5,  "wanderDeg": 50, "look": true,  "speedTiles": 2.5, "attackS": 1.0, "fromWave": 1, "drop": 0.25, "cost": 1,   "weight": 50, "radiusPx": 6 },

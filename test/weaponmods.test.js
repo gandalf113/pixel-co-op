@@ -5,6 +5,7 @@ import { makeRng } from '../server/rng.js';
 import { Game } from '../server/game.js';
 import { fireWeapons, updateBullets } from '../server/combat.js';
 import { handleAction, updateItems, spawnDrop } from '../server/items.js';
+import { applyPlayerDelta, newPlayerState } from '../public/shared/delta.js';
 import { rifleStats } from '../public/shared/weapon.js';
 
 const DT = 1 / 30;
@@ -335,6 +336,7 @@ test('snapshot niesie modyfikator gracza, a gwozdz ma kat i dlugosc', () => {
   g.world.bullets.push({ id: 900, owner: 1, fromTurret: false, x: p1.x + 10, y: p1.y, vx: 900, vy: 0, travelLeft: 100, damage: 2, pierce: 0, passed: null, lenPx: 5 });
   g.world.bullets.push({ id: 901, owner: 1, fromTurret: false, x: p1.x + 12, y: p1.y, vx: 450, vy: 0, travelLeft: 100, damage: 8, pierce: 0, passed: null });
   const s = g.snapshot(2);
+  s.players = applyPlayerDelta(newPlayerState(), s);
   assert.equal(s.players.find((p) => p.id === 1).weaponMod, 'nailgun');
   assert.equal(s.players.find((p) => p.id === 2).weaponMod, null);
   assert.deepEqual(s.bullets.find((b) => b[0] === 900), [900, p1.x + 10, p1.y, 0, 5].map((v, i) => (i === 1 || i === 2 ? Math.round(v * 10) / 10 : v)));

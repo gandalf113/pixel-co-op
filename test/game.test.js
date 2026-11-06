@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { balance } from './helpers.js';
 import { Game } from '../server/game.js';
+import { applyPlayerDelta, newPlayerState } from '../public/shared/delta.js';
 import { killMob } from '../server/combat.js';
 
 const DT = 1 / 30;
@@ -130,6 +131,7 @@ test('snapshot shape', () => {
   const p1 = g.world.players.get(1);
   Object.assign(g.world.mobs[0], { x: p1.x + 50, y: p1.y }); // snapshot ma area of interest - potwor musi byc w zasiegu
   const s = g.snapshot(1);
+  s.players = applyPlayerDelta(newPlayerState(), s); // klient odtwarza stary ksztalt z krotek
   for (const k of ['t', 'seed', 'phase', 'wave', 'breakLeft', 'readyLock', 'mobsLeft', 'you', 'players', 'mobs', 'bullets', 'items']) {
     assert.ok(k in s, k);
   }

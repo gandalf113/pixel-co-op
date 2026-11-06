@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Game } from './game.js';
+import { LinkThrottle, THROTTLE } from './netmeter.js';
 import { COLORS, sanitizeNick } from '../public/shared/protocol.js';
 
 // Ile musi trwać partia i ile realnych inputów musi przyjść, żeby zaliczyć ją
@@ -104,6 +105,11 @@ export class Session {
       const events = g.drainEvents();
       for (const p of this.players) {
         if (!p.conn) continue;
+        if (this.#skipSnapshot(p)) {
+          // Zdarzenia sa jednorazowe: leca zawsze, tez gdy snapshot pomijamy.
+          if (events.length) p.conn.send({ t: 'ev', list: events });
+          continue;
+        }
         const snap = g.snapshot(p.id);
         p.conn.send({ ...snap, time: snap.t, t: 'snap' });
         if (events.length) p.conn.send({ t: 'ev', list: events });
@@ -114,6 +120,19 @@ export class Session {
       this.#endGameTelemetry('over');
       this.#broadcast({ t: 'results', ...g.results() });
     }
+  }
+
+  // V3-O-04. Wolane PRZED g.snapshot(): delta przedmiotow jest stanowa per gracz, wiec zbudowany i wyrzucony
+  // snapshot przestawilby punkt odniesienia i gracz nigdy nie dostalby zmian z tego ticka.
+  #skipSnapshot(p) {
+    if (p.linkConn !== p.conn) { p.linkConn = p.conn; p.link = new LinkThrottle(); p.snapCredit = 0; } // nowe lacze = czysta histereza
+    const slow = p.link.update(p.conn.buffered?.() ?? 0);
+    if (p.conn.meter) p.conn.meter.throttled = slow;
+    if (!slow) { p.snapCredit = 0; return false; }
+    p.snapCredit = (p.snapCredit ?? 0) + THROTTLE.slowHz / this.balance.snapshotHz;
+    if (p.snapCredit < 1 - 1e-9) return true;
+    p.snapCredit -= 1;
+    return false;
   }
 
   #emit(type, data = {}) {

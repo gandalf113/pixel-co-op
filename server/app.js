@@ -167,6 +167,7 @@ export function startServer({
           ws.send(str);
         },
         meter,
+        buffered: () => ws.bufferedAmount,
         close: (code, reason) => ws.close(code, reason),
       };
 

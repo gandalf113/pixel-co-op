@@ -97,7 +97,7 @@ export function killMob(world, mob, killerId) {
   if (killer) killer.kills++;
   const a = mob.angle ?? 0;
   world.events.push({ type: 'mobDeath', id: mob.id, mobType: mob.type, x: mob.x, y: mob.y, a, killer: killerId });
-  addGore(world.gore.corpses, [mob.type, Math.round(mob.x), Math.round(mob.y), Math.round(a * 100) / 100], world.rules.balance.gore.maxCorpses);
+  addGore(world.gore.corpses, [mob.type, Math.round(mob.x), Math.round(mob.y), Math.round(a * 100) / 100, world.wave ?? 0], world.rules.balance.gore.maxCorpses);
   spawnDroplets(world, mob);
   onMobKilled(world, mob, killerId);
   if (world.rules.balance.mobs[mob.type].split) spawnSplit(world, mob);

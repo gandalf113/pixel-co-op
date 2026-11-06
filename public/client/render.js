@@ -1,6 +1,7 @@
 import { DECOR_SPRITES } from './sprites.js';
 import { footprint, itemDef, setItemDefs } from '../shared/world.js';
 import { rifleStats } from '../shared/weapon.js';
+import { STAGE_BONES, STAGE_BLOAT, STAGE_FADED } from './gore.js';
 import { MV, wearStageOf } from '../shared/mobview.js';
 
 export const VIEW_W = 560;
@@ -50,6 +51,13 @@ function drawCentered(ctx, img, x, y, angle = 0, flipY = false) {
   ctx.restore();
 }
 
+// Brak sprite'a nie moze ubic calej klatki: w przegladarce drawImage(undefined) rzuca TypeError,
+// a wyjatek w srodku renderu zostawia ekran bez przedmiotow, potworow, graczy i HUD-u.
+function blit(ctx, img, x, y) {
+  if (!img) return;
+  ctx.drawImage(img, x, y);
+}
+
 function drawGround(ctx, view, ox, oy) {
   const { balance, sprites, cam } = view;
   const { tilesW, tilesH, tilePx } = balance.map;
@@ -65,9 +73,9 @@ function drawGround(ctx, view, ox, oy) {
       const d = tileHash(tx, ty, view.seed ?? 0);
       const px = tx * tilePx + ox;
       const py = ty * tilePx + oy;
-      ctx.drawImage(sprites.get(`ground_${h % 3}`), px, py);
+      blit(ctx, sprites.get(`ground_${h % 3}`), px, py);
       if ((d >>> 8) % 100 < DECOR_PERCENT && DECOR_SPRITES.length) {
-        ctx.drawImage(sprites.get(DECOR_SPRITES[(d >>> 16) % DECOR_SPRITES.length]), px, py);
+        blit(ctx, sprites.get(DECOR_SPRITES[(d >>> 16) % DECOR_SPRITES.length]), px, py);
       }
     }
   }
@@ -85,37 +93,88 @@ function canvas(w, h) {
   return c;
 }
 
-function corpseSprite(sprites, type) {
-  let img = goreCache.get(type);
+function sizeClass(w) {
+  return w <= 20 ? 16 : w <= 40 ? 32 : 64;
+}
+
+function typeSeed(type) {
+  let h = 7;
+  for (let i = 0; i < type.length; i++) h = tileHash(h, type.charCodeAt(i));
+  return h;
+}
+
+// Swiezy i rozdety: filtr zywego sprite'a. Rozdety = ciemniej, mniej koloru,
+// zgnila zielen i deterministyczne plamy rozkladu (seed z typu, wiec identyczne u wszystkich).
+function corpseSprite(sprites, type, stage) {
+  const key = `corpse_${type}_${stage}`;
+  let img = goreCache.get(key);
   if (img) return img;
   const src = sprites.get(`${type}_0`);
   img = canvas(src.width, src.height);
   const c = img.getContext('2d');
-  c.filter = 'brightness(0.5) saturate(0.6)';
+  c.filter = stage === STAGE_BLOAT ? 'brightness(0.38) saturate(0.35)' : 'brightness(0.5) saturate(0.6)';
   c.drawImage(src, 0, 0);
   c.filter = 'none';
   c.globalCompositeOperation = 'source-atop';
-  c.fillStyle = 'rgba(90, 10, 5, 0.35)';
+  c.fillStyle = stage === STAGE_BLOAT ? 'rgba(45, 70, 15, 0.45)' : 'rgba(90, 10, 5, 0.35)';
   c.fillRect(0, 0, img.width, img.height);
-  goreCache.set(type, img);
+  if (stage === STAGE_BLOAT) {
+    let s = typeSeed(type);
+    const n = 3 + (s % 3);
+    c.fillStyle = 'rgba(20, 28, 8, 0.7)';
+    for (let i = 0; i < n; i++) {
+      s = tileHash(s, 13);
+      const x = s % img.width;
+      s = tileHash(s, 17);
+      const y = s % img.height;
+      c.fillRect(x, y, 1 + (s >>> 8) % 2, 1 + (s >>> 12) % 2);
+    }
+  }
+  goreCache.set(key, img);
   return img;
 }
 
-function splatSprite(big, variant) {
-  const key = `splat_${big ? 1 : 0}_${variant}`;
+// Szkielet wspolny dla klasy rozmiaru (16 / 32 / 64 px), zwrocony glowa w +x jak sprite zywego.
+function skeletonSprite(cls) {
+  return baked(`bones_${cls}`, cls, cls, (c) => {
+    const mid = cls / 2;
+    const bone = '#d8d2bc', shade = '#a89e85';
+    const px = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))); };
+    const u = cls / 16;
+    const head = Math.max(2, Math.round(cls * 0.22));
+    const spineX0 = Math.round(cls * 0.12), spineX1 = Math.round(cls * 0.66);
+    px(spineX0, mid - 0.5 * u, spineX1 - spineX0, u, shade);
+    const ribs = Math.max(2, Math.round(cls / 8));
+    for (let i = 0; i < ribs; i++) {
+      const rx = spineX0 + (spineX1 - spineX0) * (0.25 + 0.7 * (i / ribs));
+      const h = cls * 0.3 * (1 - Math.abs(i / ribs - 0.4) * 0.8);
+      px(rx, mid - h, u, h * 2 + u, bone);
+      px(rx, mid - h, u * 1.5, u, shade);
+      px(rx, mid + h, u * 1.5, u, shade);
+    }
+    const hx = spineX1 + u;
+    px(hx, mid - head / 2, head, head, bone);
+    px(hx + head - u * 1.5, mid - head / 2 + u, u * 1.5, Math.max(1, head - 2 * u), shade);
+    px(hx + u * 0.5, mid - head / 2 + u, u, u, '#2a251b');
+    px(hx + u * 0.5, mid + head / 2 - 2 * u, u, u, '#2a251b');
+    px(cls * 0.06, mid - u, u, 2 * u, bone);
+  });
+}
+
+function splatSprite(level, variant, size) {
+  const key = `splat_${level}_${variant}`;
   let img = goreCache.get(key);
   if (img) return img;
-  const size = big ? 14 : 5;
   img = canvas(size, size);
   const c = img.getContext('2d');
-  let s = tileHash(variant, big ? 7 : 3);
+  let s = tileHash(variant, 3 + level * 4);
   const rnd = () => ((s = tileHash(s, 11)) % 1000) / 1000;
   const r = size / 2;
-  const blobs = big ? 7 : 2;
+  const blobs = level === 0 ? 2 : 5 + level * 3;
   for (let i = 0; i < blobs; i++) {
     const a = rnd() * Math.PI * 2;
-    const dist = rnd() * r * 0.5;
-    const br = 1 + rnd() * r * (big ? 0.45 : 0.6);
+    const dist = rnd() * r * (level === 0 ? 0.5 : 0.55);
+    const br = 1 + rnd() * r * (level === 0 ? 0.6 : 0.4);
     const cx = r + Math.cos(a) * dist;
     const cy = r + Math.sin(a) * dist;
     c.fillStyle = i % 3 === 2 ? '#4a0d08' : '#6e140c';
@@ -127,6 +186,17 @@ function splatSprite(big, variant) {
   }
   goreCache.set(key, img);
   return img;
+}
+
+// Odcisk buta 3 x 5 px, czubkiem w +x: podeszwa i oddzielona pieta.
+function stepSprite() {
+  return baked('step', 5, 3, (c) => {
+    c.fillStyle = '#6e140c';
+    c.fillRect(2, 0, 3, 3);
+    c.fillRect(0, 0, 1, 3);
+    c.clearRect(4, 0, 1, 1);
+    c.clearRect(4, 2, 1, 1);
+  });
 }
 
 function baked(key, w, h, paint) {
@@ -181,10 +251,10 @@ export function fxSprites(sprites) {
       const tp = 16;
       const wreck = itemDef(kind)?.wreck;
       if (wreck) {
-        ctx.drawImage(sprites.get(wreck), tx * tp + ox, ty * tp + oy);
+        blit(ctx, sprites.get(wreck), tx * tp + ox, ty * tp + oy);
         return;
       }
-      for (const [x, y] of footprint(kind, tx, ty, rot)) ctx.drawImage(sprites.get(`rubble_${tileHash(x, y) % 2}`), x * tp + ox, y * tp + oy);
+      for (const [x, y] of footprint(kind, tx, ty, rot)) blit(ctx, sprites.get(`rubble_${tileHash(x, y) % 2}`), x * tp + ox, y * tp + oy);
     },
     collapse(ctx, c, k, ox, oy, tp) {
       const frame = Math.min(2, Math.floor(k * 3));
@@ -205,19 +275,40 @@ function onScreen(view, x, y) {
 function drawGore(ctx, view, ox, oy) {
   const gore = view.gore;
   if (!gore) return;
-  for (const [x, y, big] of gore.splats) {
-    if (!onScreen(view, x, y)) continue;
-    drawCentered(ctx, splatSprite(big, tileHash(x, y) % SPLAT_VARIANTS), x + ox, y + oy);
+  const cfg = gore.cfg;
+  // plamy -> slady -> trupy
+  for (const m of gore.marks) {
+    if (m.kind !== 'splat' || !onScreen(view, m.x, m.y)) continue;
+    drawCentered(ctx, splatSprite(m.level, tileHash(m.x, m.y) % SPLAT_VARIANTS, cfg.splatSizes[m.level]), m.x + ox, m.y + oy);
   }
-  for (const [type, x, y, a] of gore.corpses) {
-    if (!onScreen(view, x, y)) continue;
-    drawCentered(ctx, corpseSprite(view.sprites, type), x + ox, y + oy, a, Math.abs(a) > Math.PI / 2);
+  const prev = ctx.globalAlpha;
+  for (const m of gore.marks) {
+    if (m.kind !== 'step' || !onScreen(view, m.x, m.y)) continue;
+    ctx.globalAlpha = 0.25 + 0.65 * m.k;
+    drawCentered(ctx, stepSprite(), m.x + ox, m.y + oy, m.a);
   }
+  for (const corpse of gore.corpses) {
+    const [type, x, y, a] = corpse;
+    if (!onScreen(view, x, y)) continue;
+    const stage = gore.stageOf(corpse);
+    if (stage === null) continue;
+    let img;
+    ctx.globalAlpha = prev;
+    if (stage >= STAGE_BONES) {
+      img = skeletonSprite(sizeClass(view.sprites.get(`${type}_0`).width));
+      if (stage === STAGE_FADED) ctx.globalAlpha = cfg.bonesFadedAlpha;
+    } else {
+      img = corpseSprite(view.sprites, type, stage);
+    }
+    drawCentered(ctx, img, x + ox, y + oy, a, Math.abs(a) > Math.PI / 2);
+  }
+  ctx.globalAlpha = prev;
 }
 
 const SHAKE_MS = 160;
 
 function outline(ctx, img, x, y, view) {
+  if (!img) return;
   const on = Math.floor(view.nowMs / 250) % 2 === 0;
   const sil = silhouette(img, on ? '#ffffff' : '#e8e2d4');
   ctx.globalAlpha = on ? 1 : 0.6;
@@ -235,7 +326,7 @@ function drawPlatform(ctx, view, it, base, ox, oy) {
   let x1 = -Infinity;
   let y1 = -Infinity;
   for (const [tx, ty] of tiles) {
-    ctx.drawImage(view.sprites.get(`${base}_${f}`), tx * tp + ox, ty * tp + oy);
+    blit(ctx, view.sprites.get(`${base}_${f}`), tx * tp + ox, ty * tp + oy);
     x0 = Math.min(x0, tx);
     y0 = Math.min(y0, ty);
     x1 = Math.max(x1, tx + 1);
@@ -253,12 +344,14 @@ function drawItems(ctx, view, ox, oy) {
   const tp = balance.map.tilePx;
   setItemDefs(balance.items);
   for (const it of view.items) {
+    // cfg/base MUSZA byc nad `if`: galaz `ground` tez ich uzywa (zlota poswiata boostu).
+    // Deklaracja wewnatrz galezi `placed` dawala ReferenceError i ubijala cala klatke renderu.
+    const cfg = itemDef(it.kind);
+    const base = cfg?.sprite ?? it.kind;
     if (it.state === 'placed' || it.state === 'active') {
       const hitAt = view.shakes?.get(it.id);
       const shake = hitAt != null && view.nowMs - hitAt < SHAKE_MS ? ((frame & 1) ? 1 : -1) : 0;
       const sx = ox + shake;
-      const cfg = itemDef(it.kind);
-      const base = cfg?.sprite ?? it.kind;
       if (cfg?.behavior === 'block') {
         const frac = it.maxHp ? it.hp / it.maxHp : 1;
         const [w, h] = cfg.size ?? [1, 1];
@@ -268,17 +361,17 @@ function drawItems(ctx, view, ox, oy) {
         for (const [tx, ty] of footprint(it.kind, it.tx, it.ty, it.rot)) {
           const img = sprites.get(stage ? `${base}_dmg_${stage}` : base);
           if (lit) outline(ctx, img, tx * tp + sx, ty * tp + oy - 1, view);
-          ctx.drawImage(img, tx * tp + sx, ty * tp + oy - (lit ? 1 : 0));
+          blit(ctx, img, tx * tp + sx, ty * tp + oy - (lit ? 1 : 0));
         }
       } else if (cfg?.behavior === 'platform') {
         drawPlatform(ctx, view, it, base, ox, oy);
       } else if (cfg?.behavior === 'cage') {
-        ctx.drawImage(sprites.get(`${base}_${it.timeLeft > 0 ? 1 : 0}`), it.tx * tp + sx, it.ty * tp + oy);
+        blit(ctx, sprites.get(`${base}_${it.timeLeft > 0 ? 1 : 0}`), it.tx * tp + sx, it.ty * tp + oy);
       } else if (cfg?.behavior === 'spikes') {
-        ctx.drawImage(sprites.get(base), it.tx * tp + sx, it.ty * tp + oy);
+        blit(ctx, sprites.get(base), it.tx * tp + sx, it.ty * tp + oy);
       } else {
         const f = cfg?.behavior === 'mine' && !it.armed ? 0 : (frame >> 3) & 1;
-        ctx.drawImage(sprites.get(`${base}_${f}`), it.tx * tp + sx, it.ty * tp + oy);
+        blit(ctx, sprites.get(`${base}_${f}`), it.tx * tp + sx, it.ty * tp + oy);
       }
     } else if (it.state === 'flying' && it.flight) {
       const { x0, y0, x1, y1, p } = it.flight;
@@ -297,7 +390,7 @@ function drawItems(ctx, view, ox, oy) {
         ctx.fillRect(Math.round(it.x + ox) - hr, Math.round(it.y + oy) - hr, hr * 2, hr * 2);
         ctx.globalAlpha = 1;
       }
-      if (lit) outline(ctx, img, Math.round(it.x + ox - img.width / 2), Math.round(it.y + oy - img.height / 2) - 1, view);
+      if (lit && img) outline(ctx, img, Math.round(it.x + ox - img.width / 2), Math.round(it.y + oy - img.height / 2) - 1, view);
       drawCentered(ctx, img, it.x + ox, it.y + oy - (lit ? 1 : 0));
     }
   }

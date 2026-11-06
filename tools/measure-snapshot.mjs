@@ -74,7 +74,7 @@ const bytes = (o) => Buffer.byteLength(typeof o === 'string' ? o : JSON.stringif
 function breakdown(snap) {
   const out = {};
   let rest = bytes(snap);
-  for (const k of ['mobs', 'items', 'players', 'bullets', 'mobBullets', 'droplets', 'rockets', 'del']) {
+  for (const k of ['mobs', 'items', 'players', 'pstatic', 'bullets', 'mobBullets', 'droplets', 'rockets', 'del']) {
     if (snap[k] === undefined) continue;
     out[k] = { b: bytes(snap[k]), n: Array.isArray(snap[k]) ? snap[k].length : 0 };
     rest -= out[k].b;

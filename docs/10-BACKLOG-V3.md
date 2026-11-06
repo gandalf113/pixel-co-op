@@ -7,7 +7,39 @@ z oznaczeniem, co już jest w kodzie, a co trzeba dopisać.
 Stan kodu, do którego to się odnosi: 3 z 6 typów potworów, 3 z 9 przedmiotów, brak
 startowych ruin (PRD-MAP-10), brak dźwięku, brak awansu poziomu broni, brak listy pokojów.
 
-Kolejność realizacji: **L + tanie J** → **B** → **C** → **D/E** → **A** (zrobione) → **O (PILNE, sieć)** → **I** → **G/H** → **K** → reszta **F**.
+Kolejność realizacji: **L + tanie J** → **B** → **C** → **D/E** → **A** → **O (sieć)** → **I** → **P (krytyczne)** → **G/H** (wszystko powyżej zrobione) → **K** → reszta **F** → **N**.
+
+---
+
+## P. KRYTYCZNE: gracz oslepa po kilkunastu sekundach (zgloszenie 2026-11-06, v0.11.0)
+
+Zgloszenie z gry: "na jakis czas znikam ja, znikaja potwory (...) pasek zdrowia sie nie kurczy (...)
+nie widac kul lecacych z karabinu mimo ze strzelam (...) w ten sposob wlasnie umarlem". Jednoczesnie
+**dzwieki dzialaly**, strzal "na slepo" niszczyl mur, a trupy i plamy krwi **pojawialy sie normalnie**.
+
+### Diagnoza (odtworzona testem, nie zgadnieta)
+Ten zestaw objawow wskazuje dokladnie jedno miejsce: **wyjatek w srodku klatki renderu**. Kolejnosc
+rysowania w `renderWorld` to ziemia → gore → efekty podloza → kropelki → **przedmioty** → potwory →
+gracze → pociski, a `renderHud` leci po wszystkim. Skoro ziemia i gore sa, a przedmiotow, potworow,
+graczy, pociskow i HUD-u nie ma, wyjatek leci przy przedmiotach.
+
+Przyczyna: w `drawItems` `const cfg = itemDef(it.kind)` bylo zadeklarowane **wewnatrz** galezi
+`placed / active`, a dodana w v0.11.0 zlota poswiata boostu (ITM-P-09) uzywa `cfg?.behavior`
+w galezi `ground`. Optional chaining nie ratuje niezadeklarowanej zmiennej — leci
+`ReferenceError: cfg is not defined`. Czyli: **kazdy przedmiot lezacy na ziemi w polu widzenia
+wywalal cala klatke**. Stad "po ~20 sekundach" (pierwszy drop) i "trwa ~10 sekund" (do podniesienia
+albo wyjscia dropu z pola widzenia). Serwer caly czas liczyl poprawnie, dlatego dzwieki i trafienia
+dzialaly — zepsuty byl wylacznie obraz.
+
+### Dlaczego to przeszlo na produkcje
+`renderWorld` **nigdy nie bylo uruchomione w zadnym tescie**. `test/render.test.js` pokrywal tylko
+matematyke kamery i skalowania. Testy deploya byly zielone, bo nie bylo czego zlamac.
+
+| ID | Wymóg | Stan |
+|---|---|---|
+| V3-P-01 | **Poprawka**: `cfg` i `base` wyciagniete nad `if`, zeby obie galezie je widzialy. | v0.12.0 |
+| V3-P-02 | **Test, ktory by to zlapal**: bezglowy harness renderu (atrapa `CanvasRenderingContext2D`, w ktorej `drawImage(undefined)` rzuca tak jak w przegladarce) przepuszczajacy pelna klatke dla **kazdego** rodzaju przedmiotu w kazdym stanie, kazdego typu potwora, trupa w kazdym stadium i pustego swiata. Zweryfikowany przez **celowe przywrocenie bledu**: 14 testow czerwonych. | v0.12.0 |
+| V3-P-03 | **Obrona w glab**: (1) `blit()` i `outline()` pomijaja brakujacy sprite zamiast rzucac, bo `drawImage(undefined)` to TypeError; (2) swiat i HUD rysowane sa w osobnych `try`, wiec blad w jednym nie zabiera drugiego; (3) przy bledzie na ekranie pojawia sie czerwony pasek z trescia wyjatku, a blad trafia raz do konsoli. Gracz ma **widziec komunikat**, a nie grac na slepo i zginac. | v0.12.0 |
 
 ---
 
@@ -55,8 +87,8 @@ wiec AoI utnie mniej.
 
 | ID | Co zostalo | Dlaczego warto |
 |---|---|---|
-| V3-O-08 | **`players` to teraz najwieksza sekcja** (1 173 B przy 4 graczach, ok. 290 B na gracza): dlugie klucze, a wiekszosc pol nie zmienia sie co tick. Do tego `seed` leci w kazdym snapshocie, choc jest staly, a `mobs` ida w calosci. Ta sama delta albo krotka forma tablicowa jak u potworow. | to jest **nowe** waskie gardlo po O-01..O-03 |
-| V3-O-04 | Adaptacyjny `snapshotHz` — teraz da sie go oprzec o `bufferedAmount` albo `NetMeter.bytesPerSecond()`. | ostatnia deska ratunku dla slabego lacza |
+| V3-O-08 | **ZROBIONE w v0.12.0** (1 241 B -> 361 B, czyli 310 -> 90 B na gracza): statyki `id` / `nick` / `color` jada tylko w snapshocie `full` albo przy nowym graczu, reszta jako krotka jak u potworow, `seed` tylko w `full`. Rekonstrukcja w `applyPlayerDelta`, wiec render i HUD dostaja dokladnie ten sam ksztalt co wczesniej. Na laczu 6,6 -> 5,6 kB/s (deflate i tak zjadal powtarzalne klucze). Oryginalnie: **`players` to byla najwieksza sekcja** (1 173 B przy 4 graczach, ok. 290 B na gracza): dlugie klucze, a wiekszosc pol nie zmienia sie co tick. Do tego `seed` leci w kazdym snapshocie, choc jest staly, a `mobs` ida w calosci. Ta sama delta albo krotka forma tablicowa jak u potworow. | to jest **nowe** waskie gardlo po O-01..O-03 |
+| V3-O-04 | **ZROBIONE w v0.12.0**: dlawienie per gracz na `ws.bufferedAmount` (nie `NetMeter`, bo ten liczy to, co wyslalismy, a nie to, czego lacze nie odebralo). Wejscie > 16 kB przez 150 ms, wyjscie < 2 kB przez 1 s, po zdlawieniu 12 Hz. Pominiecie nastepuje **przed** `snapshot(id)`, bo delta przedmiotow jest stanowa i zbudowanie snapshotu do kosza przesunieloby punkt odniesienia. `net.throttledStreams` w `/healthz`. **Progi sa zalozeniem, nie pomiarem na zywym laczu** — do sprawdzenia w O-09. | ostatnia deska ratunku dla slabego lacza |
 | V3-O-09 | **Weryfikacja na zywym laczu**: po wdrozeniu sprawdzic `/healthz` pole `net.maxPlayerBytesPerSec` przy fali 4+ i zapytac gracza z Olsztyna. Zmierzylismy bajty, nie odczucie. | bez tego nie wiemy, czy problem zniknal |
 
 Kolejnosc: **O-05 (pomiar) i O-01 (delta) razem**, potem O-02, potem O-03, na koncu O-06/O-07.
@@ -196,7 +228,7 @@ Stan: serwer autorytatywny 30 Hz, snapshoty 20 Hz **pełne, w JSON**, predykcja 
 | V3-F-06 | `perMessageDeflate` w `ws` jest domyślnie wyłączony - włączyć po pomiarze (kompresja vs. CPU). |
 | V3-F-07 | **Mierzyć, nie zgadywać**: RTT i rozmiar snapshotu w telemetrii i w overlayu debug (`~`), żeby każdy z powyższych punktów dało się ocenić liczbą. Wejście w F zaczyna się od tego punktu. |
 
-## G. Rozkład trupów
+## G. Rozkład trupów — ZROBIONE w v0.12.0
 
 | ID | Wymóg |
 |---|---|
@@ -204,7 +236,7 @@ Stan: serwer autorytatywny 30 Hz, snapshoty 20 Hz **pełne, w JSON**, predykcja 
 | V3-G-02 | Sprite'y stadiów per typ potwora (dziś trup to przyciemniony sprite żywego, robiony filtrem w `render.js`). Kościotrup wspólny dla sylwetek o zbliżonym rozmiarze, żeby nie mnożyć grafiki bez potrzeby. |
 | V3-G-03 | Limit 300 trupów zostaje (PRD-MAP-09); rozkład działa **po stronie klienta** z numeru fali w snapshocie, więc nie kosztuje pasma. |
 
-## H. Krew: kałuże i ślady butów
+## H. Krew: kałuże i ślady butów — ZROBIONE w v0.12.0
 
 | ID | Wymóg |
 |---|---|

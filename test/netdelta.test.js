@@ -5,10 +5,10 @@ import { balance, placeWall } from './helpers.js';
 import { Game } from '../server/game.js';
 import { Session } from '../server/session.js';
 import { startServer } from '../server/app.js';
-import { NetMeter } from '../server/netmeter.js';
+import { NetMeter, LinkThrottle, summarize } from '../server/netmeter.js';
 import { makeMob } from '../server/mobspawn.js';
 import { spawnDrop } from '../server/items.js';
-import { applyItemDelta } from '../public/shared/delta.js';
+import { applyItemDelta, applyPlayerDelta, newPlayerState, PLAYER_FIELDS } from '../public/shared/delta.js';
 import { buildGrid } from '../public/shared/world.js';
 
 const TILE = balance.map.tilePx;
@@ -284,4 +284,181 @@ test('perMessageDeflate jest wynegocjowane z klientem', async () => {
   } finally {
     await srv.close();
   }
+});
+
+// --- V3-O-08: odchudzone `players` ------------------------------------------------------------------
+
+const mk2 = () => new Game({ balance, difficulty: 2, players: [{ id: 1, nick: 'Ala', color: 2 }, { id: 2, nick: 'Bob', color: 3 }], seed: 77 });
+// Ksztalt sprzed zmiany: obiekt z id, nick, color i polami zmiennymi; sluzy za wzorzec.
+
+test('players: pierwszy snapshot (full) niesie nicki, kolory i seed', () => {
+  const g = mk2();
+  const a = g.snapshot(1);
+  assert.equal(a.full, true);
+  assert.equal(a.seed, 77);
+  assert.deepEqual(a.pstatic, [[1, 'Ala', 2], [2, 'Bob', 3]]);
+  assert.ok(a.players.every((r) => Array.isArray(r)));
+});
+
+test('players: kolejny snapshot nie niesie statykow ani seeda, a applyPlayerDelta oddaje stary ksztalt', () => {
+  const g = mk2();
+  const st = newPlayerState();
+  const a = g.snapshot(1);
+  const first = applyPlayerDelta(st, a);
+  const b = g.snapshot(1);
+  assert.equal(b.pstatic, undefined);
+  assert.equal(b.seed, undefined);
+  const out = applyPlayerDelta(st, b);
+  assert.equal(b.seed, 77, 'seed odtworzony w snapshocie klienta');
+  assert.deepEqual(out, first);
+  const p = g.world.players.get(1);
+  assert.deepEqual(Object.keys(out[0]), ['id', 'nick', 'color', ...PLAYER_FIELDS.slice(1)]);
+  assert.equal(out[0].nick, 'Ala');
+  assert.equal(out[0].color, 2);
+  assert.equal(out[0].x, Math.round(p.x * 10) / 10);
+  assert.equal(out[0].held, null);
+  assert.equal(out[0].ammo, p.ammo);
+});
+
+test('players: gracz dolaczajacy w trakcie dostaje komplet statykow, reszta nie dostaje ich ponownie', () => {
+  const g = mk2();
+  const st = newPlayerState();
+  applyPlayerDelta(st, g.snapshot(1));
+  assert.equal(g.snapshot(1).pstatic, undefined);
+  // dojscie nowego gracza do swiata w trakcie gry
+  const donor = g.world.players.get(2);
+  g.world.players.set(3, { ...donor, id: 3, nick: 'Cez', color: 5 });
+  const s = g.snapshot(1);
+  assert.deepEqual(s.pstatic, [[3, 'Cez', 5]]);
+  const out = applyPlayerDelta(st, s);
+  assert.equal(out.find((p) => p.id === 3).nick, 'Cez');
+  assert.equal(out.length, 3);
+  // jego wlasny pierwszy snapshot jest pelny i ma wszystkich
+  const own = g.snapshot(3);
+  assert.equal(own.full, true);
+  assert.equal(own.pstatic.length, 3);
+  assert.equal(own.seed, 77);
+});
+
+test('players: reconnect dostaje full z seedem i statykami; klient z pustym stanem widzi nicki', () => {
+  const g = mk2();
+  g.snapshot(1);
+  g.snapshot(1);
+  g.suspend(1);
+  g.resume(1);
+  const s = g.snapshot(1);
+  assert.equal(s.full, true);
+  assert.equal(s.seed, 77);
+  const out = applyPlayerDelta(newPlayerState(), s);
+  assert.deepEqual(out.map((p) => p.nick), ['Ala', 'Bob']);
+});
+
+test('players: gracz, ktory wyszedl, znika z tablicy po stronie klienta', () => {
+  const g = mk2();
+  const st = newPlayerState();
+  applyPlayerDelta(st, g.snapshot(1));
+  g.remove(2);
+  const out = applyPlayerDelta(st, g.snapshot(1));
+  assert.deepEqual(out.map((p) => p.id), [1]);
+});
+
+test('players: krotka jest mniejsza niz stary obiekt', () => {
+  const g = mk2();
+  g.snapshot(1);
+  const b = g.snapshot(1);
+  const full = applyPlayerDelta(newPlayerState(), { ...g.snapshot(2), full: true });
+  assert.ok(JSON.stringify(b.players).length < JSON.stringify(full).length / 2);
+});
+
+// --- V3-O-04: adaptacyjny snapshotHz ------------------------------------------------------------------
+
+function slowSession() {
+  let n = 0;
+  const s = new Session({ balance, addresses: [], seed: 1, makeToken: () => `t${++n}` });
+  const c = { sent: [], isLocal: true, buf: 0, meter: new NetMeter(), send: (o) => c.sent.push(o), buffered: () => c.buf, close() {} };
+  s.connect(c);
+  s.message(c, JSON.stringify({ t: 'hello', token: null, nick: 'A' }));
+  s.message(c, JSON.stringify({ t: 'ult', kind: 'shockwave' }));
+  s.message(c, JSON.stringify({ t: 'start' }));
+  return { s, c };
+}
+const snapsOf = (c) => c.sent.filter((m) => m.t === 'snap');
+
+test('throttle: zatkane lacze schodzi do ok. 12 Hz, a po odetkaniu wraca do 20 Hz', () => {
+  const { s, c } = slowSession();
+  for (let i = 0; i < 20; i++) s.tick(0.05);
+  assert.equal(snapsOf(c).length, 20);
+  c.buf = 100000;
+  c.sent.length = 0;
+  for (let i = 0; i < 60; i++) s.tick(0.05);
+  const slow = snapsOf(c).length;
+  assert.ok(slow >= 30 && slow <= 40, `przy dlawieniu ~12 Hz z 20, jest ${slow}/60`);
+  assert.equal(summarize([c.meter]).throttledStreams, 1);
+  c.buf = 0;
+  for (let i = 0; i < 25; i++) s.tick(0.05);
+  c.sent.length = 0;
+  for (let i = 0; i < 20; i++) s.tick(0.05);
+  assert.equal(snapsOf(c).length, 20);
+  assert.equal(summarize([c.meter]).throttledStreams, 0);
+});
+
+test('throttle: pominiecie wysylki nie przesuwa punktu odniesienia delty przedmiotow', () => {
+  const { s, c } = slowSession();
+  for (let i = 0; i < 5; i++) s.tick(0.05);
+  const g = s.game;
+  const p = g.world.players.get(g.world.players.keys().next().value);
+  const drop = put(g, 'mine', p.x + 30, p.y);
+  const dict = new Map();
+  const st = newPlayerState();
+  const feed = () => { for (const m of snapsOf(c)) { applyItemDelta(dict, m); applyPlayerDelta(st, m); } c.sent.length = 0; };
+  feed();
+  c.buf = 100000;
+  for (let i = 0; i < 40; i++) {
+    drop.x += 1; // przedmiot zmienia sie w KAZDYM ticku, takze w pominietych
+    s.tick(0.05);
+  }
+  feed();
+  c.buf = 0;
+  for (let i = 0; i < 30; i++) s.tick(0.05);
+  feed();
+  assert.equal(dict.get(drop.id).x, Math.round(drop.x * 10) / 10, 'klient ma ostatnia pozycje');
+  const truth = [...g.world.items.values()].filter((it) => it.state !== 'held').map((it) => it.id).sort((a, b) => a - b);
+  assert.deepEqual([...dict.keys()].sort((a, b) => a - b), truth);
+});
+
+test('throttle: pominiecie nie wola snapshot() (nie rusza widoku gracza)', () => {
+  const { s, c } = slowSession();
+  for (let i = 0; i < 5; i++) s.tick(0.05);
+  c.buf = 100000;
+  let calls = 0;
+  const orig = s.game.snapshot.bind(s.game);
+  s.game.snapshot = (id) => { calls++; return orig(id); };
+  for (let i = 0; i < 50; i++) s.tick(0.05);
+  assert.equal(calls, snapsOf(c).length - 5, 'snapshot() zawolany tylko dla faktycznie wyslanych');
+  assert.ok(calls < 50);
+});
+
+test('throttle: zdarzenia leca takze w pominietych tickach', () => {
+  const { s, c } = slowSession();
+  for (let i = 0; i < 5; i++) s.tick(0.05);
+  c.buf = 100000;
+  for (let i = 0; i < 4; i++) s.tick(0.05);
+  c.sent.length = 0;
+  for (let i = 0; i < 10; i++) { s.game.world.events.push({ t: 'x', i }); s.tick(0.05); }
+  assert.equal(c.sent.filter((m) => m.t === 'ev').length, 10);
+});
+
+test('throttle: histereza - pojedynczy skok nie wlacza, pojedynczy spadek i skok nie wylaczaja', () => {
+  const l = new LinkThrottle();
+  assert.equal(l.update(500000), false, 'jeden skok nie dlawi');
+  assert.equal(l.update(0), false);
+  for (let i = 0; i < 3; i++) l.update(500000);
+  assert.equal(l.throttled, true);
+  assert.equal(l.update(0), true, 'jeden niski odczyt nie zwalnia');
+  assert.equal(l.update(500000), true);
+  for (let i = 0; i < 19; i++) assert.equal(l.update(0), true);
+  assert.equal(l.update(5000), true, 'odczyt miedzy progami zeruje licznik wyjscia');
+  for (let i = 0; i < 19; i++) assert.equal(l.update(0), true);
+  assert.equal(l.update(0), false, 'dopiero 20 niskich z rzedu');
+  assert.equal(l.update(500000), false, 'skok zaraz po powrocie nie wraca do dlawienia');
 });

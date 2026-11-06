@@ -10,6 +10,7 @@ import { Grid } from '../public/shared/world.js';
 import { mobView } from '../public/shared/mobview.js';
 import { makeMob, killsLeftIn } from './mobspawn.js';
 import { inRange, centersFor, AOI } from './aoi.js';
+import { PLAYER_FIELDS } from '../public/shared/delta.js';
 
 const INPUT_QUEUE_MAX = 4;
 const r1 = (v) => (typeof v === 'number' ? Math.round(v * 10) / 10 : v ?? null);
@@ -225,21 +226,28 @@ export class Game {
     const w = this.world;
     const me = w.players.get(id);
     const full = !this.views.has(id);
-    if (full) this.views.set(id, { items: new Map(), mobs: new Set() });
+    if (full) this.views.set(id, { items: new Map(), mobs: new Set(), players: new Set() });
     const view = this.views.get(id);
     const centers = centersFor(w, me);
     const near = (e) => inRange(centers, e.x, e.y, AOI.exitMul);
     const { changed, del } = this.#itemsFor(view, centers);
+    const { rows, statics } = this.#playersFor(view);
     return {
       t: r1(w.time),
-      seed: this.seed,
+      // seed jest staly przez cala gre: tylko w pelnym snapshocie (klient pamieta go w applyPlayerDelta)
+      ...(full ? { seed: this.seed } : {}),
       phase: w.phase,
       wave: w.wave,
       breakLeft: r1(w.phase === 'break' ? Math.max(0, this.breakLeft) : 0),
       readyLock: this.readyLock,
       mobsLeft: this.#mobsLeft(),
       you: { id, ackSeq: me?.ackSeq ?? 0 },
-      players: [...w.players.values()].map((p) => this.#playerView(p)),
+      // Pola zmienne gracza jako krotki, kolejnosc = PLAYER_FIELDS z public/shared/delta.js:
+      // [id, x, y, angle, hp, maxHp, state, suspended, reviveProgress, deathLeft, invuln, busy, held, ready,
+      //  weaponLv, weaponMod, ammo, reloadLeft, ult, ultKind, frenzyLeft, speedMult]
+      players: rows,
+      // Pola stale [id, nick, color]: tylko w pelnym snapshocie i przy graczu, ktorego ten klient jeszcze nie widzial.
+      ...(statics.length ? { pstatic: statics } : {}),
       // [id, typ, x, y, hp, maxHp, stun, frozen, burn, kat, invul, telegraf (dlugosc trajektorii w px albo 0)]
       mobs: this.#mobsFor(view, centers),
       droplets: w.droplets.filter(near).map((d) => [d.id, r1(d.x), r1(d.y)]),
@@ -255,6 +263,20 @@ export class Game {
       items: changed,
       ...(del.length ? { del } : {}),
     };
+  }
+
+  #playersFor(view) {
+    const rows = [];
+    const statics = [];
+    const present = new Set();
+    for (const p of this.world.players.values()) {
+      const v = this.#playerView(p);
+      rows.push(PLAYER_FIELDS.map((k) => v[k]));
+      present.add(p.id);
+      if (!view.players.has(p.id)) statics.push([p.id, p.nick, p.color]);
+    }
+    view.players = present;
+    return { rows, statics };
   }
 
   #playerView(p) {
