@@ -1,6 +1,6 @@
 // Pixel art wygenerowany przez Claude (TECH-05). Styl: brudne post-apo. '.' = przezroczysty,
 // 'P' = kolor gracza, 'Q' = ten sam kolor przyciemniony (podmieniane w bakeSprites).
-import { tankRows, tankWear, stalkerRows, ninjaRows, spikesRows, cageRows } from './bigsprites.js';
+import { tankRows, tankWear, stalkerRows, ninjaRows, swarmRows, bossRows, bossWear, spikesRows, cageRows } from './bigsprites.js';
 
 export const PALETTE = {
   '.': null,
@@ -1221,6 +1221,10 @@ for (const f of [0, 1]) {
   SPRITES[`ninja_${f}`] = ninjaRows(f);
   SPRITES[`tank_${f}`] = tankRows(f);
   for (const stage of [1, 2, 3]) SPRITES[`tank_${f}_dmg_${stage}`] = tankWear(SPRITES[`tank_${f}`], stage);
+  // Roj (12x12, MOB-05) i boss (64x64, MOB-06); boss ma stany zuzycia na wypadek `wear` w konfiguracji.
+  SPRITES[`swarm_${f}`] = swarmRows(f);
+  SPRITES[`boss_${f}`] = bossRows(f);
+  for (const stage of [1, 2, 3]) SPRITES[`boss_${f}_dmg_${stage}`] = bossWear(SPRITES[`boss_${f}`], stage);
 }
 
 // Kolce i klatka zajmuja 2 x 2 kafelki (V3-D-08): sprite'y 32x32 rysowane proceduralnie; ikony item_* zostaja 16x16.

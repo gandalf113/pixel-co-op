@@ -122,6 +122,7 @@ LOBBY -> START -> [PRZERWA 0 (krótka)] -> FALA 1 -> PRZERWA 1 -> FALA 2 -> PRZE
 | PRD-LOOP-04 | Przerwę można skrócić: każdy gracz klika "Gotowy" (klawisz `G` lub przycisk w HUD). Gdy wszyscy są gotowi, rusza 5-sekundowe odliczanie i fala startuje. Gotowość można cofnąć do końca odliczania. HUD pokazuje, kto jest gotowy. |
 | PRD-LOOP-05 | Dropy leżące na ziemi nie znikają między falami. Limit 200 przedmiotów na mapie, powyżej najstarsze znikają. |
 | PRD-LOOP-06 | Gra nie ma końca (endless). Cel: dotrwać jak najdalej. Ekran końcowy pokazuje numer fali, czas, zabójstwa per gracz. |
+| PRD-LOOP-07 | **Fala ma być rozpoznawalna, nie jednostajna** (R60, zgłoszenie z gry 2026-11-06: „zawsze na początku idą runnery i tak w kółko"). Dwie reguły: (1) potwory nadchodzą **grupami** - każda zdominowana jednym typem i wychodząca **z jednego kierunku**, w losowej kolejności, więc gracz widzi stado, a nie równomierny deszcz z całej mapy; (2) **od fali 3 jeden typ nie pojawia się wcale**, losowany tak, że najsłabsi wypadają najczęściej. Razem mają dać falom własny charakter („to fala biegaczy", „tym razem bez ślimaków"). Liczby i zmierzone rozkłady: `03-WAVES-DIFFICULTY.md` 2.2 i 2.3. |
 | PRD-LOOP-07 | Trudność jest stała przez całą sesję (wybrana w lobby). |
 
 ## 9. HUD

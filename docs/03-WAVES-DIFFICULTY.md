@@ -12,8 +12,8 @@ Liczby to **wartości startowe do balansu**. Zmieniamy je po testach (patrz `05-
 | MOB-02 | **Biegacz** | 20 | 6 | 3 | 6 | wręcz, co 0.6 s | 2 | 20% | Szybki, słaby. Omija fortyfikacje, szuka dziur. |
 | MOB-03 | **Osiłek** | 150 | 25 | 50 | 1.8 | wręcz, co 1.5 s | 4 | 50% | Niszczy fortyfikacje. Priorytet: hard objecty na drodze. |
 | MOB-04 | **Plujka** | 40 | 12 | 6 (pocisk) | 2.2 | pocisk **160 px/s** (R58, 2026-11-06: 250 bylo za szybkie, nie dalo sie uskoczyc), zasięg 7 kaf., co 2 s | 6 | 35% | Trzyma dystans 5 kafelków. Pocisku nie da się zestrzelić. Pocisk NIE przechodzi przez ściany. Celowo wolniejszy niż pociski graczy, żeby dało się uskoczyć. |
-| MOB-05 | **Rój** (3 małe naraz) | 10 x 3 | 4 | 2 | 4 | wręcz, co 0.8 s | 8 | 10% każdy | Spawnuje się trójkami. Przechodzi przez kolce bez obrażeń? Nie: otrzymuje. |
-| MOB-06 | **Boss** | 1200 | 40 | 100 | 1.5 | wręcz co 2 s (obszar 2 kaf.) + co 10 s wzywa 4 ślimaki | co 5 fal (5, 10, 15...) | 100% x3 | Niszczy ściany jednym ciosem (100 obr. ścianom). Niewrażliwy na klatkę. Pasek HP na górze ekranu. |
+| MOB-05 | **Rój** (3 małe naraz) | 10 x 3 | 4 | 2 | 4 | wręcz, co 0.8 s | 8 | 10% każdy | **Zaimplementowany w v0.14.0.** Spawnuje się trójkami: jeden wpis kolejki fali = trzy potwory (`pack: 3`), koszt 2, waga 20, promień 4 px (najmniejszy w grze). Limity `groupMaxMobs` i `maxAliveMobs` liczą **potwory, nie wpisy** — inaczej fala 12 stawiała 105 żywych przy suficie 60. Kolce zadają mu obrażenia normalnie. |
+| MOB-06 | **Boss** | 1200 | 40 | 100 | 1.5 | wręcz co 2 s (obszar 2 kaf.) + co 10 s wzywa 4 ślimaki | co 5 fal (5, 10, 15...) | 100% x3 | **Zaimplementowany w v0.14.0.** Cios obszarowy trafia **wszystkich** graczy w promieniu, nie tylko cel. Wezwane ślimaki podlegają sufitowi `maxAliveMobs` (bez tego długa walka zasypywała planszę). Promień ciała 28 px, sylwetka 64 x 64. Niszczy ściany jednym ciosem, niewrażliwy na klatkę, **nigdy nie jest obcinany przez area of interest** (klient musi widzieć jego HP na pasku). Nie przechodzi przez losowanie składu fali — stawiany osobno. |
 
 ### 1b. Potwory z Backlogu V3 (zaimplementowane 2026-11-06)
 
@@ -23,7 +23,7 @@ Pelne opisy zachowan: `10-BACKLOG-V3.md` punkt A. Tu sa liczby, bo to jest tabel
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | MOB-07 | **Granatnik** (64 px sylwetki nie ma, 16 px) | 60 | 18 (wybuch) | 10 | 2.0 | lob 110 px/s, zasieg 10 kaf., co 3 s, wybuch 1.5 kaf. (50% na krawedzi), marker upadku 0.7 s | 9 | 40% | 4 | 8 | 2 |
 | MOB-08 | **Skradajacy sie** (32 x 32) | 45 | 14 | 6 | 3.2 | wrecz co 1 s; cykl ukrycie 4-6 s / jawny 3-4 s, w ukryciu **nietykalny** i okraza gracza stycznie | 7 | 35% | 3 | 12 | 2 |
-| MOB-09 | **Ninja** (32 x 32) | 70 | 22 | 8 | - | wandering 1-2 s -> telegraf 0.6 s -> szarza 10 kaf./s po **ustalonej** trajektorii, jedno trafienie na szarze | 8 | 45% | 4 | 8 | 3 |
+| MOB-09 | **Ninja** (32 x 32) | 70 | 22 | 8 | - | wandering **1.6-3.2 s** -> telegraf **0.85 s** -> szarza **18 kaf./s** po **ustalonej** trajektorii, do **13 kafli**, jedno trafienie na szarze | 8 | 45% | 4 | 8 | 3 |
 | MOB-10 | **Tank** (64 x 64) | 600 | 30 | 60 | 1.2 | wrecz; zmienia kolor w 4 progach HP; po smierci **rozpada sie na runnerow** (5/6/8/9 wg trudnosci) | 10 | 60% | 8 | 6 | 5 |
 
 - Granatnik i Plujka strzelaja **wolniej niz pociski gracza** (450 px/s) celowo: 160 i 110 px/s. Uskok ma byc realna odpowiedzia, a nie loteria (R58).
@@ -72,17 +72,38 @@ Koszt potwora w punktach: Ślimak 1, Biegacz 1.5, Osiłek 6, Plujka 3, Rój (tr�
 
 ### 2.2 Skład
 
-- Losujemy potwory z puli dostępnej od danej fali, aż budżet się skończy. Wagi losowania: Ślimak 50, Biegacz 30, Osiłek 10, Plujka 15, Rój 10 (tylko te, które są odblokowane).
-- Od fali 4: min. 1 Osiłek. Od fali 6: min. 1 Plujka.
-- Co 5. fala: Boss **plus** 60% normalnego budżetu.
+Przepisane w v0.14.0 (R60) po zgłoszeniu z gry: „zawsze na początku idą runnery i tak w kółko". Stara wersja
+losowała **płaską listę** typów i wypuszczała ją wymieszaną po 1-3 punktach naraz, więc o tym, co dobiegnie
+pierwsze, decydowała wyłącznie prędkość potwora — a biegacz jest najszybszy. Fala po fali wyglądało to tak samo.
+
+- Fala to **ciąg grup**, nie papka. Każda grupa jest zdominowana przez **jeden typ**, dostaje losowy kawałek
+  budżetu fali (15-35%, `groupShareMin`/`groupShareMax`), maks. **24 potwory** (`groupMaxMobs`, liczone
+  w potworach — Rój to trzy sztuki na wpis). Co czwarta grupa (`groupMixedChance`) jest mieszana: drugi typ
+  bierze ok. 30% udziału. Kolejność grup losowa. Typowa fala 10 to 6-7 grup.
+- **Jeden typ wypada z każdej fali od fali 3** (`excludeFromWave`), losowany ważony `weight`, czyli
+  **najsłabsi wypadają najczęściej**. Zmierzone na fali 12: ślimak 32%, biegacz 18%, Rój 12%, plujka 8,9%,
+  skradający 7,9%, osiłek 6,8%, granatnik i ninja po 5%, tank 3,7%. Nigdy nie wypada ostatni dostępny typ.
+  Wymuszony osiłek (niżej) **nie wchodzi**, gdy to on wypadł.
+- Wagi losowania typu są w `balance.mobs[*].weight` i to one są tabelą prawdy, nie ten akapit.
+- Od fali 4: min. 1 Osiłek (chyba że wypadł). Od fali 6: min. 1 Plujka.
+- Co 5. fala: Boss **plus 60% normalnego budżetu** (`bossWaveBudgetMul`). Do v0.13.0 ta reguła była tylko
+  w dokumencie — kod nie miał bossa, a gdy go dostał, dawał bossa plus **pełną** falę. Od v0.14.0 się zgadza.
 - Skalowanie HP potworów: `HP * (1 + 0.04 * (n - 1))` (fala 10: +36%, fala 20: +76%). Obrażenia bez skalowania (to przerwy i fortyfikacje mają decydować, nie one-shoty).
 - Skalowanie z liczbą graczy: budżet `* (0.7 + 0.3 * liczba_graczy)` (1 gracz: 1.0; 2: 1.3; 3: 1.6; 4: 1.9). Liczy się liczba graczy w sesji na starcie (late join nie istnieje; rozłączenie nie zmniejsza budżetu).
 
 ### 2.3 Spawn w czasie
 
-- Fala spawnuje potwory w porcjach po `max(3, budżet / 6)` sztuk co 4 s, aż wyczerpie skład. Boss spawnuje się w pierwszej porcji.
-- Punkty spawnu: 12 punktów równomiernie na obwodzie mapy. Każda porcja losuje 1-3 punkty (żeby nie szło z jednej strony).
-- Fala kończy się, gdy skład jest wyczerpany **i** wszystkie potwory martwe.
+- Co 4 s (`batchIntervalS`) wychodzi **jedna cała grupa**, i to jest sedno zmiany z v0.14.0: grupa wychodzi
+  **z jednego punktu** (z szansą `groupTwoPointChance` 0.3 także z sąsiedniego na pierścieniu), więc gracz
+  widzi nadbiegające **stado z jednej strony**, a nie równomierny deszcz z całej mapy.
+- Punkty spawnu: 12 równomiernie na obwodzie. Wybierany jest punkt **poza zasięgiem wzroku** graczy
+  (`spawnHiddenDistPx`), a gdy żaden taki nie istnieje — dowolny.
+- **Sufit `maxAliveMobs` (60) liczy potwory, nie wpisy kolejki.** Grupa, która się nie mieści, dolewa się
+  w kolejnych krokach z tych samych punktów i nic z niej nie ginie. Jedyny wyjątek: paczka większa niż
+  wolne miejsce wychodzi w całości, gdy w danym kroku nie wyszło jeszcze nic — inaczej przy pełnej planszy
+  Rój nigdy by nie wyszedł i fala nie miałaby końca (przekroczenie najwyżej o 2 potwory).
+- Boss stawiany jest przy starcie fali, na punkcie najdalszym od żywych graczy, obok normalnej kompozycji.
+- Fala kończy się, gdy skład jest wyczerpany **i** wszystkie potwory martwe — boss wlicza się do licznika.
 
 ## 3. Przerwy między falami
 

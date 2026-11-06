@@ -7,7 +7,7 @@ z oznaczeniem, co już jest w kodzie, a co trzeba dopisać.
 Stan kodu, do którego to się odnosi: 3 z 6 typów potworów, 3 z 9 przedmiotów, brak
 startowych ruin (PRD-MAP-10), brak dźwięku, brak awansu poziomu broni, brak listy pokojów.
 
-Kolejność realizacji: **L + tanie J** → **B** → **C** → **D/E** → **A** → **O (sieć)** → **I** → **P (krytyczne)** → **G/H** → **K** → **F-01** (wszystko powyżej zrobione w v0.13.0) → **N** (czeka na trzy decyzje właściciela) → **E** (Rój, Boss) → **F-05** (lag compensation, tylko jeśli F-01 nie wystarczy).
+Kolejność realizacji: **L + tanie J** → **B** → **C** → **D/E** → **A** → **O (sieć)** → **I** → **P (krytyczne)** → **G/H** → **K** → **F-01** → **E-02/E-03 + skład fal (R60-R62)** (wszystko powyżej zrobione, ostatnie w v0.14.0) → **N** (czeka na trzy decyzje właściciela) → reszta **E** (E-01 ruiny, E-05..E-07) → **F-05** (lag compensation, tylko jeśli F-01 nie wystarczy).
 
 ---
 
@@ -202,13 +202,13 @@ Zaimplementowane są 3 z 9 przedmiotów z `02-ITEMS.md`. Do dopisania, z wartoś
 | V3-D-08 | **Kolce i klatka 2 x 2** (R59, zgloszenie 2026-11-06). Dzis oba sa 1 x 1, co czyni je trudnymi do trafienia i slabymi wzgledem ceny dropu. Nowy rozmiar `size: [2, 2]` dla obu. **Klatka**: aktywuje sie, gdy potwor wejdzie na **ktorykolwiek** z czterech kafelkow, i lapie **wszystko, co stoi w obrysie 2 x 2** w chwili wyzwolenia (dzis lapie dokladnie jednego) — to zmienia ja z pulapki punktowej w narzedzie na grupe. **Kolce**: zadaja obrazenia kazdemu potworowi stojacemu na dowolnym z czterech kafelkow, w tym samym rytmie 8 obr. / 0.5 s. Limity bez zmian (klatka 12). Po refaktorze z V3-D-03 rozmiar jest polem w `balance.json`, wiec kosztem sa glownie: wyzwalanie i obszar dzialania, ghost stawiania (2 x 2 musi miec cztery wolne kafelki) i sprite'y — kolce i klatka potrzebuja grafiki 32 x 32 zamiast 16 x 16. |
 | V3-D-07 | Wagi dropu i limity aktywnych z `02-ITEMS.md` sekcja 5 do `balance.json`; ghost i podpowiedzi HUD mają działać dla każdego nowego przedmiotu bez wyjątków w kodzie. |
 
-## E. Czego jeszcze brakuje wobec PRD (audyt)
+## E. Czego jeszcze brakuje wobec PRD (audyt) — E-02 i E-03 ZROBIONE w v0.14.0
 
 | ID | Luka | Źródło |
 |---|---|---|
 | V3-E-01 | **Startowe ruiny nie istnieją**: ani linii kodu, ani wpisu w `balance.json`. 7 kawałków ściany w pierścieniu 4-9 kafelków od spawnu, losowe orientacje i stany zniszczenia, z seedu gry. Po R53 (patrz J) ruiny są **nie do podniesienia** - zostają jako osłona. | PRD-MAP-10, R50 |
-| V3-E-02 | **Rój** (MOB-05): spawnuje się trójkami, 10 HP każdy, od fali 8. | MOB-05 |
-| V3-E-03 | **Boss** (MOB-06) co 5 fal: 1200 HP, atak obszarowy, wzywa ślimaki, pasek HP na górze ekranu, gwarantowany drop x3. Poza MVP decyzją R14, ale to jedyna rzecz, która domyka pętlę "co 5 fal". | MOB-06, B2 |
+| V3-E-02 | **ZROBIONE w v0.14.0.** Rój (MOB-05): spawnuje się trójkami, 10 HP każdy, od fali 8. Jeden wpis kolejki = trzy potwory (`pack: 3`); limity grupy i `maxAliveMobs` musiały zacząć liczyć **potwory, nie wpisy** — bez tego fala 12 stawiała 105 żywych przy suficie 60 (zmierzone, nie oszacowane). | MOB-05 |
+| V3-E-03 | **ZROBIONE w v0.14.0.** Boss (MOB-06) co 5 fal: 1200 HP, cios obszarowy trafiający wszystkich w promieniu 2 kafelków, wezwania ślimaków co 10 s (objęte sufitem `maxAliveMobs`), pasek HP na górze ekranu, gwarantowany drop x3, odporny na klatkę, nigdy nie obcinany przez AoI. Fala z bossem ma 60% normalnego składu — reguła była w 03 od początku, ale kod jej nie miał. | MOB-06, B2 |
 | V3-E-04 | **Poziom broni nie ma jak urosnąć**: `rifleStats` skaluje obrażenia, magazynek i przeładunek, ale nie ma itemu podnoszącego poziom, a przebijanie na lv3 i potrójny strzał na lv5 nie są zaimplementowane (istnieją tylko w Szale). Rozstrzyga to punkt I. | PRD-PLR-04 |
 | V3-E-05 | Pasek czasu nad obiektami aktywnymi jest tylko dla działka (platform nie ma). | PRD-HUD-06 |
 | V3-E-06 | **Obrażenia w przerwie nie mogą zabić**: `damagePlayer` w fazie `break` przycina HP do minimum 1. Zachowanie sensowne, ale nieopisane - dopisać do PRD albo usunąć. | brak |

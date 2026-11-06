@@ -199,6 +199,115 @@ export function ninjaRows(frame) {
   return outline(g);
 }
 
+// --- Roj (MOB-05): kleszcz/owad 12x12, najmniejszy potwor w grze ---------------------------------
+// Poziomy, patrzy w prawo: tylny odwlok, kapturek, glowa z zoltymi slepiami i bialymi szczypcami. Barwa bursztynowa
+// (o/R/y) - biegacz jest szary, slimak zielony. Nogi rysowane PO obrysie, pojedynczymi ciemnymi pikselami,
+// i chodza naprzemiennie (klatka 0/1 zamienia pary miejscami).
+export function swarmRows(frame) {
+  const g = grid(12);
+  ellipse(g, 4, 6, 3, 2.6, shaded(['y', 'o', 'R']));
+  ellipse(g, 7, 6, 1.6, 1.6, shaded(['o', 'o', 'R']));
+  ellipse(g, 9, 6, 1.6, 1.6, shaded(['y', 'o', 'o']));
+  put(g, 4, 5, 'r');
+  put(g, 3, 7, 'r');
+  put(g, 10, 5, 'W');
+  put(g, 10, 7, 'W');
+  put(g, 9, 5, 'K');
+  put(g, 9, 7, 'K');
+  const rows = outline(g).map((r) => r.split(''));
+  // trzy pary nog; w klatce 1 skrajne ida do przodu, srodkowa do tylu
+  const legs = frame
+    ? [[[8, 3], [8, 2]], [[6, 3], [5, 2]], [[4, 3], [3, 2]]]
+    : [[[8, 3], [9, 2]], [[6, 3], [6, 1]], [[4, 3], [4, 2]]];
+  legs.forEach(([a, b], i) => {
+    const down = (y) => 11 - y;
+    rows[a[1]][a[0] + (i === 1 && frame ? -1 : 0)] = 'K';
+    rows[b[1]][b[0]] = 'K';
+    rows[down(a[1])][a[0]] = 'K';
+    rows[down(b[1])][b[0]] = 'K';
+  });
+  return rows.map((r) => r.join(''));
+}
+
+// --- Boss (MOB-06): rogaty potwor 64x64 ------------------------------------------------------
+// Inny od tanka: tank to garbaty czolg ze zlomu w tonach miesa, boss to zywa bestia w fiolecie i szkarlacie.
+// Czterorekie cielsko, grzebien kolcow wzdluz grzbietu, ogon, wielki leb z dwoma rogami z kosci i rozzarzona paszcza.
+// `swing` = faza kroku (0/1). Kolory ciala (m/M/n) dobiera bossWear wg stanu zuzycia.
+export function bossRows(swing) {
+  const g = grid(64);
+  const bob = swing ? 1 : 0;
+  const fy = swing ? 4 : 0;
+  const cy = 32 + bob;
+  // ogon z kosciana kolcza
+  const ty = swing ? 4 : 0;
+  line(g, 16, cy, 5, 26 + ty, 7, 'M');
+  line(g, 16, cy, 5, 26 + ty, 3, 'm');
+  line(g, 5, 26 + ty, 1, 22 + ty, 3, 'W');
+  // tylne lapy: krotkie, ukryte pod cielskiem, z pazurami
+  for (const s of [-1, 1]) {
+    const y0 = cy + s * 14;
+    const y1 = cy + s * 25 + (s > 0 ? fy : -fy) * 0.5;
+    line(g, 20, y0, 24, y1, 8, 'M');
+    line(g, 20, y0, 24, y1, 4, 'm');
+    for (const dx of [-3, 0, 3]) line(g, 24 + dx, y1, 27 + dx, y1 + s * 3, 1, 'W');
+  }
+  // cielsko: potezny korpus z ciemnym brzuchem
+  ellipse(g, 27, cy, 16, 21, shaded(['m', 'M', 'n']));
+  ellipse(g, 24, cy + 1, 9, 13, shaded(['M', 'n', 'K']));
+  // przednie rece: grube, z piesciami i trzema pazurami
+  for (const s of [-1, 1]) {
+    const sy = cy + s * 15;
+    const ey = cy + s * 24 + (s < 0 ? fy : -fy);
+    line(g, 34, sy, 50, ey, 10, 'M');
+    line(g, 34, sy, 50, ey, 6, 'm');
+    ellipse(g, 52, ey, 6, 6, shaded(['m', 'M', 'n']));
+    for (const k of [-3, 0, 3]) line(g, 56, ey + k, 61, ey + k + s * (k ? Math.sign(k) * 0 : 0), 1, 'W');
+    put(g, 50, ey - 2, 'S');
+  }
+  // grzbiet: rzad kosciastych kolcow (widziany z gory jako romby) i zarzace pekniecia
+  for (let i = 0; i < 5; i++) {
+    const x = 12 + i * 5;
+    ellipse(g, x, cy, 2.2, 2.2, shaded(['W', 'S', 's']));
+    put(g, x, cy, 'K');
+  }
+  for (const [x, y] of [[20, 18], [21, 19], [22, 20], [30, 46], [31, 47], [18, 44], [32, 20]]) put(g, x, y + bob, 'r');
+  for (const [x, y] of [[21, 19], [31, 46], [19, 44]]) put(g, x, y + bob, 'o');
+  // leb: szeroki, wysuniety do przodu
+  ellipse(g, 44, cy, 10, 10, shaded(['m', 'M', 'n']));
+  // dwa rogi z kosci wygiete do przodu
+  for (const s of [-1, 1]) {
+    line(g, 42, cy + s * 8, 50, cy + s * 14, 3, 'W');
+    line(g, 50, cy + s * 14, 58, cy + s * 12, 2, 'W');
+    put(g, 59, cy + s * 11, 'S');
+  }
+  // paszcza: czarna, rozzarzona, z klami
+  ellipse(g, 52, cy, 5, 6, 'K');
+  ellipse(g, 53, cy, 3, 4, shaded(['y', 'o', 'r']));
+  for (const dy of [-5, -2, 2, 5]) put(g, 56, cy + dy, 'W');
+  for (const dy of [-4, 4]) put(g, 56, cy + dy + (dy < 0 ? 1 : -1), 'W');
+  // slepia: dwa zarzace
+  for (const s of [-1, 1]) {
+    const ey = cy + s * 6;
+    rect(g, 46, ey - 1, 49, ey, 'K');
+    put(g, 47, ey - 1 + (s > 0 ? 1 : 0), 'y');
+    put(g, 48, ey - 1 + (s > 0 ? 1 : 0), 'y');
+    put(g, 46, ey - 1 + (s > 0 ? 0 : 1), 'r');
+  }
+  return outline(g);
+}
+
+const BOSS_BODY = new Set(['m', 'M', 'n']);
+
+// Zuzycie bossa (1-3) - do wspolpracy z `wear` w konfiguracji potwora: ciemnieje, zasinia sie, na koncu czernieje.
+export function bossWear(rows, stage) {
+  const map = [null, { m: 'M', M: 'n', n: 'K' }, { m: 'M', M: 'n', n: 'K' }, { m: 'n', M: 'K', n: 'K' }][stage];
+  return rows.map((row, y) => [...row].map((ch, x) => {
+    if (!BOSS_BODY.has(ch)) return ch;
+    if (stage === 2 && (Math.floor(x / 3) * 5 + Math.floor(y / 3) * 7) % 4 === 0) return { m: 'C', M: 'C', n: 'e' }[ch];
+    return map[ch];
+  }).join(''));
+}
+
 // --- Przedmioty 2 x 2 kafelki (V3-D-08): kolce i klatka, 32x32 ---------------------------------
 
 // Kolce: zardzewiala plyta z szachownica stalowych szpikulcow (jasny czubek, ciemny cien), slad krwi, nity w rogach.

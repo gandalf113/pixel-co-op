@@ -1,5 +1,14 @@
 # Changelog dokumentacji
 
+## 0.28 - 2026-11-06
+- V3-E-02 i V3-E-03 zrobione w v0.14.0: **Roj** (trojkami, od fali 8) i **Boss** (co 5 fal, cios obszarowy, wzywa slimaki, pasek HP na gorze, drop x3, odporny na klatke, nigdy nie obciety przez AoI).
+- R60 (nowe), przepisane 03 sekcje 2.2 i 2.3: fala to **ciag grup** jednego typu wychodzacych **z jednego kierunku**, a od fali 3 **jeden typ wypada z fali**, wazony `weight` (zmierzone na fali 12: slimak 32%, tank 3,7%). Powod: zgloszenie z gry, ze kazda fala wyglada tak samo i zawsze zaczyna sie od biegaczy.
+- R61: waga dropu boostu broni 2 -> 4 (ITM-P-09). Z 2,1% na 4,2% dropow `power`, czyli z 8% na 16% szansy na co najmniej jeden boost w fali ~30 zabic.
+- R62: szarza ninji rzadziej (1-2 -> 1.6-3.2 s), dluzszy telegraf (0.6 -> 0.85 s), duzo szybszy lot (10 -> 18 kaf./s) i dalszy (9 -> 13 kafli). "Dluzszy skok" = dluzszy dystans; sam lot jest krotszy.
+- PRD-LOOP-07 (nowe): fala ma byc rozpoznawalna, nie jednostajna.
+- Poprawione rozjazdy kod-dokument znalezione przy okazji: fala z bossem ma **60% normalnego skladu** (03 mowil to od poczatku, kod dawal pelna fale); limity `groupMaxMobs` i `maxAliveMobs` licza **potwory, nie wpisy kolejki** (Roj to trzy sztuki na wpis - przed poprawka fala 12 stawiala 105 zywych przy suficie 60); wezwania bossa podlegaja temu samemu sufitowi.
+- MOB-05 i MOB-06 w 03 sekcji 1 oznaczone jako zaimplementowane, z liczbami dobranymi przy wdrozeniu (koszt, waga, promienie).
+
 ## 0.27 - 2026-11-06
 - Punkt K zrobiony w v0.13.0: ekran nicku i ekran glowny z lista otwartych pokojow, "Nowy pokoj", leaderboard i ekran sterowania. Zapisane jako PRD-SES-08 i PRD-CTRL-11.
 - PRD-SES-09 (nowe): `GET /api/rooms` bez nickow, tylko w trybie pokoi, z limitem zapytan na adres; pokoj bez graczy jest martwy natychmiast, choc fizycznie zyje jeszcze 90 s. Konsekwencja przyjeta swiadomie: odswiezenie karty w jednoosobowym lobby zamyka pokoj.

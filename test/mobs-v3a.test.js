@@ -6,7 +6,7 @@ import { updateMobs } from '../server/mobs.js';
 import { updateBullets, spawnBullet, killMob, damageMob } from '../server/combat.js';
 import { makeMob, splitCount } from '../server/mobspawn.js';
 import { sizeBlocked } from '../server/flowfield.js';
-import { composeWave } from '../server/waves.js';
+import { composeWave, bossesForWave } from '../server/waves.js';
 import { makeRng } from '../server/rng.js';
 import { makeRules } from '../server/balance.js';
 import { buildGrid } from '../public/shared/world.js';
@@ -372,12 +372,13 @@ function untilPhase(w, m, phase, max = 10) {
   assert.equal(m.ninja?.phase, phase);
 }
 
-test('ninja: wandering 1-2 s, potem telegraf 0.6 s, potem szarza, potem znowu wandering', () => {
+// Strojenie na zgloszenie z gry (nie regresja): wandering 1.6-3.2 s, telegraf 0.85 s, szarza 18 kaf./s na max 13 kafli.
+test('ninja: wandering 1.6-3.2 s, potem telegraf 0.85 s, potem szarza, potem znowu wandering', () => {
   const { w, m } = ninjaWorld();
   let t = 0;
   const marks = [];
   let phase = null;
-  for (let i = 0; i < ticks(14) && marks.length < 6; i++) {
+  for (let i = 0; i < ticks(25) && marks.length < 6; i++) {
     step(w);
     t += DT;
     const ph = m.ninja.phase;
@@ -388,10 +389,10 @@ test('ninja: wandering 1-2 s, potem telegraf 0.6 s, potem szarza, potem znowu wa
   }
   const dur = (i) => marks[i + 1].t - marks[i].t;
   assert.deepEqual(marks.slice(0, 5).map((x) => x.ph), ['wander', 'telegraph', 'charge', 'wander', 'telegraph']);
-  assert.ok(dur(0) >= 1 - DT && dur(0) <= 2 + DT * 2, `wandering ${dur(0)}`);
-  assert.ok(Math.abs(dur(1) - 0.6) <= DT * 1.5, `telegraf ${dur(1)}`);
+  assert.ok(dur(0) >= 1.6 - DT && dur(0) <= 3.2 + DT * 2, `wandering ${dur(0)}`);
+  assert.ok(Math.abs(dur(1) - 0.85) <= DT * 1.5, `telegraf ${dur(1)}`);
   assert.ok(dur(2) > 0 && dur(2) < 1.3, `szarza ${dur(2)}`);
-  assert.ok(dur(3) >= 1 - DT * 2 && dur(3) <= 2 + DT * 2, `wandering po szarzy ${dur(3)}`);
+  assert.ok(dur(3) >= 1.6 - DT * 2 && dur(3) <= 3.2 + DT * 2, `wandering po szarzy ${dur(3)}`);
 });
 
 test('ninja: trajektoria ustalona w chwili telegrafu nie sledzi gracza, uskok dziala', () => {
@@ -466,15 +467,19 @@ test('ninja: szarza zatrzymuje sie na scianie i uszkadza ja za objDamage', () =>
 
 test('nowe typy wchodza do fal dopiero od swojej fali, a budzet sie nie psuje', () => {
   const rules = makeRules(balance, 2, 1);
-  const cheapest = (n) => Math.min(...Object.values(balance.mobs).filter((m) => m.fromWave <= n).map((m) => m.cost));
+  // Luz na koncu budzetu liczymy od najtanszego typu DOSTEPNEGO W TEJ FALI: od v0.14.0 jeden typ wypada
+  // z fali, a jesli wypadnie slimak (koszt 1), to reszty nie ma juz czym dopchnac co do grosza.
+  const cheapest = (n, excluded) => Math.min(...Object.entries(balance.mobs)
+    .filter(([k, m]) => m.fromWave <= n && !m.bossEvery && k !== excluded).map(([, m]) => m.cost));
   const seenFrom = { stalker: Infinity, ninja: Infinity, tank: Infinity };
   for (let n = 1; n <= 30; n++) {
     for (let seed = 1; seed <= 40; seed++) {
       const comp = composeWave(rules, n, makeRng(seed));
       const cost = comp.reduce((s, t) => s + balance.mobs[t].cost, 0);
-      const budget = rules.waveBudget(n);
+      // fala z bossem ma 60% skladu zwyklych potworow (03 sekcja 2.2)
+      const budget = rules.waveBudget(n) * (bossesForWave(rules, n).length ? balance.waves.bossWaveBudgetMul : 1);
       assert.ok(cost <= budget + 1e-9, `fala ${n}: koszt ${cost} > budzet ${budget}`);
-      assert.ok(cost > budget - cheapest(n) - 1e-9, `fala ${n}: niewykorzystany budzet`);
+      assert.ok(cost > budget - cheapest(n, comp.excluded) - 1e-9, `fala ${n}: niewykorzystany budzet (bez ${comp.excluded})`);
       for (const t of comp) {
         assert.ok(balance.mobs[t].fromWave <= n, `${t} w fali ${n}`);
         if (t in seenFrom) seenFrom[t] = Math.min(seenFrom[t], n);

@@ -447,6 +447,10 @@ export function drawMobs(ctx, view, ox, oy) {
     if (stunned && !frozen) ctx.globalAlpha = (frame >> 2) & 1 ? 0.5 : 1;
     const k = view.fx ? view.fx.knock(id, view.nowMs) : { x: 0, y: 0 };
     let img = sprites.get(mobSpriteName(cfg, type, frozen ? 0 : ((frame >> 3) + id) & 1, hp, maxHp));
+    if (!img) {
+      ctx.globalAlpha = 1; // brak sprite'a (nowy typ bez grafiki) nie moze wywrocic klatki w silhouette()
+      continue;
+    }
     if (view.fx && view.nowMs < (view.fx.mobFlash.get(id) ?? 0)) img = silhouette(img, '#ffffff');
     if (invul) {
       // nietykalny: sam zarys (biala poswiata dookola) i ledwo widoczne wnetrze

@@ -2,6 +2,7 @@ import { VIEW_W, VIEW_H } from './render.js';
 import { formatTime } from './ui.js';
 import { rifleStats } from '../shared/weapon.js';
 import { LOW_HP } from './fx.js';
+import { MV } from '../shared/mobview.js';
 import { footprint, itemDef, setItemDefs } from '../shared/world.js';
 
 const PAD = 12;
@@ -145,6 +146,35 @@ function drawUltBar(ctx, state, me, scale, fs, small) {
   }
 }
 
+// Pasek bossa (MOB-06) pod napisem fali, na srodku. Zwraca wysokosc zajeta w pionie (0, gdy bossa nie ma),
+// zeby linie pod spodem (gotowi, wracajacy, obserwacja) przesunely sie zamiast sie nakladac.
+// Zrodlem jest lista potworow ze snapshotu; kilku bossow naraz = jeden pasek z sumy HP.
+export function drawBossBar(ctx, state, scale, top, fs, small) {
+  let hp = 0;
+  let maxHp = 0;
+  for (const m of state.snap?.mobs ?? []) {
+    if (m[MV.type] !== 'boss') continue;
+    hp += Math.max(0, m[MV.hp]);
+    maxHp += Math.max(0, m[MV.maxHp]);
+  }
+  if (!(maxHp > 0)) return 0;
+  const W = ctx.canvas.width;
+  const frac = Math.max(0, Math.min(1, hp / maxHp));
+  const bw = Math.round(Math.min(W * 0.6, 220 * scale));
+  const bh = Math.max(6, Math.round(4 * scale + 2));
+  const bx = Math.round((W - bw) / 2);
+  const name = (state.balance?.mobs?.boss?.name ?? 'BOSS').toUpperCase();
+  const ty = Math.round(top + small);
+  text(ctx, name, bx, ty, { size: small, color: '#ff7a5a' });
+  text(ctx, `${Math.ceil(hp)} / ${Math.ceil(maxHp)} · ${Math.ceil(frac * 100)}%`, bx + bw, ty, { size: small, align: 'right' });
+  const by = ty + 4;
+  bar(ctx, bx, by, bw, bh, frac, frac > 0.3 ? '#a8321f' : '#d9b53a');
+  // znaczniki co 25%, tak jak progi zuzycia scian
+  ctx.fillStyle = '#000';
+  for (const q of [0.25, 0.5, 0.75]) ctx.fillRect(bx + Math.round(bw * q), by, 1, bh);
+  return by + bh + 4 - top;
+}
+
 // Canvas HUD ma ten sam rozmiar i pozycje co plansza; `mouse` jest juz we wspolrzednych planszy (main.js).
 export function renderHud(ctx, scale, state) {
   const { snap, balance, sprites, cam, me } = state;
@@ -233,6 +263,7 @@ export function renderHud(ctx, scale, state) {
       }
     }
 
+    const bossH = drawBossBar(ctx, state, scale, PAD + fs + 6, fs, small);
     let topLine;
     if (snap.phase === 'break') {
       const blink = snap.breakLeft <= 5 && Math.floor(state.nowMs / 250) % 2 === 0;
@@ -244,10 +275,10 @@ export function renderHud(ctx, scale, state) {
     if (snap.phase === 'break') {
       const ready = snap.players.filter((p) => p.ready).map((p) => p.nick);
       const line = `${ready.length ? `Gotowi: ${ready.join(', ')} · ` : ''}${me?.ready ? 'gotowy ✓' : '[G] Gotowy'}`;
-      text(ctx, line, W / 2, PAD + fs * 2 + 4, { size: small, align: 'center' });
+      text(ctx, line, W / 2, PAD + fs * 2 + 4 + bossH, { size: small, align: 'center' });
     }
 
-    let sy = PAD + fs * 3 + 8;
+    let sy = PAD + fs * 3 + 8 + bossH;
     for (const p of snap.players) {
       if (!p.suspended) continue;
       text(ctx, `${p.nick}: wraca…`, W / 2, sy, { color: p.color, size: small, align: 'center' });
@@ -256,8 +287,8 @@ export function renderHud(ctx, scale, state) {
 
     if (me && me.state === 'dead') {
       const who = state.spectating;
-      text(ctx, who ? `OBSERWUJESZ: ${who.nick}` : 'NIKT NIE ŻYJE', W / 2, PAD + fs * 4 + 12, { size: fs, align: 'center', color: who?.color ?? '#ff5a4a' });
-      text(ctx, 'wracasz w przerwie · klik / A / D: zmień', W / 2, PAD + fs * 5 + 16, { size: small, align: 'center' });
+      text(ctx, who ? `OBSERWUJESZ: ${who.nick}` : 'NIKT NIE ŻYJE', W / 2, PAD + fs * 4 + 12 + bossH, { size: fs, align: 'center', color: who?.color ?? '#ff5a4a' });
+      text(ctx, 'wracasz w przerwie · klik / A / D: zmień', W / 2, PAD + fs * 5 + 16 + bossH, { size: small, align: 'center' });
       if (me.ultKind && balance.ultimate) drawUltBar(ctx, state, me, scale, fs, small);
     } else if (me) {
       const bw = 60 * scale;

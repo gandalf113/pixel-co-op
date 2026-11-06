@@ -1,5 +1,6 @@
 import { buildField, nextStep, sizeBlocked } from './flowfield.js';
 import { damagePlayer } from './players.js';
+import { spawnAround } from './mobspawn.js';
 import { damageMob, lineClear, spawnMobBullet, solidAlong } from './combat.js';
 import { KIND, moveCircle, tileOf } from '../public/shared/world.js';
 
@@ -353,8 +354,25 @@ function updateMob(world, mob, dt, hooks) {
   // ninja bije tylko szarza, skradajacy sie nie bije w ukryciu
   const melee = !cfg.charge && !mob.invul;
   if (melee && stand.player && stand.dist <= cfg.radiusPx + playerR + balance.mobAi.meleeReachPx && mob.attackCd <= EPS) {
-    damagePlayer(world, stand.player, world.rules.mobDamage(mob.type), 'mob');
+    if (cfg.aoe) {
+      // cios obszarowy: dostaje KAZDY stojacy gracz, ktorego cialo zahacza o kolo `aoe.radiusTiles` wokol srodka
+      const reach = cfg.aoe.radiusTiles * tilePx + playerR;
+      for (const p of [...world.players.values()]) {
+        if (isStand(p) && Math.hypot(p.x - mob.x, p.y - mob.y) <= reach) damagePlayer(world, p, world.rules.mobDamage(mob.type), 'mob');
+      }
+    } else damagePlayer(world, stand.player, world.rules.mobDamage(mob.type), 'mob');
     mob.attackCd = cfg.attackS;
+  }
+  if (cfg.summon) {
+    const sm = cfg.summon;
+    mob.summonCd = (mob.summonCd ?? sm.everyS) - dt;
+    if (mob.summonCd <= EPS) {
+      mob.summonCd += sm.everyS;
+      // Wezwanie podlega temu samemu sufitowi co spawn z fali: dluga walka z bossem inaczej zasypuje plansze
+      // (co 10 s cztery slimaki, bez konca), a PRD-PERF-01 obiecuje 60 FPS przy 60 potworach.
+      const room = world.rules.balance.waves.maxAliveMobs - world.mobs.length;
+      if (room > 0) spawnAround(world, mob, sm.type, Math.min(sm.count, room));
+    }
   }
 
   const target = pickTarget(world, mob, stand);

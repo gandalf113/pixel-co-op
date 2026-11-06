@@ -1,6 +1,6 @@
 import { makeRules } from './balance.js';
 import { makeRng } from './rng.js';
-import { composeWave, SpawnDirector } from './waves.js';
+import { composeWave, SpawnDirector, bossesForWave, spawnPoints } from './waves.js';
 import { createPlayer, updatePlayers, startBreakFor, allDown, setDropHeld, speedMultOf } from './players.js';
 import { updateUltimate, useUltimate } from './ultimate.js';
 import { updateMobs } from './mobs.js';
@@ -8,7 +8,7 @@ import { fireWeapons, updateBullets, updateMobBullets, startReload } from './com
 import * as items from './items.js';
 import { Grid } from '../public/shared/world.js';
 import { mobView } from '../public/shared/mobview.js';
-import { makeMob, killsLeftIn } from './mobspawn.js';
+import { makeMob, spawnFromQueue, killsLeftIn, killsLeftInMob } from './mobspawn.js';
 import { inRange, centersFor, AOI } from './aoi.js';
 import { PLAYER_FIELDS } from '../public/shared/delta.js';
 
@@ -214,7 +214,8 @@ export class Game {
     const ids = new Set();
     for (const m of this.world.mobs) {
       const mul = view.mobs.has(m.id) ? AOI.exitMul : AOI.enterMul;
-      if (!inRange(centers, m.x, m.y, mul)) continue;
+      // `alwaysVisible` (boss): klient rysuje jego pasek HP na gorze ekranu, wiec leci zawsze
+      if (!this.world.rules.balance.mobs[m.type].alwaysVisible && !inRange(centers, m.x, m.y, mul)) continue;
       ids.add(m.id);
       out.push(mobView(m, r1));
     }
@@ -314,14 +315,14 @@ export class Game {
     const w = this.world;
     const positions = [];
     for (const p of w.players.values()) if (p.state !== 'dead' && !p.suspended) positions.push({ x: p.x, y: p.y });
-    for (const s of this.director.update(dt, w.mobs.length, positions)) makeMob(w, s.type, s.x, s.y);
+    for (const s of this.director.update(dt, w.mobs.length, positions)) spawnFromQueue(w, s.type, s.x, s.y);
   }
 
   // Zabicia do zrobienia: kolejka spawnu plus zywe potwory, kazdy razem ze swoim przyszlym potomstwem (tank).
   #mobsLeft() {
     const rules = this.world.rules;
     let n = 0;
-    for (const m of this.world.mobs) n += killsLeftIn(rules, m.type);
+    for (const m of this.world.mobs) n += killsLeftInMob(rules, m.type);
     for (const t of this.director?.queue ?? []) n += killsLeftIn(rules, t);
     return n;
   }
@@ -351,6 +352,22 @@ export class Game {
     for (const p of w.players.values()) p.ready = false;
     this.director = new SpawnDirector(w.rules, w.wave, composeWave(w.rules, w.wave, w.rng), w.rng);
     items.onWaveStart(w);
+    this.#spawnBosses();
+  }
+
+  // Boss idzie poza `composeWave`: stawiany od razu, na punkcie spawnu najdalszym od graczy.
+  #spawnBosses() {
+    const w = this.world;
+    const alive = [...w.players.values()].filter((p) => p.state !== 'dead' && !p.suspended);
+    for (const type of bossesForWave(w.rules, w.wave)) {
+      let best = null;
+      let bestD = -1;
+      for (const sp of spawnPoints(w.rules)) {
+        const d = alive.length ? Math.min(...alive.map((p) => Math.hypot(p.x - sp.x, p.y - sp.y))) : 0;
+        if (d > bestD) { bestD = d; best = sp; }
+      }
+      makeMob(w, type, best.x, best.y);
+    }
   }
 
   #startBreak() {

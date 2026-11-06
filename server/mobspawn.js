@@ -21,17 +21,51 @@ export function splitCount(rules, type) {
   return sp ? Math.max(1, Math.round(sp.count * rules.diff.budget)) : 0;
 }
 
-// Ile zabic zostalo "w jednym potworze": on sam plus cale jego przyszle potomstwo. Dzieki temu licznik fali
-// nie skacze w gore, gdy tank umiera, tylko spada o 1.
-export const killsLeftIn = (rules, type) => 1 + splitCount(rules, type);
+// Ile potworow wychodzi z JEDNEGO wpisu kolejki spawnu (`pack`: Roj wychodzi trojka).
+export const packSize = (rules, type) => rules.balance.mobs[type].pack ?? 1;
+
+// Ile zabic siedzi w jednym WPISIE KOLEJKI: cala paczka, kazdy z potomstwem. Dzieki temu licznik fali
+// nie skacze w gore, gdy tank umiera ani gdy Roj sie pojawia.
+export const killsLeftIn = (rules, type) => packSize(rules, type) * (1 + splitCount(rules, type));
+
+// To samo dla potwora, ktory juz zyje (paczka jest rozpakowana): on sam plus jego przyszle potomstwo.
+export const killsLeftInMob = (rules, type) => 1 + splitCount(rules, type);
+
+// Spawn z fali: jeden wpis kolejki = `pack` potworow obok siebie, na wolnych miejscach.
+export function spawnFromQueue(world, type, x, y) {
+  const n = packSize(world.rules, type);
+  if (n <= 1) return [makeMob(world, type, x, y)];
+  const { tilePx } = world.rules;
+  const r = world.rules.balance.mobs[type].radiusPx;
+  const a0 = world.rng() * Math.PI * 2;
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    const a = a0 + (k * Math.PI * 2) / n;
+    let px = x;
+    let py = y;
+    for (let d = r * 2 + 2; d > 0; d -= 2) {
+      const cx = x + Math.cos(a) * d;
+      const cy = y + Math.sin(a) * d;
+      if (circleFree(world.grid, cx, cy, r, tilePx)) { px = cx; py = cy; break; }
+    }
+    out.push(makeMob(world, type, px, py));
+  }
+  return out;
+}
 
 // Potomstwo rozrzucone promieniscie wokol miejsca smierci, na wolnych kafelkach: kazdy promien probuje
 // od najdalszego punktu ku srodkowi (srodek jest wolny, bo stalo tam cialo rodzica).
 export function spawnSplit(world, parent) {
+  const cfg = world.rules.balance.mobs[parent.type];
+  return spawnAround(world, parent, cfg.split.type, splitCount(world.rules, parent.type));
+}
+
+// `n` potworow typu `type` wokol `parent` (potomstwo tanka, ślimaki wezwane przez bossa). Zdarzenie `split`
+// klient juz obsluguje (obloczek w miejscu rodzica), wiec wezwanie bossa nie ma wlasnego.
+export function spawnAround(world, parent, type, n) {
   const { balance } = world.rules;
   const cfg = balance.mobs[parent.type];
-  const n = splitCount(world.rules, parent.type);
-  const rc = balance.mobs[cfg.split.type].radiusPx;
+  const rc = balance.mobs[type].radiusPx;
   const { tilePx, } = world.rules;
   const { tilesW, tilesH } = balance.map;
   const reach = cfg.radiusPx + rc + 2;
@@ -52,7 +86,7 @@ export function spawnSplit(world, parent) {
         break;
       }
     }
-    out.push(makeMob(world, cfg.split.type, x, y));
+    out.push(makeMob(world, type, x, y));
   }
   return out;
 }

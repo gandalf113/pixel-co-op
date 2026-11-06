@@ -58,7 +58,7 @@ function shotsIn(w, p, seconds) {
   return n;
 }
 
-test('balance.json: weaponMods ma wszystkie liczby, boost wazy 2 i jest power-upem', () => {
+test('balance.json: weaponMods ma wszystkie liczby, boost wazy 4 i jest power-upem', () => {
   assert.equal(M.maxLevel, 5);
   assert.deepEqual([...M.kinds].sort(), ['fan', 'homing', 'nailgun']);
   assert.equal(M.fan.count, 3);
@@ -67,7 +67,7 @@ test('balance.json: weaponMods ma wszystkie liczby, boost wazy 2 i jest power-up
   assert.equal(M.nailgun.speedPx, 900);
   assert.ok(M.nailgun.lenPx >= 4 && M.nailgun.lenPx <= 6);
   const b = balance.items.weaponboost;
-  assert.equal(b.weight, 2);
+  assert.equal(b.weight, 4); // 2026-11-06: podbite z 2 (2,1% -> 4,2% dropow mocy)
   assert.equal(b.category, 'power');
   assert.equal(b.throwDamage, 5);
 });

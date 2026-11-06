@@ -426,14 +426,14 @@ test('cage holds exactly 8 s and then disappears', () => {
 test('cage does not trap a boss and frees its slot when the prisoner dies', () => {
   const { w, it } = caged();
   const type = 'brute';
-  balance.mobs[type].boss = true;
+  balance.mobs[type].immuneCage = true;
   try {
     const boss = addMob(w, type, C(32), C(10));
     run(w, 0.2, { mobs: false });
     assert.equal(it.caught ?? null, null);
     assert.equal(boss.frozen ?? 0, 0);
   } finally {
-    delete balance.mobs[type].boss;
+    delete balance.mobs[type].immuneCage;
   }
   w.mobs.length = 0;
   const slime = addMob(w, 'slime', C(32), C(10));

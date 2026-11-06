@@ -55,9 +55,9 @@ export function spawnDrop(world, kind, x, y) {
   return item;
 }
 
-export function rollDrop(world, mobType) {
+export function rollDrop(world, mobType, guaranteed = false) {
   const { rules, rng } = world;
-  if (rng() >= rules.dropChance(mobType)) return null;
+  if (!guaranteed && rng() >= rules.dropChance(mobType)) return null;
   const category = rng() < rules.balance.drops.hardShare ? 'hard' : 'power';
   const entries = Object.entries(rules.balance.items)
     .filter(([, c]) => c.category === category && c.weight > 0)
@@ -66,6 +66,21 @@ export function rollDrop(world, mobType) {
 }
 
 export function onMobKilled(world, mob, killerId) {
+  const cfg = world.rules.balance.mobs[mob.type];
+  if (cfg.dropCount > 1 || cfg.dropGuaranteed) {
+    // wiele / gwarantowane przedmioty (boss): rozrzucone po okregu wokol ciala
+    const n = cfg.dropCount ?? 1;
+    const a0 = world.rng() * Math.PI * 2;
+    for (let k = 0; k < n; k++) {
+      const kind = rollDrop(world, mob.type, !!cfg.dropGuaranteed);
+      if (kind === null) continue;
+      if (world.rules.balance.items[kind].category === 'hard') world.waveHardDrops = (world.waveHardDrops ?? 0) + 1;
+      const a = a0 + (k * Math.PI * 2) / n;
+      const d = n > 1 ? cfg.radiusPx * 0.7 : 0;
+      spawnDrop(world, kind, mob.x + Math.cos(a) * d, mob.y + Math.sin(a) * d);
+    }
+    return;
+  }
   let kind = rollDrop(world, mob.type);
   const hardSoFar = world.waveHardDrops ?? 0;
   const kindHard = kind !== null && world.rules.balance.items[kind].category === 'hard';
@@ -534,14 +549,14 @@ function padReviveS(world, player) {
   return null;
 }
 
-// Klatka: gdy jakikolwiek potwor (nie boss) stanie na ktoryms kafelku obrysu, lapie WSZYSTKIE takie potwory naraz
+// Klatka: gdy jakikolwiek potwor (poza `immuneCage`, np. boss) stanie na ktoryms kafelku obrysu, lapie WSZYSTKIE takie potwory naraz
 // (`caught` = lista id), uzywa istniejacego `frozen`/`vuln` (jak Zamrozenie z ultimate), a po durationS znika.
 function updateCage(world, item, dt) {
   const { tilePx, balance } = world.rules;
   const cfg = cfgOf(world, item);
   if (item.caught == null) {
     const tiles = footprint(item.kind, item.tx, item.ty, 0);
-    const mobs = world.mobs.filter((m) => !balance.mobs[m.type].boss && tileIn(tiles, tileOf(m.x, tilePx), tileOf(m.y, tilePx)));
+    const mobs = world.mobs.filter((m) => !balance.mobs[m.type].immuneCage && tileIn(tiles, tileOf(m.x, tilePx), tileOf(m.y, tilePx)));
     if (!mobs.length) return;
     item.caught = mobs.map((m) => m.id);
     item.timeLeft = cfg.durationS;
