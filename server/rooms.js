@@ -50,6 +50,21 @@ export class Rooms {
     return this.rooms.get(code.toUpperCase()) ?? null;
   }
 
+  // K-03: pokój bez graczy jest martwy od razu (choć żyje jeszcze emptyTtlS) — nie da się do niego wejść.
+  open(code) {
+    const s = this.get(code);
+    return s && s.playerCount > 0 ? s : null;
+  }
+
+  // K-01: lista do /api/rooms. Najpierw pokoje, do których da się wejść, potem reszta;
+  // w grupie malejąco po liczbie graczy, przy remisie starsze pierwsze, na końcu kod (determinizm).
+  list() {
+    const out = [];
+    for (const s of this.rooms.values()) if (s.playerCount > 0) out.push(s.summary());
+    const joinable = (r) => !r.inGame && r.players < r.maxPlayers;
+    return out.sort((a, b) => (joinable(b) - joinable(a)) || (b.players - a.players) || (b.ageS - a.ageS) || (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
+  }
+
   create() {
     if (this.rooms.size >= this.maxRooms) return null;
     let code = null;

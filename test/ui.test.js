@@ -116,3 +116,69 @@ test('ekran wyników pokazuje upadki i leaderboard', () => {
   assert.match(shown, /Leaderboard/);
   assert.match(shown, /Czekam na hosta/);
 });
+
+
+test('ekran nicku ma tylko pole nicku i nie wysyła pustego', () => {
+  const got = [];
+  ui.showNickScreen({ nick: '' }, (n) => got.push(n));
+  const inputs = flat(root).filter((n) => n.tagName === 'INPUT');
+  assert.equal(inputs.length, 1);
+  const form = flat(root).find((n) => n.tagName === 'FORM');
+  form.listeners.submit({ preventDefault() {} });
+  assert.deepEqual(got, []);
+  inputs[0].value = ' Olek ';
+  form.listeners.submit({ preventDefault() {} });
+  assert.deepEqual(got, ['Olek']);
+});
+
+test('ekran główny: wiersze pokoi, mecz w toku i pełny są nieklikalne', () => {
+  const joined = [];
+  const rooms = [
+    { code: 'AAAA', players: 2, maxPlayers: 4, inGame: false, wave: 0, ageS: 5 },
+    { code: 'BBBB', players: 3, maxPlayers: 4, inGame: true, wave: 7, ageS: 50 },
+    { code: 'CCCC', players: 4, maxPlayers: 4, inGame: false, wave: 0, ageS: 80 },
+  ];
+  ui.showHome({ nick: 'Olek', rooms }, { onJoin: (c) => joined.push(c), onNew() {}, onControls() {}, onChangeNick() {} });
+  const shown = texts(root).join(' ');
+  assert.match(shown, /2 \/ 4 graczy/);
+  assert.match(shown, /mecz w toku · fala 7/);
+  const rows = flat(root).filter((n) => String(n.className).startsWith('room-row'));
+  assert.equal(rows.length, 3);
+  assert.ok(rows[0].listeners.click);
+  assert.equal(rows[1].listeners.click, undefined);
+  assert.equal(rows[2].listeners.click, undefined);
+  rows[0].listeners.click();
+  assert.deepEqual(joined, ['AAAA']);
+  assert.match(shown, /Nowy pokój/);
+  assert.match(shown, /Sterowanie/);
+  assert.match(shown, /zmień nick/);
+});
+
+test('ekran główny: pusta lista, setRooms i komunikat', () => {
+  const view = ui.showHome({ nick: 'O', rooms: [], message: 'Pokój jest już zamknięty' }, { onJoin() {}, onNew() {}, onControls() {}, onChangeNick() {} });
+  assert.match(texts(root).join(' '), /brak otwartych pokojów — załóż własny/);
+  assert.match(texts(root).join(' '), /Pokój jest już zamknięty/);
+  view.setRooms([{ code: 'ZZZZ', players: 1, maxPlayers: 4, inGame: false, wave: 0, ageS: 1 }]);
+  assert.match(texts(root).join(' '), /ZZZZ/);
+});
+
+test('ekran główny w trybie LAN: bez listy, przycisk Dołącz', () => {
+  ui.showHome({ nick: 'O', lan: true }, { onJoin() {}, onNew() {}, onControls() {}, onChangeNick() {} });
+  const shown = texts(root).join(' ');
+  assert.doesNotMatch(shown, /Otwarte pokoje|brak otwartych/);
+  assert.match(shown, /Dołącz/);
+  assert.match(shown, /Sterowanie/);
+});
+
+test('pauza ma przycisk Sterowanie, a ekran sterowania wraca przyciskiem', () => {
+  let opened = 0;
+  ui.showPause({ onResume() {}, onFullscreen() {}, onLeave() {}, onControls: () => { opened++; } });
+  const btn = flat(root).find((n) => n.tagName === 'BUTTON' && texts(n).includes('Sterowanie'));
+  assert.ok(btn);
+  btn.listeners.click();
+  assert.equal(opened, 1);
+  let back = 0;
+  ui.showControls(() => { back++; });
+  flat(root).find((n) => n.tagName === 'BUTTON' && texts(n).includes('Wróć')).listeners.click();
+  assert.equal(back, 1);
+});

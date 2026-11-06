@@ -82,6 +82,18 @@ export class Session {
     return this.players.length;
   }
 
+  // Publiczne podsumowanie pokoju (GET /api/rooms) — bez nicków i czegokolwiek identyfikującego gracza.
+  summary() {
+    return {
+      code: this.code,
+      players: this.players.length,
+      maxPlayers: this.balance.session.maxPlayers,
+      inGame: !!this.game,
+      wave: this.game?.world.wave ?? 0,
+      ageS: Math.max(0, Math.round((this.now() - this.createdAt) / 1000)),
+    };
+  }
+
   get connectedCount() {
     return this.byConn.size;
   }

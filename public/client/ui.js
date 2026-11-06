@@ -1,3 +1,5 @@
+import { drawControls, CONTROLS_SIZE } from './controls.js';
+
 const root = () => document.getElementById('ui');
 
 function el(tag, props = {}, ...children) {
@@ -105,6 +107,87 @@ export function showJoinForm({ nick = '', room = '', rooms = false, leaderboard 
   return { error: (text) => { error.textContent = text ?? ''; } };
 }
 
+// K-02, krok 1: sam nick.
+export function showNickScreen({ nick = '' } = {}, onSubmit) {
+  const input = el('input', { type: 'text', maxLength: 12, value: nick, placeholder: 'nick', autofocus: true });
+  const error = el('div', { className: 'muted' });
+  show(el('div', { className: 'panel' },
+    el('form', {
+      onsubmit: (e) => {
+        e.preventDefault();
+        const n = input.value.trim();
+        if (n) onSubmit(n);
+      },
+    },
+    el('h1', {}, 'PIXEL CO-OP'),
+    el('label', {}, 'Twój nick'), input,
+    el('button', { type: 'submit' }, 'Dalej'),
+    error)));
+  input.focus();
+  return { error: (text) => { error.textContent = text ?? ''; } };
+}
+
+// Jeden wiersz listy pokoi. Wiersz jest klikalny tylko wtedy, gdy da się wejść.
+export function roomRowInfo(r) {
+  const full = r.players >= r.maxPlayers;
+  const lines = [`${r.players} / ${r.maxPlayers} graczy`];
+  if (r.inGame) lines.push(`mecz w toku · fala ${r.wave}`);
+  else if (full) lines.push('pełny');
+  return { joinable: !r.inGame && !full, text: lines.join(' · ') };
+}
+
+// K-02, krok 2: ekran główny. `rooms` = tablica | null (nie wiadomo / tryb LAN); lan = bez listy.
+export function showHome({ nick = '', lan = false, rooms = null, leaderboard = null, message = '' },
+  { onJoin, onNew, onControls, onChangeNick }) {
+  const list = el('ul', { className: 'rooms' });
+  const note = el('div', { className: 'muted' }, message);
+  const setRooms = (data) => {
+    if (!Array.isArray(data)) {
+      list.replaceChildren(el('li', { className: 'muted' }, 'lista pokojów niedostępna'));
+      return;
+    }
+    if (!data.length) {
+      list.replaceChildren(el('li', { className: 'muted' }, 'brak otwartych pokojów — załóż własny'));
+      return;
+    }
+    list.replaceChildren(...data.map((r) => {
+      const info = roomRowInfo(r);
+      const row = el('li', { className: `room-row${info.joinable ? '' : ' closed'}` },
+        el('span', { className: 'room-code-s' }, r.code), ` ${info.text}`);
+      if (info.joinable) {
+        row.classList.toggle('join', true);
+        row.addEventListener('click', () => onJoin(r.code));
+      }
+      return row;
+    }));
+  };
+  if (!lan) setRooms(rooms);
+  const board = leaderboardPanel(leaderboard);
+  show(el('div', { className: `panel${board ? ' wide' : ''}` },
+    el('h1', {}, 'PIXEL CO-OP'),
+    el('div', { className: 'muted' }, `Grasz jako ${nick} · `,
+      el('a', { className: 'link', onclick: onChangeNick }, 'zmień nick')),
+    lan ? null : el('label', {}, 'Otwarte pokoje'),
+    lan ? null : list,
+    note,
+    el('div', {},
+      el('button', { onclick: onNew }, lan ? 'Dołącz' : 'Nowy pokój'),
+      el('button', { onclick: onControls }, 'Sterowanie')),
+    board));
+  return { setRooms, message: (text) => { note.textContent = text ?? ''; } };
+}
+
+// K-04: obrazek rysowany z kodu na <canvas>.
+export function showControls(onBack) {
+  const canvas = el('canvas', { width: CONTROLS_SIZE.w, height: CONTROLS_SIZE.h, className: 'controls-img' });
+  const ctx = canvas.getContext?.('2d');
+  if (ctx) drawControls(ctx);
+  show(el('div', { className: 'panel' },
+    el('h2', {}, 'STEROWANIE'),
+    canvas,
+    el('div', {}, el('button', { onclick: onBack }, 'Wróć'))));
+}
+
 export function showNickForm(onSubmit, initial = '') {
   return showJoinForm({ nick: initial }, (nick) => onSubmit(nick));
 }
@@ -177,7 +260,7 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
   ));
 }
 
-export function showPause({ onResume, onFullscreen, onLeave, volume = 1, muted = false, onVolume, onMute }) {
+export function showPause({ onResume, onFullscreen, onLeave, onControls, volume = 1, muted = false, onVolume, onMute }) {
   show(el('div', { className: 'panel' },
     el('h2', {}, 'PAUZA'),
     el('p', { className: 'muted' }, 'Gra trwa dalej.'),
@@ -191,6 +274,7 @@ export function showPause({ onResume, onFullscreen, onLeave, volume = 1, muted =
       ' Wycisz'),
     el('button', { onclick: onResume }, 'Wróć'),
     el('button', { onclick: onFullscreen }, 'Pełny ekran'),
+    el('button', { onclick: onControls }, 'Sterowanie'),
     el('button', { onclick: onLeave }, 'Wyjdź'),
   ));
 }

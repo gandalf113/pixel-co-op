@@ -50,12 +50,14 @@ Poza MVP (później): boss, statystyki, dźwięk, mapy inne niż płaska (`07-BA
 | ID | Wymóg |
 |---|---|
 | PRD-SES-01 | Sesję tworzy **host**. Host wybiera trudność i startuje grę. |
-| PRD-SES-02 | Dołączenie: gracz wpisuje adres hosta (IP:port) lub otwiera link w przeglądarce. Nie ma matchmakingu ani lobby w internecie. |
+| PRD-SES-02 | Dołączenie: gracz wpisuje adres hosta (IP:port) lub otwiera link w przeglądarce. Nie ma matchmakingu. **Zmienione przez PRD-SES-08**: w trybie hostowanym jest publiczna lista otwartych pokojów — to nadal nie jest matchmaking (nikt nikogo nie dobiera), tylko spis, z którego wybiera człowiek. |
 | PRD-SES-03 | Liczba graczy: 1-4. Jeden gracz = też gra działa (do testów). |
 | PRD-SES-04 | Gracz podaje nick (max 12 znaków). Każdy gracz dostaje inny kolor (4 kolory: zielony, niebieski, żółty, różowy). |
 | PRD-SES-05 | Przed startem jest ekran lobby: lista graczy, trudność, wybór ULTIMATE per gracz, przycisk "Start" u hosta (aktywny, gdy każdy wybrał ultimate). Reszta widzi "czekam na hosta". **Układ lobby** (R46): panel szeroki, min. 900 px na ekranie 1366 x 768, **bez przewijania pionowego**: 7 kafelków ultimate w **jednym rzędzie** (na węższym oknie 4 + 3), każdy kafelek z **ikoną 32 x 32 pixel-art** powiększoną 3x, nazwą i jednym zdaniem opisu; opis trzech progów pokazuje się po najechaniu / zaznaczeniu pod rzędem, nie w kafelku. Lista graczy i trudność po lewej, ultimate po prawej lub pod spodem, całość mieści się na 768 px wysokości. |
 | PRD-SES-06 | Dołączenie w trakcie gry (late join): **niedozwolone**. Po starcie sesja jest zamknięta, spóźniony gracz czeka na nową grę. Host po starcie przestaje przyjmować nowe połączenia (komunikat "gra w toku"). |
 | PRD-SES-07 | Rozłączenie gracza: jego postać znika, przedmiot, który trzymał, spada na ziemię. Gra toczy się dalej. Rozłączenie hosta = koniec sesji dla wszystkich z komunikatem. |
+| PRD-SES-08 | **Wejście do gry w trybie hostowanym** (V3-K, 2026-11-06): dwa ekrany. (1) **Ekran nicku** - tylko nick, zapamiętywany, więc pokazuje się raz. (2) **Ekran główny**: lista otwartych pokojów, **Nowy pokój**, leaderboard, **Sterowanie** i odnośnik "zmień nick". Wiersz pokoju niesie kod, `n / 4 graczy` oraz `mecz w toku - fala N`; wiersz pełny albo z trwającym meczem jest **nieklikalny**. Lista odświeża się co 5 s **wyłącznie wtedy, gdy ten ekran jest otwarty** - nigdy w lobby ani w trakcie gry. Link `?r=KOD` wchodzi prosto do pokoju z pominięciem ekranu głównego. Odmowa serwera (pokój pełny, zamknięty, gra w toku) wraca na ekran główny z komunikatem i czyści `?r=` z adresu, żeby próba się nie zapętliła. W trybie LAN listy nie ma (jedna sesja na serwer). |
+| PRD-SES-09 | **Lista pokojów nie identyfikuje nikogo**: `GET /api/rooms` zwraca wyłącznie kod, liczbę graczy, limit, flagę meczu, numer fali i wiek pokoju - **żadnych nicków**. Endpoint istnieje tylko w trybie pokoi i ma limit zapytań na adres. **Pokój bez graczy jest martwy natychmiast**: znika z listy i nie da się do niego wejść, mimo że fizycznie żyje jeszcze 90 s (bo 30-sekundowa karencja na powrót po odświeżeniu karty nie może kasować pokoju z ludźmi w środku). Konsekwencja przyjęta świadomie: odświeżenie karty w **jednoosobowym lobby** zamyka pokój - gracz wraca na ekran główny i zakłada nowy. |
 
 ## 5. Sterowanie
 
@@ -70,6 +72,7 @@ Poza MVP (później): boss, statystyki, dźwięk, mapy inne niż płaska (`07-BA
 | PRD-CTRL-10 | `F` - użyj ULTIMATE (od progu I, `08-ULTIMATE.md`). |
 | PRD-CTRL-07 | `Esc` - menu pauzy po stronie klienta (gra po stronie hosta NIE pauzuje, bo to multiplayer). Zawiera: wróć, ustawienia (głośność, pełny ekran), wyjdź. |
 | PRD-CTRL-08 | `Tab` (przytrzymanie) - lista graczy z HP. |
+| PRD-CTRL-11 | **Ekran "Sterowanie"** (V3-K-04): obrazek klawiatury i myszy w pixel-arcie **generowany z kodu** (CON-01/CON-05 zabraniają assetów z sieci), z podświetlonymi tylko tymi klawiszami, które coś robią, i opisem akcji przy każdym. Dostępny z ekranu głównego **i z menu pauzy**. Aktualizowany razem ze zmianami mapowania klawiszy. |
 | PRD-CTRL-09 | Sprite postaci obraca się do kursora **płynnie** (rotacja całej postaci o dowolny kąt). Sprite rysowany "z góry" (top-down, nie 3/4), żeby obrót wyglądał naturalnie. Nearest neighbour bez wygładzania. |
 
 Nie ma celowania klawiaturą ani sterowania padem w MVP.
@@ -168,6 +171,7 @@ Poza MVP. Jeśli będzie: proste efekty generowane syntezą (bez plików z sieci
 | PRD-PERF-02 | Przeglądarki: aktualny Chrome / Edge / Firefox. Safari mile widziane, nie wymagane. |
 | PRD-PERF-03 | Latencja LAN: ruch własnej postaci odczuwalnie natychmiastowy (predykcja lokalna). Ruch innych graczy płynny (interpolacja). Szczegóły w `04-TECH-ARCH.md`. |
 | PRD-PERF-04 | Dołączenie do hosta w czasie poniżej 5 s od wpisania adresu. |
+| PRD-PERF-05 | **Strzał odczuwalnie natychmiastowy** (V3-F-01, 2026-11-06): pocisk pojawia się u strzelca w tym samym kroku, w którym nacisnął, nie po odpowiedzi serwera. Lokalny pocisk jest **wyłącznie obrazem** - nie zadaje obrażeń, nie zatrzymuje potworów, ginie na ścianie, po zasięgu albo gdy nadejdzie prawdziwy. Przekazanie pałeczki jest odroczone o opóźnienie bufora interpolacji, bo prawdziwy pocisk staje się widoczny dopiero wtedy; inaczej między jednym a drugim powstawałaby dziura. **Czego lokalny pocisk nie zgaduje**: losowego rozrzutu (serwer losuje z własnego RNG) i zakrętu samonaprowadzania. Trafienia i krew przychodzą nadal z serwera - autorytatywna pozostaje symulacja serwerowa, zgodnie z PRD-CON-04. |
 
 ## 12. Kryteria akceptacji MVP (checklista)
 

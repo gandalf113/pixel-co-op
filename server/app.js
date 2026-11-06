@@ -118,7 +118,7 @@ export function startServer({
   port, host = undefined, balance = loadBalance(), seed = Date.now(),
   rooms = false, trustProxy = false, telemetry = null,
   maxRooms = 40, maxConnections = 200, roomsPerIp = 10, roomsPerIpWindowMs = 10 * 60 * 1000,
-  emptyTtlS = 90, compress = true, statsSalt = randomBytes(16).toString('hex'), heartbeatMs = 15000,
+  emptyTtlS = 90, roomListMax = 60, roomListWindowMs = 60 * 1000, compress = true, statsSalt = randomBytes(16).toString('hex'), heartbeatMs = 15000,
 } = {}) {
   return new Promise((resolve, reject) => {
     const started = Date.now();
@@ -133,7 +133,20 @@ export function startServer({
     const net = () => summarize(meters);
     const createLimit = new RateLimit({ max: roomsPerIp, windowMs: roomsPerIpWindowMs });
 
+    const listLimit = new RateLimit({ max: roomListMax, windowMs: roomListWindowMs });
+
     const server = http.createServer((req, res) => {
+      if (manager && req.method === 'GET' && req.url.split('?')[0] === '/api/rooms') {
+        const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+        if (!listLimit.allow(clientIp(req, trustProxy))) {
+          res.writeHead(429, { ...headers, 'Retry-After': '60' });
+          res.end(JSON.stringify({ error: 'Za dużo zapytań' }));
+          return;
+        }
+        res.writeHead(200, headers);
+        res.end(JSON.stringify({ rooms: manager.list() }));
+        return;
+      }
       if (req.url === '/healthz') {
         const stats = manager ? manager.stats() : { rooms: single.playerCount ? 1 : 0, players: single.playerCount, games: single.game ? 1 : 0 };
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -184,9 +197,10 @@ export function startServer({
         if (!msg || msg.t !== 'hello') return null;
         if (typeof msg.pid === 'string' && msg.pid.length <= 64) conn.pid = hash(msg.pid);
         if (typeof msg.room === 'string' && msg.room.trim() !== '') {
-          const found = manager.get(msg.room.trim());
+          const code = msg.room.trim();
+          const found = manager.open(code);
           if (!found) {
-            conn.send({ t: 'reject', reason: 'Nie ma takiego pokoju' });
+            conn.send({ t: 'reject', reason: manager.get(code) ? 'Pokój jest już zamknięty' : 'Nie ma takiego pokoju' });
             ws.close(1000, 'no room');
             return null;
           }

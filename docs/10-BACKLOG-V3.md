@@ -7,7 +7,7 @@ z oznaczeniem, co już jest w kodzie, a co trzeba dopisać.
 Stan kodu, do którego to się odnosi: 3 z 6 typów potworów, 3 z 9 przedmiotów, brak
 startowych ruin (PRD-MAP-10), brak dźwięku, brak awansu poziomu broni, brak listy pokojów.
 
-Kolejność realizacji: **L + tanie J** → **B** → **C** → **D/E** → **A** → **O (sieć)** → **I** → **P (krytyczne)** → **G/H** (wszystko powyżej zrobione) → **K** → reszta **F** → **N**.
+Kolejność realizacji: **L + tanie J** → **B** → **C** → **D/E** → **A** → **O (sieć)** → **I** → **P (krytyczne)** → **G/H** → **K** → **F-01** (wszystko powyżej zrobione w v0.13.0) → **N** (czeka na trzy decyzje właściciela) → **E** (Rój, Boss) → **F-05** (lag compensation, tylko jeśli F-01 nie wystarczy).
 
 ---
 
@@ -214,19 +214,19 @@ Zaimplementowane są 3 z 9 przedmiotów z `02-ITEMS.md`. Do dopisania, z wartoś
 | V3-E-06 | **Obrażenia w przerwie nie mogą zabić**: `damagePlayer` w fazie `break` przycina HP do minimum 1. Zachowanie sensowne, ale nieopisane - dopisać do PRD albo usunąć. | brak |
 | V3-E-07 | Licznik `mobsLeft` liczy kolejkę spawnu plus żywe potwory; po V3-A-06 (tank dzielący się na runnery) trzeba doliczyć potomstwo, inaczej licznik skacze w górę w trakcie fali. | PRD-HUD-02 |
 
-## F. Sieć - quick winy
+## F. Sieć - quick winy — F-01..F-04, F-06, F-07 ZROBIONE; zostaje F-05
 
 Stan: serwer autorytatywny 30 Hz, snapshoty 20 Hz **pełne, w JSON**, predykcja ruchu własnego z rekoncyliacją, interpolacja innych z opóźnieniem 100 ms, brak lag compensation.
 
 | ID | Quick win | Dlaczego |
 |---|---|---|
-| V3-F-01 | **Predykcja strzału na kliencie**: pocisk rodzi się dopiero po odpowiedzi serwera, więc przez internet strzał czuć z opóźnieniem RTT. Rysować lokalny pocisk natychmiast i porzucać go, gdy przyjdzie prawdziwy. Najtańszy, najbardziej odczuwalny. |
-| V3-F-02 | **Snapshot delta + binarka**: przy 60 potworach i 200 przedmiotach pełny JSON to kilka kB dwadzieścia razy na sekundę per gracz. Delta względem ostatnio potwierdzonego snapshotu plus kodowanie binarne to 5-10x mniej pasma. T3 w `06-OPEN-QUESTIONS.md` przewidywał ten krok. |
-| V3-F-03 | **Area of interest**: nie wysyłać bytów dalszych niż ok. 1.5 ekranu (poza graczami i bossem). |
-| V3-F-04 | **Adaptacyjny bufor interpolacji**: dziś stałe 100 ms. Dostroić do zmierzonego jitteru (60-150 ms), żeby w LAN-ie było ostrzej, a przez internet nie szarpało. |
-| V3-F-05 | **Lag compensation dla pocisków**: trafienia liczone w pozycjach serwerowych, a gracz widzi stan sprzed 100 ms, więc musi wyprzedzać cel. Cofanie pozycji potworów o RTT/2 + bufor przy sprawdzaniu trafienia. Najdroższy punkt tej listy; robić dopiero, jeśli F-01..F-04 nie wystarczą. |
-| V3-F-06 | `perMessageDeflate` w `ws` jest domyślnie wyłączony - włączyć po pomiarze (kompresja vs. CPU). |
-| V3-F-07 | **Mierzyć, nie zgadywać**: RTT i rozmiar snapshotu w telemetrii i w overlayu debug (`~`), żeby każdy z powyższych punktów dało się ocenić liczbą. Wejście w F zaczyna się od tego punktu. |
+| V3-F-01 | **ZROBIONE w v0.13.0.** Predykcja strzału na kliencie: `public/client/shotpred.js` odtwarza warunki `fireWeapons` (stan gracza, cooldown, magazynek, przeładowanie, modyfikator, szał) i rodzi pocisk-ducha w tym samym kroku, w którym gracz nacisnął. Duch jest **tylko obrazem**: nie trafia, ginie na ścianie, po zasięgu albo gdy przyjdzie prawdziwy strzał. **Przekazanie pałeczki jest odroczone o opóźnienie bufora interpolacji** — prawdziwy pocisk staje się widoczny dopiero tyle po odebraniu snapshotu, więc natychmiastowe skasowanie ducha zostawiałoby dziurę bez pocisku. Nie przewidujemy rozrzutu (serwerowy RNG) ani zakrętu samonaprowadzania. Zapisane jako PRD-PERF-05. |
+| V3-F-02 | **ZROBIONE w ramach punktu O** (delta przedmiotów i graczy; bez kodowania binarnego — `perMessageDeflate` dał tyle, że binarka przestała się opłacać). Snapshot delta + binarka: przy 60 potworach i 200 przedmiotach pełny JSON to kilka kB dwadzieścia razy na sekundę per gracz. Delta względem ostatnio potwierdzonego snapshotu plus kodowanie binarne to 5-10x mniej pasma. T3 w `06-OPEN-QUESTIONS.md` przewidywał ten krok. |
+| V3-F-03 | **ZROBIONE w ramach punktu O** (AoI z histerezą 1.5 / 1.8 ekranu). Area of interest: nie wysyłać bytów dalszych niż ok. 1.5 ekranu (poza graczami i bossem). |
+| V3-F-04 | **ZROBIONE w v0.10.0** (60-150 ms z mierzonego jitteru). Adaptacyjny bufor interpolacji: dziś stałe 100 ms. Dostroić do zmierzonego jitteru (60-150 ms), żeby w LAN-ie było ostrzej, a przez internet nie szarpało. |
+| V3-F-05 | **ZOSTAJE, świadomie nieruszone.** Warunek z tej listy jest spełniony dopiero teraz: F-01..F-04 weszły, więc następnym krokiem jest **zmierzyć na żywym łączu, czy to wystarcza** (razem z V3-O-09), a nie od razu cofać pozycje potworów. Lag compensation dla pocisków: trafienia liczone w pozycjach serwerowych, a gracz widzi stan sprzed 100 ms, więc musi wyprzedzać cel. Cofanie pozycji potworów o RTT/2 + bufor przy sprawdzaniu trafienia. Najdroższy punkt tej listy; robić dopiero, jeśli F-01..F-04 nie wystarczą. |
+| V3-F-06 | **ZROBIONE w ramach punktu O**: `perMessageDeflate` włączony z progiem 512 B i ograniczonym oknem zlib. |
+| V3-F-07 | **ZROBIONE**: NetMeter, `/healthz` i overlay F3. Mierzyć, nie zgadywać: RTT i rozmiar snapshotu w telemetrii i w overlayu debug (`~`), żeby każdy z powyższych punktów dało się ocenić liczbą. Wejście w F zaczyna się od tego punktu. |
 
 ## G. Rozkład trupów — ZROBIONE w v0.12.0
 
@@ -269,7 +269,11 @@ Stan: serwer autorytatywny 30 Hz, snapshoty 20 Hz **pełne, w JSON**, predykcja 
 | V3-J-08 | **Strzałka do powalonego zawsze**, z **sekundami do śmierci** przy grocie, w kolorze gracza. Dziś strzałki pokazują tylko kierunek i tylko dla sojuszników poza ekranem, bez czasu. | nowe |
 | V3-J-09 | **Licznik śmierci pauzuje się w trakcie podnoszenia**: dziś `deathLeft` tyka także wtedy, gdy sojusznik stoi obok i trwa revive (`players.js`, `tickDowned`). Modyfikuje PRD-PLR-07. | błąd |
 
-## K. Lista pokojów i nowy flow wejścia
+## K. Lista pokojów i nowy flow wejścia — ZROBIONE w v0.13.0
+
+Zapisane w PRD jako PRD-SES-08, PRD-SES-09 i PRD-CTRL-11. Czego testy **nie** sprawdziły: wyglądu
+w przeglądarce (ekran sterowania i lista pokojów chodzą w testach na atrapie kontekstu 2D i atrapie DOM).
+
 
 Dziś: formularz nick + kod pokoju, brak jakiegokolwiek endpointu listującego; pokoje żyją w pamięci `Rooms`.
 
@@ -281,7 +285,7 @@ Dziś: formularz nick + kod pokoju, brak jakiegokolwiek endpointu listującego; 
 | V3-K-04 | **Ekran "Sterowanie"**: ładny wizualnie obrazek klawiatury i myszy z opisem każdej akcji (pixel-art, generowany z kodu jak reszta grafiki). Aktualizowany razem z R54. Dostępny też z menu pauzy. |
 | V3-K-05 | Lista pokojów odświeża się co ok. 5 s, gdy ekran jest otwarty, i nigdy w trakcie gry. |
 
-## C2. Przeprojektowanie dzwieku (zgloszenia z gry, 2026-11-06)
+## C2. Przeprojektowanie dzwieku (zgloszenia z gry, 2026-11-06) — ZROBIONE w v0.6.0 / v0.8.0 / v0.9.0
 
 Po zagraniu w v0.5.0: **poglosu nie slychac**, dzwiek karabinu jest slaby, przeladowanie zle,
 ultimate rozczarowujace. Ponizej diagnoza i konkretne recepty — agent implementujacy ma sie
@@ -306,6 +310,16 @@ Trasa jest poprawna (`out -> send -> ConvolverNode -> master`), wiec problem jes
 | V3-C-13 | **Karabin: ciszej i z dluzszym, opoznionym poglosem** (zgloszenie z gry 2026-11-06, po v0.6.0). Trzy pokretla naraz: (1) **suchy strzal ciszej** — poziomy warstw w dol o ok. 30%, zeby poglos mial sie na czym przebic i zeby seria nie meczyla; (2) **dluzszy ogon** — dla strzalu osobna szyna z IR ok. 0.5-0.6 s zamiast dzisiejszego "pokoju" 0.25 s (wybuchy zostaja na hali 1.3 s); (3) **wyrazniejsze pre-delay** — 12 ms to za malo, zeby uslyszec, ze poglos "wchodzi po czasie"; celowac w 35-45 ms dla strzalu. Efekt docelowy: sucha, krotka reakcja broni, a chwile po niej slyszalne odbicie od otoczenia. Uwaga przy strojeniu: karabin strzela co 0.14 s, wiec przy ogonie 0.6 s naklada sie 4-5 ogonow — dlatego punkt (1) jest warunkiem, a nie dodatkiem. |
 | V3-C-08 | **Dzwiek stereo** (zgloszenie: strzal w mur po lewej brzmi na srodku). Kazdy glos przechodzi przez `StereoPannerNode`; `pan = clamp((x_zdarzenia - x_kamery) / (szerokosc_widoku/2), -1, 1) * 0.85`. Wlasne dzwieki gracza (strzal, przeladowanie, obrazenia) zostaja **na srodku** — to informacja o sobie, nie o swiecie. Panoramowanie liczone w chwili startu dzwieku, bez sledzenia ruchu. |
 
+## Mapowanie klawiszy: kod kontra dokumentacja (sprawdzone 2026-11-06 przy V3-K-04)
+
+Sprawdzone klawisz po klawiszu przy rysowaniu ekranu sterowania. R54 zgadza się z kodem (`E`, `R`,
+`Q`/kółko, Spacja/LPM). Rzeczy, których **nie ma w dokumentacji**, a są w kodzie, i które ekran
+sterowania opisuje: `F` (ultimate), `G` (gotowość, tylko w przerwie między falami), `Tab` (tablica
+wyników, na przytrzymanie), `Esc` (pauza), PPM oraz `A`/`D` po śmierci (przełączanie obserwowanego
+gracza). `Q` i kółko obracają tylko przedmioty z `rotatable` — dziś wyłącznie ścianę. Rzut z
+przedmiotem w rękach nie idzie osobną akcją, tylko tą samą ścieżką `fire` co strzał — PRD-CTRL-03
+opisuje to poprawnie od strony gracza, więc zostaje bez zmian.
+
 ## N. Krotkie partie glosowe (16-bit) [do zbadania, zgloszenie 2026-11-06]
 
 Pomysl: komunikaty glosowe jak z konsol 16-bitowych — `RELOADING!` przy przeladowaniu, a po
@@ -326,6 +340,10 @@ robily to **probkami**, nie synteza. Mamy wiec trzy drogi i trzeba wybrac po pro
 | V3-N-04 | **Tresc i reguly** | `RELOADING!` tylko dla wlasnego gracza i tylko przy **recznym** przeladowaniu albo pierwszym pustym magazynku w fali (inaczej zagada). Po fali: kolejka przechwalek, jedna linijka na gracza, odstep ok. 0.6 s, kolejnosc wg liczby zabojstw, pomijani martwi. Teksty krotkie, w duchu brudnego post-apo, **nie** wulgarne bez potrzeby. Wyciszane tym samym suwakiem co reszta (V3-C-03). |
 
 ## M. Brak reakcji na obrazenia gracza (zgloszenie z gry, 2026-11-05)
+
+**ZROBIONE w v0.5.0** (zweryfikowane w kodzie 2026-11-06): `damagePlayer` wysyla `hurt` przy kazdym
+zrodle obrazen, klient ma blysk, winiete, wstrzas, migniecie paska i osobne dzwieki `hurtMe` / `hurtMeLow` /
+`hurtAlly`. PRD-FX-09 opisany.
 
 **Gracz obrywa i nie dzieje sie NIC**: nie miga, nie brzmi, ekran nie reaguje. Sprawdzone w kodzie:
 `damagePlayer` w `server/players.js` wysyla zdarzenie **wylacznie dla friendly fire** (`ff`).

@@ -9,6 +9,10 @@ function store(key, value) {
   } catch {}
 }
 
+export function saveNick(nick) {
+  store('nick', nick);
+}
+
 export function stored(key) {
   try {
     return sessionStorage.getItem(key);

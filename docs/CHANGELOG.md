@@ -1,5 +1,14 @@
 # Changelog dokumentacji
 
+## 0.27 - 2026-11-06
+- Punkt K zrobiony w v0.13.0: ekran nicku i ekran glowny z lista otwartych pokojow, "Nowy pokoj", leaderboard i ekran sterowania. Zapisane jako PRD-SES-08 i PRD-CTRL-11.
+- PRD-SES-09 (nowe): `GET /api/rooms` bez nickow, tylko w trybie pokoi, z limitem zapytan na adres; pokoj bez graczy jest martwy natychmiast, choc fizycznie zyje jeszcze 90 s. Konsekwencja przyjeta swiadomie: odswiezenie karty w jednoosobowym lobby zamyka pokoj.
+- PRD-SES-02 zmienione: publiczna lista pokojow to nie matchmaking, tylko spis do wyboru przez czlowieka.
+- PRD-PERF-05 (nowe) i V3-F-01 zrobione w v0.13.0: strzal widac natychmiast, bez czekania na serwer. Lokalny pocisk jest wylacznie obrazem — nie trafia i nie zatrzymuje potworow. Przekazanie palki (ducha na prawdziwy pocisk) odroczone o opoznienie bufora interpolacji, bo prawdziwy pocisk staje sie widoczny dopiero wtedy.
+- Punkt F domkniety poza F-05: F-02/F-03/F-06/F-07 zrobione przy punkcie O, F-04 w v0.10.0. F-05 (lag compensation) zostaje celowo — jego wlasny warunek mowi, zeby najpierw zmierzyc, czy F-01..F-04 wystarczaja (razem z O-09).
+- Punkt M i cala sekcja C2 oznaczone jako zrobione (weryfikacja w kodzie 2026-11-06): M w v0.5.0, dzwiek w v0.6.0 / v0.8.0 / v0.9.0. Backlog trzymal je otwarte, mimo ze kod je mial.
+- Nowa sekcja: mapowanie klawiszy kod kontra dokumentacja — `F`, `G`, `Tab`, `Esc`, PPM i `A`/`D` po smierci nie byly nigdzie opisane, a sa w grze.
+
 ## 0.26 - 2026-11-06
 - **Punkt P (KRYTYCZNE), naprawiony w v0.12.0**: gracz po kilkunastu sekundach tracil obraz — znikali gracze, potwory, przedmioty i pociski, HUD zamarzal, a dzwieki i trafienia dzialaly dalej. Przyczyna: `cfg` zadeklarowane wewnatrz galezi `placed` w `drawItems`, a uzyte w galezi `ground` przez zlota poswiate boostu z v0.11.0 — `ReferenceError` ubijal klatke renderu, wiec kazdy drop lezacy w polu widzenia oslepial gracza.
 - V3-P-02: `renderWorld` nigdy nie bylo uruchamiane w tescie — stad bezglowy harness renderu dla kazdego przedmiotu, potwora i stadium trupa, zweryfikowany celowym przywroceniem bledu (14 testow czerwonych).

@@ -5,9 +5,10 @@ import { Fx, LOW_HP } from './fx.js';
 import { Gore } from './gore.js';
 import { rifleStats } from '../shared/weapon.js';
 import { MV, MOB_KEY } from '../shared/mobview.js';
-import { Connection, stored } from './net.js';
+import { Connection, stored, saveNick } from './net.js';
 import { InputState } from './input.js';
 import { Predictor, SnapshotBuffer, RttTracker, RateMeter, lerpEntities } from './predict.js';
+import { ShotPredictor } from './shotpred.js';
 import { debugLines, drawDebug } from './debug.js';
 import { bakeSprites } from './sprites.js';
 import { VIEW_W, VIEW_H, Camera, computeScale, renderWorld } from './render.js';
@@ -37,6 +38,7 @@ const conn = new Connection(onMessage, onStatus);
 let balance = null;
 let sprites = null;
 let predictor = null;
+let shots = null; // V3-F-01: pocisk-duch rysowany natychmiast, zanim serwer odpowie
 let myId = null;
 let nick = stored('nick') ?? '';
 let isHost = false;
@@ -109,11 +111,76 @@ function setUrlRoom(code) {
   history.replaceState(null, '', url);
 }
 
-function showJoin() {
-  ui.showJoinForm({ nick, room: roomFromUrl() ?? '', rooms: serverMode === 'rooms', leaderboard }, join);
+const ROOMS_REFRESH_MS = 5000;
+let homeTimer = null;
+let homeGen = 0;
+
+// Odświeżanie listy pokojów żyje tylko, póki otwarty jest ekran główny (V3-K-05).
+function stopHome() {
+  clearInterval(homeTimer);
+  homeTimer = null;
+  homeGen++;
+}
+
+async function fetchRooms() {
+  try {
+    const res = await fetch('/api/rooms', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Array.isArray(data?.rooms) ? data.rooms : null;
+  } catch {
+    return null;
+  }
+}
+
+// Ekran główny. W trybie LAN nie ma listy i nie wołamy /api/rooms w ogóle.
+function showHome(message = '') {
+  stopHome();
+  const lan = serverMode !== 'rooms';
+  const gen = homeGen;
+  const view = ui.showHome({ nick, lan, rooms: null, leaderboard, message }, {
+    onJoin: (code) => join(nick, code),
+    onNew: () => join(nick, null),
+    onControls: () => {
+      stopHome();
+      ui.showControls(() => showHome());
+    },
+    onChangeNick: () => {
+      stopHome();
+      showNick();
+    },
+  });
+  if (lan) return;
+  const refresh = async () => {
+    const rooms = await fetchRooms();
+    if (gen === homeGen) view.setRooms(rooms);
+  };
+  refresh();
+  homeTimer = setInterval(refresh, ROOMS_REFRESH_MS);
+}
+
+function showNick() {
+  ui.showNickScreen({ nick }, (n) => {
+    nick = n;
+    saveNick(n);
+    enterFlow();
+  });
+}
+
+// Po nicku: link ?r=KOD wchodzi prosto do pokoju, inaczej ekran główny.
+function enterFlow(message = '') {
+  const url = serverMode === 'rooms' ? roomFromUrl() : null;
+  if (url) join(nick, url);
+  else showHome(message);
+}
+
+function showJoin(message = '') {
+  if (!nick) showNick();
+  else enterFlow(message);
 }
 
 function join(n, room = null) {
+  stopHome();
   nick = n;
   ui.showMessage('Łączę…');
   conn.connect(n, serverMode === 'rooms' ? room : null);
@@ -124,6 +191,7 @@ function resetGame() {
   grid = null;
   buffer.clear();
   rtt.clear();
+  shots?.reset();
   itemRot.clear();
   gore.reset();
   shakes.clear();
@@ -166,6 +234,7 @@ function onMessage(msg) {
       version = msg.version ?? null;
       sprites ??= bakeSprites(document, COLORS);
       predictor ??= new Predictor(balance);
+      shots ??= new ShotPredictor(balance);
       if (!tickTimer) tickTimer = setInterval(tick, 1000 / balance.tickHz);
       break;
     case 'lobby': {
@@ -233,6 +302,8 @@ function onEvent(e) {
   const tp = balance.map.tilePx;
   switch (e.type) {
     case 'shot':
+      // Prawdziwy strzal dotarl: duch moze odejsc, ale dopiero gdy prawdziwy pocisk stanie sie widoczny.
+      if (e.id === myId) shots?.onShotEvent(e, buffer.delayMs);
       playSfx(latest?.players.some((p) => p.id === e.id) ? 'shot' : 'cannon', e, tp, { center: e.id === myId });
       break;
     case 'hit':
@@ -351,10 +422,9 @@ function onStatus(s, reason) {
   if (s !== 'rejected') return;
   mode = 'nick';
   resetGame();
-  ui.showMessage(reason ?? 'Odrzucono');
-  setTimeout(() => {
-    if (mode === 'nick') showJoin();
-  }, ENDED_MSG_MS);
+  setUrlRoom(null);
+  if (!nick) showNick();
+  else showHome(reason ?? 'Odrzucono');
 }
 
 function moveCtx(me) {
@@ -378,6 +448,8 @@ function onSnap(snap) {
   for (const it of snap.items) itemRot.set(it.id, it.rot ?? 0);
   const me = myView(snap);
   rtt.acked(snap.you.ackSeq, performance.now());
+  shots?.setRtt(rtt.rttMs, buffer.delayMs);
+  if (me) shots.syncFromSnapshot(me);
   if (me) predictor.reconcile(me, snap.you.ackSeq, moveCtx(me));
 }
 
@@ -406,6 +478,11 @@ function tick() {
   const aim = aimWorld();
   const inp = { seq: ++seq, mx: Math.sign(raw.mx), my: Math.sign(raw.my) };
   predictor.apply(inp, moveCtx(me));
+  const muzzle = predictor.viewPos ?? predictor.pos ?? me;
+  shots?.tick(1 / balance.tickHz, {
+    me, fire: raw.fire, grid, x: muzzle.x, y: muzzle.y,
+    angle: Math.atan2(aim.y - muzzle.y, aim.x - muzzle.x),
+  });
   rtt.sent(inp.seq, performance.now());
   conn.send({ t: 'input', ...inp, aimX: aim.x, aimY: aim.y, fire: raw.fire });
 }
@@ -489,6 +566,7 @@ function pause() {
       saveAudioPrefs();
     },
     onResume: resume,
+    onControls: () => ui.showControls(() => pause()),
     onFullscreen: () => document.documentElement.requestFullscreen?.().catch(() => {}),
     onLeave: () => {
       conn.leave();
@@ -625,10 +703,12 @@ function frame(now) {
   }
   effects = effects.filter((e) => now - e.start < e.durMs);
   const pickTarget = me && mode === 'game' ? pickupTarget(me, latest.items) : null;
+  shots?.step(dt, grid);
   const view = {
     cam, balance, sprites, frame: Math.floor(now / (1000 / 60)), players,
     mobs: lerpEntities(a.mobs, b.mobs, alpha, MOB_KEY),
-    bullets: lerpEntities(a.bullets, b.bullets, alpha, BULLET_KEY),
+    // Duchy ida tym samym kanalem co prawdziwe pociski: render dostaje krotki w tym samym ksztalcie.
+    bullets: [...lerpEntities(a.bullets, b.bullets, alpha, BULLET_KEY), ...(shots?.bullets() ?? [])],
     mobBullets: lerpEntities(a.mobBullets ?? [], b.mobBullets ?? [], alpha, BULLET_KEY),
     items: b.items, myId, gore, seed: latest.seed,
     droplets: lerpEntities(a.droplets ?? [], b.droplets ?? [], alpha, BULLET_KEY),
@@ -676,7 +756,8 @@ async function boot() {
   } catch {}
   await refreshLeaderboard();
   const url = roomFromUrl();
-  if (nick && stored('token') && (serverMode !== 'rooms' || url === stored('room'))) join(nick, url);
+  if (nick && serverMode !== 'rooms' && stored('token')) join(nick, null);
+  else if (nick && serverMode === 'rooms' && url) join(nick, url);
   else showJoin();
 }
 
