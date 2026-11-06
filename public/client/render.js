@@ -288,10 +288,31 @@ function drawItems(ctx, view, ox, oy) {
     } else if (it.state === 'ground') {
       const img = sprites.get(`item_${it.kind}`);
       const lit = it.id === view.highlightId;
+      if (cfg?.behavior === 'weaponboost') {
+        // zlota poswiata pulsuje (V3-I / ITM-P-09): wyraznie inny niz reszta
+        const k = 0.5 + 0.5 * Math.sin(view.nowMs / 140);
+        const hr = Math.round(8 + 2 * k);
+        ctx.globalAlpha = 0.18 + 0.3 * k;
+        ctx.fillStyle = '#ffd23a';
+        ctx.fillRect(Math.round(it.x + ox) - hr, Math.round(it.y + oy) - hr, hr * 2, hr * 2);
+        ctx.globalAlpha = 1;
+      }
       if (lit) outline(ctx, img, Math.round(it.x + ox - img.width / 2), Math.round(it.y + oy - img.height / 2) - 1, view);
       drawCentered(ctx, img, it.x + ox, it.y + oy - (lit ? 1 : 0));
     }
   }
+}
+
+// Gwozdz z gwozdziarki (V3-I-04): cienka kreska `len` px wzdluz toru lotu, jasny rdzen na zlotym.
+function drawNail(ctx, x, y, angle, len) {
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y));
+  ctx.rotate(angle);
+  ctx.fillStyle = '#d9b53a';
+  ctx.fillRect(-len / 2, -1, len, 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(-len / 2 + 1, -0.5, len - 1, 1);
+  ctx.restore();
 }
 
 // Nazwa sprite'a potwora: klatka animacji, a dla `wear` (tank) dodatkowo stan zuzycia liczony z hp/maxHp.
@@ -601,7 +622,10 @@ export function renderWorld(ctx, view) {
   drawMobs(ctx, view, ox, oy);
   drawPlayers(ctx, view, ox, oy);
   const bullet = view.sprites.get('bullet');
-  for (const [, x, y] of view.bullets) drawCentered(ctx, bullet, x + ox, y + oy);
+  for (const [, x, y, a, len] of view.bullets) {
+    if (len > 0) drawNail(ctx, x + ox, y + oy, a, len);
+    else drawCentered(ctx, bullet, x + ox, y + oy);
+  }
   drawRockets(ctx, view, ox, oy);
   drawMobBullets(ctx, view, ox, oy);
   view.fx?.drawTop(ctx, ox, oy, view.nowMs, fxs, view.balance.map.tilePx);

@@ -10,6 +10,7 @@ const BLOOD = ['#8a1a10', '#6e140c', '#a8321f'];
 const DEBRIS = ['#7d766b', '#58534b', '#4a4139', '#8a7a4a'];
 const SPARK = ['#ffe07a', '#ffd23a', '#ffffff'];
 export const LOW_HP = 0.3;
+const BOOST_TEXT_MS = 1400;
 const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -41,6 +42,7 @@ export class Fx {
     this.hpFlashUntil = 0; // mignięcie paska HP własnego gracza
     this.lostHp = null; // { v, until } — liczba utraconych HP przy pasku
     this.message = null;
+    this.boosts = []; // napisy awansu broni: { text, x, y, own, born }
   }
 
   #particle(p) {
@@ -71,6 +73,13 @@ export class Fx {
     this.#burst(now, e.x, e.y, 2, { colors: SPARK, speed: 20, life: 0.05 });
     if (e.dmg) this.numbers.push({ x: e.x, y: e.y - 8, v: e.dmg, born: now });
     if (e.by === myId) this.hitMarkerUntil = now + 100;
+  }
+
+  // Awans broni (V3-I-05): zloty rozbryzg + napis (u siebie na srodku, u sojusznika nad nim).
+  weaponUp(now, e, myId, mods) {
+    this.#burst(now, e.x, e.y, 18, { colors: SPARK, speed: 110, life: 0.5 });
+    this.#burst(now, e.x, e.y, 8, { colors: ['#ffffff'], speed: 40, life: 0.3 });
+    this.boosts.push({ text: `BROŃ LV ${e.lv} · ${mods?.[e.mod]?.name ?? ''}`, x: e.x, y: e.y, own: e.id === myId, born: now });
   }
 
   knock(id, now) {
@@ -188,6 +197,7 @@ export class Fx {
       return true;
     });
     this.numbers = this.numbers.filter((n) => now - n.born < 400);
+    this.boosts = this.boosts.filter((b) => now - b.born < BOOST_TEXT_MS);
     this.shells = this.shells.filter((s) => {
       const age = (now - s.born) / 1000;
       if (age < 0.3) {
@@ -269,6 +279,16 @@ export class Fx {
       const s = toScreen(n.x, n.y - k * 8);
       ctx.globalAlpha = 1 - k * 0.6;
       text(ctx, String(n.v), s.x, s.y, { size: small, align: 'center', color: BONE });
+    }
+    ctx.globalAlpha = 1;
+    for (const b of this.boosts) {
+      const k = (now - b.born) / BOOST_TEXT_MS;
+      ctx.globalAlpha = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
+      if (b.own) text(ctx, b.text, ctx.canvas.width / 2, ctx.canvas.height / 2 - 60 * scale - k * 12, { size: small + 6, align: 'center', color: '#ffd23a' });
+      else {
+        const s = toScreen(b.x, b.y - 14 - k * 10);
+        text(ctx, b.text, s.x, s.y, { size: small, align: 'center', color: '#ffd23a' });
+      }
     }
     ctx.globalAlpha = 1;
     const W = ctx.canvas.width;

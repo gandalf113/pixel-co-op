@@ -139,7 +139,7 @@ test('snapshot shape', () => {
   assert.equal(s.you.id, 1);
   assert.deepEqual(Object.keys(s.players[0]).sort(), [
     'ammo', 'angle', 'busy', 'color', 'deathLeft', 'frenzyLeft', 'held', 'hp', 'id', 'invuln', 'maxHp', 'nick',
-    'ready', 'reloadLeft', 'reviveProgress', 'speedMult', 'state', 'suspended', 'ult', 'ultKind', 'weaponLv', 'x', 'y',
+    'ready', 'reloadLeft', 'reviveProgress', 'speedMult', 'state', 'suspended', 'ult', 'ultKind', 'weaponLv', 'weaponMod', 'x', 'y',
   ]);
   assert.ok(s.mobs.length > 0);
   assert.equal(s.mobs[0].length, 12);

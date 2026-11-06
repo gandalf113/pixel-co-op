@@ -3,16 +3,19 @@ import { onMobKilled } from './items.js';
 import { spawnDroplets } from './ultimate.js';
 import { spawnSplit } from './mobspawn.js';
 import { KIND, tileOf, footprint, itemDef } from '../public/shared/world.js';
-import { rifleStats } from '../public/shared/weapon.js';
+import { rifleStats, modConfig } from '../public/shared/weapon.js';
 
 const EPS = 1e-9;
 
-export function spawnBullet(world, { owner, fromTurret, x, y, angle, damage, speedPx, rangePx, pierce = 0 }) {
+export function spawnBullet(world, { owner, fromTurret, x, y, angle, damage, speedPx, rangePx, pierce = 0, homing = null, lenPx = 0 }) {
   const bullet = {
     id: world.nextId(), owner, fromTurret, x, y,
     vx: Math.cos(angle) * speedPx, vy: Math.sin(angle) * speedPx,
     travelLeft: rangePx, damage, pierce, passed: null,
   };
+  // Samonaprowadzanie (V3-I-03): { coneRad, turnRad } - krok sterowania w stepBullet. lenPx > 0 = gwozdz (kreska).
+  if (homing) bullet.homing = homing;
+  if (lenPx > 0) bullet.lenPx = lenPx;
   world.bullets.push(bullet);
   return bullet;
 }
@@ -41,18 +44,39 @@ export function fireWeapons(world, dt) {
     if (p.state !== 'alive' || p.suspended || p.busy > 0 || p.held !== null) continue;
     if (!p.input.fire || p.fireLock || p.cooldown > EPS) continue;
     const fz = p.frenzyLeft > 0 ? p.frenzy : null;
-    const angle = p.angle + (world.rng() - 0.5) * spread;
+    // Szal przeslania modyfikator na czas trwania (ma wlasny `triple` i `pierce`); po nim modyfikator wraca.
+    const mod = fz ? null : modConfig(balance, p.weaponMod);
+    const rad = (deg) => (deg * Math.PI) / 180;
+    const sp = mod?.spreadDeg != null && p.weaponMod === 'nailgun' ? rad(mod.spreadDeg) : spread;
+    const angle = p.angle + (world.rng() - 0.5) * sp;
     const x = p.x + Math.cos(p.angle) * r;
     const y = p.y + Math.sin(p.angle) * r;
-    const fan = fz?.triple ? [-0.2, 0, 0.2] : [0];
+    let fan = fz?.triple ? [-0.2, 0, 0.2] : [0];
+    let dmgMult = fz?.damageMult ?? 1;
+    let speedPx = rifle.speedPx;
+    let homing = null;
+    let lenPx = 0;
+    let interval = rifle.fireIntervalS;
+    if (p.weaponMod === 'fan' && mod) {
+      const span = rad(mod.spreadDeg);
+      fan = Array.from({ length: mod.count }, (_, i) => (mod.count > 1 ? (i / (mod.count - 1) - 0.5) * span : 0));
+      dmgMult *= mod.damageMult;
+    } else if (p.weaponMod === 'homing' && mod) {
+      homing = { coneRad: rad(mod.coneDeg), turnRad: rad(mod.turnDegPerS) };
+    } else if (p.weaponMod === 'nailgun' && mod) {
+      speedPx = mod.speedPx;
+      dmgMult *= mod.damageMult;
+      lenPx = mod.lenPx;
+      interval = mod.fireIntervalS;
+    }
     for (const off of fan) {
       spawnBullet(world, {
         owner: p.id, fromTurret: false, x, y, angle: angle + off,
-        damage: stats.damage * (fz?.damageMult ?? 1), speedPx: rifle.speedPx, rangePx: rifle.rangeTiles * tilePx,
-        pierce: fz?.pierce ?? 0,
+        damage: stats.damage * dmgMult, speedPx, rangePx: rifle.rangeTiles * tilePx,
+        pierce: fz?.pierce ?? 0, homing, lenPx,
       });
     }
-    p.cooldown += rifle.fireIntervalS * (fz?.fireMult ?? 1);
+    p.cooldown += interval * (fz?.fireMult ?? 1);
     p.ammo--;
     world.events.push({ type: 'shot', id: p.id, x, y, angle });
     if (p.ammo <= 0) startReload(world, p);
@@ -172,9 +196,35 @@ function applyHit(world, b, hit, hooks) {
   world.events.push({ type: 'hit', x: b.x, y: b.y });
 }
 
+const wrapPi = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+// Samonaprowadzanie (V3-I-03): najblizszy potwor w stozku przed pociskiem (widoczny, bez sciany pomiedzy),
+// obrot o co najwyzej turnRad * dt. Dzieje sie PRZED raycastem trafienia, nie zamiast niego.
+function steerBullet(world, b, dt) {
+  const speed = Math.hypot(b.vx, b.vy);
+  const heading = Math.atan2(b.vy, b.vx);
+  let best = null;
+  let bestD = b.travelLeft;
+  for (const m of world.mobs) {
+    if (m.invul || b.passed?.has(m.id)) continue;
+    const d = Math.hypot(m.x - b.x, m.y - b.y);
+    if (d >= bestD) continue;
+    if (Math.abs(wrapPi(Math.atan2(m.y - b.y, m.x - b.x) - heading)) > b.homing.coneRad) continue;
+    if (!lineClear(world, b.x, b.y, m.x, m.y)) continue;
+    best = m;
+    bestD = d;
+  }
+  if (!best) return;
+  const diff = wrapPi(Math.atan2(best.y - b.y, best.x - b.x) - heading);
+  const turn = Math.max(-b.homing.turnRad * dt, Math.min(b.homing.turnRad * dt, diff));
+  b.vx = Math.cos(heading + turn) * speed;
+  b.vy = Math.sin(heading + turn) * speed;
+}
+
 function stepBullet(world, b, dt, hooks) {
   const speed = Math.hypot(b.vx, b.vy);
   if (speed < EPS) return false;
+  if (b.homing) steerBullet(world, b, dt);
   const len = Math.min(speed * dt, b.travelLeft);
   const dx = (b.vx / speed) * len;
   const dy = (b.vy / speed) * len;

@@ -1,6 +1,6 @@
 // Pixel art wygenerowany przez Claude (TECH-05). Styl: brudne post-apo. '.' = przezroczysty,
 // 'P' = kolor gracza, 'Q' = ten sam kolor przyciemniony (podmieniane w bakeSprites).
-import { tankRows, tankWear, stalkerRows, ninjaRows } from './bigsprites.js';
+import { tankRows, tankWear, stalkerRows, ninjaRows, spikesRows, cageRows } from './bigsprites.js';
 
 export const PALETTE = {
   '.': null,
@@ -771,6 +771,25 @@ export const SPRITES = {
     '................',
     '................',
   ],
+  // Boost broni (ITM-P-09): zlota strzalka w gore; pulsowanie robi render, nie klatki.
+  item_weaponboost: [
+    '................',
+    '................',
+    '.......KK.......',
+    '......KyyK......',
+    '.....KyWWyK.....',
+    '....KyWWWWyK....',
+    '...KyyyWWyyyK...',
+    '..KooyyWWyyooK..',
+    '.....KyWWyK.....',
+    '.....KyWWyK.....',
+    '.....KyyyyK.....',
+    '.....KooooK.....',
+    '......KKKK......',
+    '................',
+    '................',
+    '................',
+  ],
   item_turret30: [
     '................',
     '.....yyyyyy.....',
@@ -826,25 +845,6 @@ export const SPRITES = {
     '..KKKGGGGGGKKK..',
     '................',
   ],
-  // Kolce postawione: zardzewiała płyta z trzema rzędami stalowych szpikulców, ślad krwi.
-  spikes: [
-    '................',
-    '.KKKKKKKKKKKKKK.',
-    '.KGGGGGGGGGGGGK.',
-    '.KGSGGGSGGGSGGK.',
-    '.KGsKGGsKGGsKGK.',
-    '.KGGGGGGGGGGGGK.',
-    '.KGSGGGSGGGSGoK.',
-    '.KGsKGGsKGGsKGK.',
-    '.KGGrGGGGGGGGGK.',
-    '.KGSGGGSGGGSGGK.',
-    '.KGsKGGsKGGsKGK.',
-    '.KGGGGoGGGGGGGK.',
-    '.KGGGGGGGGGGGGK.',
-    '.KKKKKKKKKKKKKK.',
-    '................',
-    '................',
-  ],
   // Platforma lecząca: kafelek 16x16 powtarzany 3x3 (obwódkę rysuje render). Oliwkowa blacha, krzyż, rdza.
   platform_0: [
     'KGGGGGGGGGGGGGGK',
@@ -881,43 +881,6 @@ export const SPRITES = {
     'GLLLLvLLLLLLLLLG',
     'GLLLLLLLLLLLLLLG',
     'KGGGGGGGGGGGGGGK',
-  ],
-  // Klatka: otwarta (czeka) - rama z podniesionymi prętami i lampką; zamknięta (trzyma) - pełna krata.
-  cage_0: [
-    '................',
-    '.KKKKKKKKKKKKKK.',
-    '.KgKgggggggKgKK.',
-    '.KKKsssssssKKKK.',
-    '.KgsKnnnnnnKsgK.',
-    '.KgsKnnnnnnKsgK.',
-    '.KgsKnnnnnnKsgK.',
-    '.KgsKnnnnnnKsgK.',
-    '.KgsKnnnnnnKsgK.',
-    '.KgsKnnnnnnKsgK.',
-    '.KKKsssssssKKKK.',
-    '.KgKgggggggKgyK.',
-    '.KKKKKKKKKKKKKK.',
-    '................',
-    '................',
-    '................',
-  ],
-  cage_1: [
-    '................',
-    '.KKKKKKKKKKKKKK.',
-    '.KSSSSSSSSSSSSK.',
-    '.KsKsKsKsKsKsKK.',
-    '.KsKsKsKsKsKsKK.',
-    '.KSSSSSSSSSSSSK.',
-    '.KsKsKsKsKsKsKK.',
-    '.KsKsKsKsKsKsKK.',
-    '.KSSSSSSSSSSSSK.',
-    '.KsKsKsKsKsKsKK.',
-    '.KsKsKsKsKsKsKK.',
-    '.KSSSSSSSSSSSSK.',
-    '.KKKKKKKKKKKKyK.',
-    '................',
-    '................',
-    '................',
   ],
   // Przedmioty na ziemi / w rękach (nowe): hard objecty kamienne, power-upy z żółtą obwódką-lampką.
   item_boulder: [
@@ -1259,6 +1222,11 @@ for (const f of [0, 1]) {
   SPRITES[`tank_${f}`] = tankRows(f);
   for (const stage of [1, 2, 3]) SPRITES[`tank_${f}_dmg_${stage}`] = tankWear(SPRITES[`tank_${f}`], stage);
 }
+
+// Kolce i klatka zajmuja 2 x 2 kafelki (V3-D-08): sprite'y 32x32 rysowane proceduralnie; ikony item_* zostaja 16x16.
+SPRITES.spikes = spikesRows();
+SPRITES.cage_0 = cageRows(false);
+SPRITES.cage_1 = cageRows(true);
 
 // Warianty pochodne: kamienne pęknięcia głazu (3 stany zużycia, jak ściana) i oznaczenie czasu na ikonie działka.
 function mark(rows, points) {

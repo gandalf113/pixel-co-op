@@ -1,6 +1,7 @@
 import { damagePlayer, setDropHeld, setPadReviveProbe } from './players.js';
 import { spawnBullet, damageMob, mobHit, addGore } from './combat.js';
 import { pickWeighted } from './rng.js';
+import { rifleStats } from '../public/shared/weapon.js';
 import {
   behaviorOf, blocksBodies, buildGrid, footprint, itemLimitReached, placeTarget, placementValid, segmentBlocked, tileOf,
 } from '../public/shared/world.js';
@@ -272,7 +273,25 @@ function placeHardItem(world, player, item) {
   world.events.push({ type: 'place', id: item.id, kind: item.kind, tx, ty });
 }
 
+// Boost broni (ITM-P-09, V3-I-01): +1 poziom (do maxLevel) i ZAWSZE losowy modyfikator, ktory zastepuje poprzedni.
+// Losowanie z world.rng, wiec ten sam seed daje ten sam przebieg. Przedmiot znika, nie dotyka siatki ani limitow.
+export function applyWeaponBoost(world, player) {
+  const { balance } = world.rules;
+  const cfg = balance.weaponMods;
+  const before = rifleStats(balance, player.weaponLv).magazine;
+  player.weaponLv = Math.min(cfg.maxLevel, player.weaponLv + 1);
+  player.weaponMod = cfg.kinds[Math.floor(world.rng() * cfg.kinds.length)];
+  // wiekszy magazynek od razu daje dodatkowe naboje (nie trzeba przeladowywac)
+  player.ammo += Math.max(0, rifleStats(balance, player.weaponLv).magazine - before);
+  world.events.push({ type: 'weaponUp', id: player.id, x: player.x, y: player.y, lv: player.weaponLv, mod: player.weaponMod });
+}
+
 function usePower(world, player, item) {
+  if (cfgOf(world, item).behavior === 'weaponboost') {
+    player.held = null;
+    world.items.delete(item.id);
+    return applyWeaponBoost(world, player);
+  }
   const { tx, ty, valid } = targetFor(world, player, item, limitReached(world, item.kind));
   if (!valid) return deny(world, player);
   player.held = null;
@@ -350,13 +369,18 @@ function freeTileNear(world, kind, x, y) {
   const candidates = [];
   for (let dy = -LAND_SEARCH_TILES; dy <= LAND_SEARCH_TILES; dy++) {
     for (let dx = -LAND_SEARCH_TILES; dx <= LAND_SEARCH_TILES; dx++) {
-      if (Math.hypot(dx, dy) <= LAND_SEARCH_TILES) candidates.push([cx + dx, cy + dy, Math.hypot(dx, dy)]);
+      if (Math.hypot(dx, dy) > LAND_SEARCH_TILES) continue;
+      // Odleglosc srodka CALEGO obrysu od celu (dla 1 x 1 to zwykle dx, dy), zeby 2 x 2 wolal pole pod celem.
+      const tiles = footprint(kind, cx + dx, cy + dy, 0);
+      const mx = tiles.reduce((a, [x]) => a + x + 0.5, 0) / tiles.length;
+      const my = tiles.reduce((a, [, y]) => a + y + 0.5, 0) / tiles.length;
+      candidates.push([cx + dx, cy + dy, Math.hypot(mx - cx - 0.5, my - cy - 0.5), tiles]);
     }
   }
   candidates.sort((a, b) => a[2] - b[2]);
-  for (const [tx, ty] of candidates) {
+  for (const [tx, ty, , tiles] of candidates) {
     const ok = placementValid({
-      grid: world.grid, tiles: footprint(kind, tx, ty, 0), playerX: (tx + 0.5) * tilePx, playerY: (ty + 0.5) * tilePx,
+      grid: world.grid, tiles, playerX: (tx + 0.5) * tilePx, playerY: (ty + 0.5) * tilePx,
       circles: cs, tilePx, maxRangeTiles: Infinity, limitReached: false,
     });
     if (ok) return [tx, ty];
@@ -366,7 +390,8 @@ function freeTileNear(world, kind, x, y) {
 
 function land(world, item, x, y, mob = null) {
   const thrower = item.flight.thrower;
-  if (isHard(world, item) || limitReached(world, item.kind)) return toGround(world, item, x, y);
+  // Boost broni rzucony nie aktywuje sie (rzut = podanie koledze): zadaje throwDamage i lezy na ziemi.
+  if (isHard(world, item) || cfgOf(world, item).behavior === 'weaponboost' || limitReached(world, item.kind)) return toGround(world, item, x, y);
   // Pulapka na podlodze (klatka) laduje pod trafionym potworem, zeby go zlapac, a nie obok niego.
   const onMob = mob && !blocksBodies(item.kind);
   const tile = freeTileNear(world, item.kind, onMob ? mob.x : x, onMob ? mob.y : y);
@@ -461,13 +486,14 @@ function updateMine(world, item, dt) {
   world.events.push({ type: 'explode', id: item.id, x: cx, y: cy, radiusPx: r, mine: true });
 }
 
-// Kolce: co tickS zadaja obrazenia kazdemu potworowi na kafelku, a graczowi friendlyFire tego (10%).
+// Kolce: co tickS zadaja obrazenia kazdemu potworowi na ktorymkolwiek kafelku obrysu (raz na tik), a graczowi friendlyFire tego (10%).
 function updateSpikes(world, item, dt) {
   const { tilePx, balance } = world.rules;
   const cfg = cfgOf(world, item);
   item.cooldown = Math.max(0, item.cooldown - dt);
   if (item.cooldown > EPS) return;
-  const onTile = (e) => tileOf(e.x, tilePx) === item.tx && tileOf(e.y, tilePx) === item.ty;
+  const tiles = footprint(item.kind, item.tx, item.ty, 0);
+  const onTile = (e) => tileIn(tiles, tileOf(e.x, tilePx), tileOf(e.y, tilePx));
   const mobs = world.mobs.filter(onTile);
   const players = [...world.players.values()].filter((p) => p.state === 'alive' && !p.suspended && onTile(p));
   if (!mobs.length && !players.length) return;
@@ -508,24 +534,27 @@ function padReviveS(world, player) {
   return null;
 }
 
-// Klatka: lapie pierwszego potwora na kafelku (nie bossa) i uzywa istniejacego `frozen`/`vuln`
-// (jak Zamrozenie z ultimate), a po durationS znika.
+// Klatka: gdy jakikolwiek potwor (nie boss) stanie na ktoryms kafelku obrysu, lapie WSZYSTKIE takie potwory naraz
+// (`caught` = lista id), uzywa istniejacego `frozen`/`vuln` (jak Zamrozenie z ultimate), a po durationS znika.
 function updateCage(world, item, dt) {
   const { tilePx, balance } = world.rules;
   const cfg = cfgOf(world, item);
   if (item.caught == null) {
-    const mob = world.mobs.find((m) => !balance.mobs[m.type].boss && tileOf(m.x, tilePx) === item.tx && tileOf(m.y, tilePx) === item.ty);
-    if (!mob) return;
-    item.caught = mob.id;
+    const tiles = footprint(item.kind, item.tx, item.ty, 0);
+    const mobs = world.mobs.filter((m) => !balance.mobs[m.type].boss && tileIn(tiles, tileOf(m.x, tilePx), tileOf(m.y, tilePx)));
+    if (!mobs.length) return;
+    item.caught = mobs.map((m) => m.id);
     item.timeLeft = cfg.durationS;
-    mob.frozen = Math.max(mob.frozen ?? 0, cfg.durationS);
-    mob.vuln = Math.max(mob.vuln ?? 1, cfg.vuln);
-    mob.slowAfter = 0;
-    world.events.push({ type: 'trap', id: item.id, mob: mob.id });
+    for (const mob of mobs) {
+      mob.frozen = Math.max(mob.frozen ?? 0, cfg.durationS);
+      mob.vuln = Math.max(mob.vuln ?? 1, cfg.vuln);
+      mob.slowAfter = 0;
+      world.events.push({ type: 'trap', id: item.id, mob: mob.id });
+    }
     return;
   }
-  // Zabity w klatce potwor zwalnia ja od razu, zeby nie zajmowala limitu.
-  if (!world.mobs.some((m) => m.id === item.caught)) item.timeLeft = 0;
+  // Klatka zwalnia sie od razu, gdy zginal ostatni jeniec, zeby nie zajmowala limitu.
+  if (!world.mobs.some((m) => item.caught.includes(m.id))) item.timeLeft = 0;
   expireWhenDone(world, item, dt);
 }
 

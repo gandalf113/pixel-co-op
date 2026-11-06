@@ -1,6 +1,7 @@
 # Changelog dokumentacji
 
 ## 0.25 - 2026-11-06
+- ITM-P-09 rozpisany zgodnie z R56: boost podnosi poziom I losuje modyfikator (wachlarz / samonaprowadzanie / gwozdziarka); Szal nadpisuje modyfikator na czas trwania.
 - Punkt O zrobiony w v0.9.0: 500 -> 6,5 kB/s na gracza (77x), zmierzone na gnieździe. Zostaje V3-O-08 (sekcja players), O-04 i O-09 (weryfikacja na zywym laczu).
 - V3-C-14: poglos karabinu brzmi "kiblowo" — ogon ciemnieje, jest krotki i mono. Naprawa: pasmo gorne od 400 Hz, dlugosc 1.2-1.6 s, wyciszone wczesne odbicia, IR stereo dekorelowane, pre-delay 60-70 ms.
 - R59: kolce i klatka 2 x 2; klatka wyzwala sie z dowolnego kafelka i lapie wszystko w obrysie (V3-D-08, ITM-H-03, ITM-P-08).

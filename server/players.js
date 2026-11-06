@@ -32,7 +32,7 @@ export function createPlayer({ id, nick, color, ultKind = null }, rules, index) 
     id, nick, color, x, y, angle: 0, hp, maxHp: hp,
     state: 'alive', suspended: false, suspendLeft: 0,
     reviveProgress: 0, deathLeft: 0, invuln: 0, cooldown: 0, busy: 0,
-    held: null, ready: false, kills: 0, downs: 0, ultsUsed: 0, weaponLv: 1,
+    held: null, ready: false, kills: 0, downs: 0, ultsUsed: 0, weaponLv: 1, weaponMod: null,
     ammo: rules.balance.rifle.magazine, reloadLeft: 0,
     ult: 0, ultKind, frenzy: null, frenzyLeft: 0,
     inputQueue: [],

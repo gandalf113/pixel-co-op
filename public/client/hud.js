@@ -270,7 +270,8 @@ export function renderHud(ctx, scale, state) {
         ctx.globalAlpha = 1;
       }
       text(ctx, String(Math.floor(me.hp)), PAD + bw / 2, H - PAD - 3 * scale, { size: small, align: 'center', base: 'middle' });
-      const lvStr = `BROŃ LV ${me.weaponLv}`;
+      const mod = balance.weaponMods?.[me.weaponMod];
+      const lvStr = `BROŃ LV ${me.weaponLv}${mod ? ` ${mod.icon} ${mod.name}` : ''}`;
       text(ctx, lvStr, PAD + bw + 10, H - PAD - 3 * scale, { size: fs, base: 'middle' });
       const gun = rifleStats(balance, me.weaponLv);
       const low = me.ammo <= 5 && Math.floor(state.nowMs / 250) % 2 === 0;
@@ -296,7 +297,7 @@ export function renderHud(ctx, scale, state) {
 
     if (state.tab) {
       const rowH = fs + 8;
-      const tw = 280 + 20 * scale;
+      const tw = 400 + 20 * scale;
       const th = rowH * (snap.players.length + 1) + 16;
       const tx = (W - tw) / 2;
       const ty = (H - th) / 2;
@@ -305,6 +306,8 @@ export function renderHud(ctx, scale, state) {
       snap.players.forEach((p, i) => {
         const y = ty + 8 + rowH * (i + 1);
         text(ctx, p.nick, tx + 12, y, { color: p.color, size: fs });
+        const pm = balance.weaponMods?.[p.weaponMod];
+        text(ctx, `LV ${p.weaponLv}${pm ? ` ${pm.icon} ${pm.name}` : ''}`, tx + 120, y, { size: fs, color: pm ? '#ffd23a' : '#e8e2d4' });
         const status = p.state === 'alive' ? `${Math.floor(p.hp)} HP` : p.state === 'downed' ? 'powalony' : 'martwy';
         text(ctx, status, tx + tw - 12, y, { size: fs, align: 'right' });
       });

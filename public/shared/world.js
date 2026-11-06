@@ -10,6 +10,8 @@ export const BEHAVIORS = {
   spikes: { grid: KIND.FLOOR, when: 'placed', bodies: false },
   platform: { grid: KIND.FLOOR, when: 'active', bodies: false },
   cage: { grid: KIND.FLOOR, when: 'active', bodies: false },
+  // Boost broni nigdy nie staje sie `active`: dziala od razu na gracza, a rzucony laduje na ziemi.
+  weaponboost: { grid: null, when: 'active', bodies: true },
 };
 
 let itemDefs = {};

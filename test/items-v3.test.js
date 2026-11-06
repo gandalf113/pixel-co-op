@@ -55,7 +55,7 @@ function placeAt(w, p, kind, tx, ty) {
 // ---- opis zachowan w balance.json ----
 
 test('every item declares a known behavior and a drop weight', () => {
-  const known = ['block', 'spikes', 'turret', 'mine', 'platform', 'cage'];
+  const known = ['block', 'spikes', 'turret', 'mine', 'platform', 'cage', 'weaponboost'];
   for (const [kind, c] of Object.entries(balance.items)) {
     assert.ok(known.includes(c.behavior), `${kind}: behavior`);
     assert.ok(['hard', 'power'].includes(c.category), `${kind}: category`);
@@ -92,6 +92,10 @@ test('every item can be rolled, picked up and placed with no per-kind code', () 
     aim(p, 42, 30);
     handleAction(w2, p, 'e');
     assert.equal(p.held, null, `${kind}: postawienie`);
+    if (balance.items[kind].behavior === 'weaponboost') {
+      assert.equal(w2.items.has(it.id), false, 'boost znika po uzyciu');
+      continue;
+    }
     assert.ok(['placed', 'active'].includes(it.state), `${kind}: stan ${it.state}`);
     assert.deepEqual([it.tx, it.ty], [42, 30], `${kind}: kafelek`);
   }
@@ -384,18 +388,18 @@ function caged() {
   return { w, p, it };
 }
 
-test('cage catches the first monster on the tile for 8 s and it takes 150%', () => {
+test('cage catches a monster in its 2 x 2 outline for 8 s and it takes 150%', () => {
   const { w, it } = caged();
   assert.equal(it.state, 'active');
   assert.equal(it.timeLeft, 0);
   run(w, 3);
   assert.equal(it.caught ?? null, null);
   const first = addMob(w, 'brute', C(32), C(10));
-  const second = addMob(w, 'brute', C(32) + 1, C(10));
+  const outside = addMob(w, 'brute', C(34), C(10));
   run(w, 0.1, { mobs: false });
-  assert.equal(it.caught, first.id);
+  assert.deepEqual(it.caught, [first.id]);
   assert.ok(first.frozen > 7.5);
-  assert.equal(second.frozen ?? 0, 0);
+  assert.equal(outside.frozen ?? 0, 0);
   const before = first.hp;
   damageMob(w, first, 20, 'p1');
   assert.ok(near(before - first.hp, 30));
@@ -414,7 +418,7 @@ test('cage holds exactly 8 s and then disappears', () => {
   run(w, 0.6);
   assert.equal(w.items.has(it.id), false);
   assert.equal(w.events.some((e) => e.type === 'expire' && e.id === it.id), true);
-  assert.equal(w.grid.isOccupied(32, 10), false);
+  for (const [x, y] of footprint('cage', 32, 10)) assert.equal(w.grid.isOccupied(x, y), false);
   run(w, 1);
   assert.ok(mob.x < x0, 'potwor znowu idzie');
 });
@@ -434,7 +438,7 @@ test('cage does not trap a boss and frees its slot when the prisoner dies', () =
   w.mobs.length = 0;
   const slime = addMob(w, 'slime', C(32), C(10));
   run(w, 0.1, { mobs: false });
-  assert.equal(it.caught, slime.id);
+  assert.deepEqual(it.caught, [slime.id]);
   w.mobs.length = 0;
   run(w, 0.1, { mobs: false });
   assert.equal(w.items.has(it.id), false);
@@ -448,7 +452,7 @@ test('thrown cage lands on the monster it hit and catches it', () => {
   handleAction(w, p, 'space');
   run(w, 1, { mobs: false });
   assert.equal(it.state, 'active');
-  assert.equal(it.caught, mob.id);
+  assert.deepEqual(it.caught, [mob.id]);
 });
 
 test('cage limit of 12', () => {
@@ -477,4 +481,156 @@ test('grid rebuild: floor items survive buildGrid from a snapshot-like item list
   assert.equal(g.kind(8, 8), KIND.WALL);
   assert.equal(g.kind(9, 9), KIND.EMPTY);
   assert.equal(g.id(20, 20), 2);
+});
+
+// ---- V3-D-08: kolce i klatka 2 x 2 ----
+
+const quad = (tx, ty) => [[tx, ty], [tx + 1, ty], [tx, ty + 1], [tx + 1, ty + 1]];
+
+test('spikes and cage are 2 x 2 in balance.json and occupy four floor tiles', () => {
+  for (const kind of ['spikes', 'cage']) assert.deepEqual(balance.items[kind].size, [2, 2]);
+  const { w, p } = oneWorld({ x: C(30), y: C(10) });
+  const sp = placeAt(w, p, 'spikes', 32, 10);
+  p.x = C(34);
+  const cg = placeAt(w, p, 'cage', 36, 10);
+  assert.equal(footprint('spikes', 32, 10).length, 4);
+  for (const [x, y] of [...quad(32, 10), ...quad(36, 10)]) {
+    assert.equal(w.grid.kind(x, y), KIND.FLOOR);
+    assert.equal(w.grid.isSolid(x, y), false);
+  }
+  assert.equal(w.grid.isOccupied(34, 10), false);
+  assert.equal(w.grid.id(33, 11), sp.id);
+  assert.equal(w.grid.id(37, 11), cg.id);
+});
+
+test('spikes free all four tiles when destroyed or expired, and mark the flow field dirty', () => {
+  const { w, p } = oneWorld({ x: C(30), y: C(10) });
+  const sp = placeAt(w, p, 'spikes', 32, 10);
+  w.fieldsDirty = false;
+  onObjectDestroyed(w, sp);
+  assert.equal(w.fieldsDirty, true);
+  for (const [x, y] of quad(32, 10)) assert.equal(w.grid.isOccupied(x, y), false);
+  const cg = placeAt(w, p, 'cage', 32, 10);
+  for (const [x, y] of quad(32, 10)) assert.equal(w.grid.isOccupied(x, y), true);
+  cg.caught = [];
+  cg.timeLeft = 0.01;
+  w.fieldsDirty = false;
+  run(w, 0.1, { mobs: false });
+  assert.equal(w.items.has(cg.id), false);
+  assert.equal(w.fieldsDirty, true);
+  for (const [x, y] of quad(32, 10)) assert.equal(w.grid.isOccupied(x, y), false);
+});
+
+test('cage triggered from any of its four tiles catches every monster in the outline (three monsters)', () => {
+  for (const [mx, my] of quad(32, 10)) {
+    const { w, it } = caged();
+    const a = addMob(w, 'brute', C(mx), C(my));
+    const b = addMob(w, 'brute', C(32), C(11));
+    const c = addMob(w, 'brute', C(33), C(10));
+    const out = addMob(w, 'brute', C(34), C(10));
+    run(w, 0.1, { mobs: false });
+    assert.equal(new Set(it.caught).size, new Set([a.id, b.id, c.id]).size === 3 && it.caught.includes(a.id) ? it.caught.length : -1);
+    for (const m of [a, b, c]) {
+      assert.ok(it.caught.includes(m.id));
+      assert.ok(m.frozen > 7.5);
+      assert.equal(m.vuln, 1.5);
+    }
+    assert.equal(it.caught.includes(out.id), false);
+    assert.equal(out.frozen ?? 0, 0);
+    assert.equal(w.events.filter((e) => e.type === 'trap').length, 3);
+  }
+});
+
+test('cage with several prisoners frees its slot only when all are gone', () => {
+  const { w, it } = caged();
+  const a = addMob(w, 'slime', C(32), C(10));
+  addMob(w, 'slime', C(33), C(11));
+  run(w, 0.1, { mobs: false });
+  assert.equal(it.caught.length, 2);
+  w.mobs.splice(w.mobs.indexOf(a), 1);
+  run(w, 0.1, { mobs: false });
+  assert.equal(w.items.has(it.id), true);
+  w.mobs.length = 0;
+  run(w, 0.1, { mobs: false });
+  assert.equal(w.items.has(it.id), false);
+});
+
+test('spikes hurt every monster on any of the four tiles every 0.5 s', () => {
+  const { w, p } = oneWorld({ x: C(30), y: C(10) });
+  placeAt(w, p, 'spikes', 32, 10);
+  const mobs = quad(32, 10).map(([x, y]) => {
+    const m = addMob(w, 'brute', C(x), C(y));
+    m.hp = m.maxHp = 1000;
+    m.frozen = 99;
+    m.vuln = 1;
+    return m;
+  });
+  const out = addMob(w, 'brute', C(34), C(10));
+  out.hp = out.maxHp = 1000;
+  out.frozen = 99;
+  run(w, 1.25, { mobs: false });
+  for (const m of mobs) assert.ok(near(m.hp, 1000 - 3 * 8), String(m.hp));
+  assert.equal(out.hp, 1000);
+});
+
+test('spikes: a player on them takes 10% once per tick, not once per tile', () => {
+  const { w, p } = oneWorld({ x: C(32), y: C(10) });
+  placeAt(w, p, 'spikes', 33, 10);
+  p.x = (34) * T; // stoi na styku czterech kafelkow, ale w jednym z nich
+  p.y = 11 * T - 1;
+  run(w, 0.05, { mobs: false });
+  assert.ok(near(p.hp, 100 - 0.8), String(p.hp));
+  run(w, 0.3, { mobs: false });
+  assert.ok(near(p.hp, 100 - 0.8));
+});
+
+test('placement: a 2 x 2 item needs four free tiles, and the ghost shows it', async () => {
+  const { placeTarget } = await import('../public/shared/world.js');
+  const { w, p } = oneWorld({ x: C(30), y: C(10) });
+  const wall = placeAt(w, p, 'wall', 33, 11);
+  assert.equal(wall.state, 'placed');
+  for (const kind of ['spikes', 'cage']) {
+    const t = placeTarget({
+      grid: w.grid, kind, playerX: p.x, playerY: p.y, aimX: C(32), aimY: C(10), circles: [], tilePx: T, maxRangeTiles: 6, limitReached: false,
+    });
+    assert.equal(t.valid, false, `${kind}: jeden zajety kafelek z czterech`);
+    const ok = placeTarget({
+      grid: w.grid, kind, playerX: p.x, playerY: p.y, aimX: C(32), aimY: C(14), circles: [], tilePx: T, maxRangeTiles: 6, limitReached: false,
+    });
+    assert.equal(ok.valid, true, kind);
+    const held = give(w, p, kind);
+    aim(p, 32, 10);
+    handleAction(w, p, 'e');
+    assert.equal(held.state, 'held', `${kind}: odmowa stawiania`);
+    w.items.delete(held.id);
+    p.held = null;
+  }
+});
+
+test('thrown cage lands only where all four tiles fit', () => {
+  const { w, p } = oneWorld();
+  // zajmij kafelek (44,30) scianka, wiec 2 x 2 nie moze miec go w obrysie
+  placeAt(w, p, 'wall', 44, 30);
+  const it = give(w, p, 'cage');
+  aim(p, 44, 30);
+  handleAction(w, p, 'space');
+  run(w, 1, { mobs: false });
+  assert.equal(it.state, 'active');
+  for (const [x, y] of footprint('cage', it.tx, it.ty)) {
+    assert.equal(w.grid.id(x, y), it.id);
+    assert.notEqual(w.grid.kind(x, y), KIND.WALL);
+  }
+  assert.equal(footprint('cage', it.tx, it.ty).length, 4);
+});
+
+test('thrown cage lands on the hit monster\'s tile and catches it', () => {
+  const { w, p } = oneWorld();
+  const it = give(w, p, 'cage');
+  const mob = addMob(w, 'brute', C(43), C(30));
+  aim(p, 44, 30);
+  handleAction(w, p, 'space');
+  run(w, 1, { mobs: false });
+  assert.equal(it.state, 'active');
+  assert.ok(footprint('cage', it.tx, it.ty).some(([x, y]) => x === 43 && y === 30));
+  assert.deepEqual(it.caught, [mob.id]);
 });

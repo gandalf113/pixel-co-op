@@ -8,6 +8,7 @@ const REQUIRED = ['player_0', 'player_1', 'player_down_0', 'player_down_1', 'sli
   'item_wall', 'item_turret30', 'item_mine', 'bullet', 'crosshair'];
 
 const BIG = { stalker: 32, ninja: 32, tank: 64 };
+const ITEM32 = { spikes: 32, cage: 32 };
 
 test('sprites are complete and well-formed', () => {
   for (const name of REQUIRED) assert.ok(SPRITES[name], name);
@@ -16,6 +17,7 @@ test('sprites are complete and well-formed', () => {
     assert.ok(rows.every(r => r.length === w), `${name}: równe wiersze`);
     if (name.startsWith('ult_')) assert.equal(rows.length, 32, `${name}: 32 wiersze`);
     else if (BIG[name.split('_')[0]]) assert.equal(rows.length, BIG[name.split('_')[0]], `${name}: ${BIG[name.split('_')[0]]} wierszy`);
+    else if (ITEM32[name.split('_')[0]]) assert.equal(rows.length, 32, `${name}: 32 wiersze`);
     else if (!['bullet', 'crosshair'].includes(name)) assert.equal(rows.length, 16, `${name}: 16 wierszy`);
     for (const r of rows) for (const ch of r) assert.ok(ch in PALETTE, `${name}: znak '${ch}' poza paletą`);
   }
@@ -37,6 +39,7 @@ test('every item in balance.json has all the sprites its behavior needs', async 
     const need = [`item_${kind}`];
     if (c.behavior === 'block') need.push(c.sprite, ...[1, 2, 3].map((n) => `${c.sprite}_dmg_${n}`));
     else if (c.behavior === 'spikes') need.push(c.sprite);
+    else if (c.behavior === 'weaponboost') need.push(`item_${kind}`); // brak postawionego stanu, tylko ikona
     else need.push(`${c.sprite}_0`, `${c.sprite}_1`);
     if (c.wreck) need.push(c.wreck);
     for (const name of need) assert.ok(SPRITES[name], `${kind}: brak sprite'a ${name}`);

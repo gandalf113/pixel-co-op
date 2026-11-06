@@ -188,6 +188,14 @@ const RECIPES = {
     { t: 'sine', f0: 554, dur: 0.07, level: 0.25, at: 0.07 },
     { t: 'sine', f0: 659, dur: 0.1, level: 0.25, at: 0.14 },
   ],
+  // Awans broni (V3-I-05): rosnacy akord (A-cis-e-A) z metalicznym blyskiem; glosniejszy u wlasnego gracza (own).
+  weaponUp: Object.assign([
+    { t: 'square', f0: 440, dur: 0.09, level: 0.2 },
+    { t: 'square', f0: 554, dur: 0.09, level: 0.2, at: 0.07 },
+    { t: 'square', f0: 659, dur: 0.09, level: 0.2, at: 0.14 },
+    { t: 'triangle', f0: 880, dur: 0.3, level: 0.3, at: 0.21, tail: 0.15 },
+    { n: 'white', dur: 0.05, hp: 4000, level: 0.2, at: 0.21 },
+  ], { rev: 'room', wet: 0.3 }),
   expire: [{ t: 'sine', f0: 400, f1: 200, dur: 0.15, level: 0.15 }],
 };
 RECIPES.ultDeny = RECIPES.deny;

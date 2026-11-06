@@ -276,6 +276,9 @@ function onEvent(e) {
     case 'ult':
       playSfx('ult', e, tp, { tier: e.tier });
       break;
+    case 'weaponUp':
+      playSfx('weaponUp', e, tp, { own: e.id === myId });
+      break;
   }
   switch (e.type) {
     case 'pickup':
@@ -315,6 +318,10 @@ function onEvent(e) {
       break;
     case 'ff':
       fx.ff(now, e, myId, (id) => latest?.players.find((p) => p.id === id)?.nick ?? '?');
+      break;
+    case 'weaponUp':
+      fx.weaponUp(now, e, myId, balance.weaponMods);
+      flash = { color: '#ffd23a', start: now, strong: e.id === myId };
       break;
     case 'ultDeny':
       if (e.id === myId) denyUntil = now + 800;

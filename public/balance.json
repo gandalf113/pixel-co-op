@@ -11,6 +11,12 @@
   },
   "rifle": { "damage": 8, "fireIntervalS": 0.14, "magazine": 30, "reloadS": 1.5, "spreadDeg": 3, "speedPx": 450, "rangeTiles": 14,
              "levelDamageMult": 0.3, "levelMagazine": 10, "levelReloadS": 0.2 },
+  "weaponMods": {
+    "maxLevel": 5, "kinds": ["fan", "homing", "nailgun"], "flashS": 1.2,
+    "fan": { "name": "WACHLARZ", "icon": "\\|/", "count": 3, "spreadDeg": 12, "damageMult": 0.6 },
+    "homing": { "name": "SAMONAPROWADZANIE", "icon": "(o)", "coneDeg": 25, "turnDegPerS": 180 },
+    "nailgun": { "name": "GWOŹDZIARKA", "icon": "|||", "speedPx": 900, "fireIntervalS": 0.05, "damageMult": 0.3, "spreadDeg": 8, "lenPx": 5 }
+  },
   "gore": { "maxCorpses": 300, "maxSplats": 600, "maxScorches": 100, "maxRubble": 200 },
   "friendlyFire": 0.1,
   "mobs": {
@@ -42,7 +48,7 @@
   "items": {
     "wall":     { "category": "hard",  "behavior": "block", "name": "Kawałek ściany", "size": [2, 1], "rotatable": true, "hp": 150, "throwDamage": 15, "weight": 60, "sprite": "wall" },
     "boulder":  { "category": "hard",  "behavior": "block", "name": "Głaz", "size": [1, 1], "hp": 400, "throwDamage": 30, "weight": 25, "sprite": "boulder" },
-    "spikes":   { "category": "hard",  "behavior": "spikes", "name": "Kolce", "size": [1, 1], "hp": 80, "throwDamage": 20, "throwBleed": { "dps": 2, "durationS": 3 },
+    "spikes":   { "category": "hard",  "behavior": "spikes", "name": "Kolce", "size": [2, 2], "hp": 80, "throwDamage": 20, "throwBleed": { "dps": 2, "durationS": 3 },
                   "tickS": 0.5, "tickDamage": 8, "weight": 15, "sprite": "spikes" },
     "turret30": { "category": "power", "behavior": "turret", "name": "Działko 30 s", "durationS": 30, "rangeTiles": 8, "damage": 8, "cooldownS": 0.3, "hp": 100, "throwDamage": 10, "weight": 20, "limit": 8, "limitGroup": "turret", "sprite": "turret", "wreck": "turret_wreck" },
     "turret60": { "category": "power", "behavior": "turret", "name": "Działko 60 s", "durationS": 60, "rangeTiles": 8, "damage": 8, "cooldownS": 0.3, "hp": 100, "throwDamage": 10, "weight": 10, "limit": 8, "limitGroup": "turret", "sprite": "turret", "wreck": "turret_wreck" },
@@ -51,7 +57,8 @@
     "platform60": { "category": "power", "behavior": "platform", "name": "Platforma lecząca 60 s", "size": [3, 3], "anchor": "center", "durationS": 60, "healHp": 5, "healEveryS": 0.5, "reviveS": 2, "throwDamage": 10, "weight": 8, "limit": 4, "limitGroup": "platform", "sprite": "platform" },
     "platform90": { "category": "power", "behavior": "platform", "name": "Platforma lecząca 90 s", "size": [3, 3], "anchor": "center", "durationS": 90, "healHp": 5, "healEveryS": 0.5, "reviveS": 2, "throwDamage": 10, "weight": 3, "limit": 4, "limitGroup": "platform", "sprite": "platform" },
     "mine":     { "category": "power", "behavior": "mine", "name": "Mina", "armS": 1, "damage": 60, "radiusTiles": 1.5, "throwDamage": 10, "weight": 20, "limit": 20, "sprite": "mine" },
-    "cage":     { "category": "power", "behavior": "cage", "name": "Pułapka-klatka", "durationS": 8, "vuln": 1.5, "throwDamage": 10, "weight": 12, "limit": 12, "sprite": "cage" }
+    "weaponboost": { "category": "power", "behavior": "weaponboost", "name": "Boost broni", "throwDamage": 5, "weight": 2, "sprite": "weaponboost" },
+    "cage":     { "category": "power", "behavior": "cage", "name": "Pułapka-klatka", "size": [2, 2], "durationS": 8, "vuln": 1.5, "throwDamage": 10, "weight": 12, "limit": 12, "sprite": "cage" }
   },
   "ruins": {
     "count": 7, "minRadiusTiles": 4, "maxRadiusTiles": 9, "minGapTiles": 2, "minSpawnGapTiles": 2, "attemptsPerRuin": 200, "minDamagedStates": 2,

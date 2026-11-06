@@ -198,3 +198,62 @@ export function ninjaRows(frame) {
   put(g, 16, 19, 'R');
   return outline(g);
 }
+
+// --- Przedmioty 2 x 2 kafelki (V3-D-08): kolce i klatka, 32x32 ---------------------------------
+
+// Kolce: zardzewiala plyta z szachownica stalowych szpikulcow (jasny czubek, ciemny cien), slad krwi, nity w rogach.
+export function spikesRows() {
+  const g = grid(32);
+  rect(g, 1, 1, 30, 30, 'K');
+  rect(g, 2, 2, 29, 29, 'G');
+  rect(g, 2, 2, 29, 2, 'g');
+  rect(g, 2, 2, 2, 29, 'g');
+  for (const [x, y] of [[4, 4], [27, 4], [4, 27], [27, 27]]) {
+    rect(g, x - 1, y - 1, x, y, 's');
+    put(g, x, y, 'x');
+  }
+  // szpikulce: 4 x 4, piramidka z lewym swiatlem
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const cx = 7 + col * 6;
+      const cy = 7 + row * 6;
+      put(g, cx, cy - 2, 'S');
+      rect(g, cx - 1, cy - 1, cx, cy, 'S');
+      rect(g, cx + 1, cy - 1, cx + 1, cy + 1, 's');
+      rect(g, cx - 2, cy + 1, cx, cy + 1, 's');
+      rect(g, cx - 2, cy + 2, cx + 1, cy + 2, 'K');
+    }
+  }
+  for (const [x, y] of [[9, 12], [10, 13], [22, 20], [23, 21], [16, 27], [6, 22]]) put(g, x, y, 'r');
+  for (const [x, y] of [[13, 4], [20, 28], [28, 14]]) put(g, x, y, 'o');
+  return g.p.map((r) => r.join(''));
+}
+
+// Klatka: stan 0 = otwarta (prety podniesione, lampka zielona-zolta), stan 1 = zamknieta (pelna krata, lampka czerwona).
+export function cageRows(closed) {
+  const g = grid(32);
+  rect(g, 1, 1, 30, 30, 'K');
+  rect(g, 2, 2, 29, 29, 'n');
+  // rama
+  rect(g, 2, 2, 29, 4, 'g');
+  rect(g, 2, 27, 29, 29, 'g');
+  rect(g, 2, 2, 4, 29, 'g');
+  rect(g, 27, 2, 29, 29, 'g');
+  rect(g, 2, 2, 29, 2, 'S');
+  rect(g, 2, 2, 2, 29, 'S');
+  rect(g, 5, 5, 26, 26, 'G');
+  if (closed) {
+    for (let x = 7; x <= 24; x += 4) {
+      rect(g, x, 5, x + 1, 26, 's');
+      rect(g, x, 5, x, 26, 'S');
+    }
+    for (const y of [10, 20]) rect(g, 5, y, 26, y + 1, 'g');
+  } else {
+    // prety uniesione: tylko stercza krotkie kikuty u gornej belki, wnetrze puste i ciemne
+    for (let x = 7; x <= 24; x += 4) rect(g, x, 5, x + 1, 8, 's');
+    for (const [x, y] of [[10, 18], [11, 19], [18, 14], [19, 22]]) put(g, x, y, 'g');
+  }
+  for (const [x, y] of [[3, 3], [28, 3], [3, 28], [28, 28]]) put(g, x, y, 'y');
+  rect(g, 14, 27, 17, 28, closed ? 'r' : 'y');
+  return g.p.map((r) => r.join(''));
+}

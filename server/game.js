@@ -244,7 +244,8 @@ export class Game {
       mobs: this.#mobsFor(view, centers),
       droplets: w.droplets.filter(near).map((d) => [d.id, r1(d.x), r1(d.y)]),
       rockets: w.rockets.filter(near).map((r) => [r.id, r1(r.x), r1(r.y), r1(Math.atan2(r.vy, r.vx))]),
-      bullets: w.bullets.filter(near).map((b) => [b.id, r1(b.x), r1(b.y)]),
+      // gwozdz (lenPx) niesie jeszcze kat, zeby klient narysowal kreske; zwykly pocisk zostaje trojka
+      bullets: w.bullets.filter(near).map((b) => (b.lenPx ? [b.id, r1(b.x), r1(b.y), r1(Math.atan2(b.vy, b.vx)), b.lenPx] : [b.id, r1(b.x), r1(b.y)])),
       // [id, x, y, rodzaj (0 plwocina, 1 granat), lx, ly (punkt upadku granatu), left (s do upadku)]
       mobBullets: w.mobBullets.filter(near).map((b) => b.kind === 'grenade'
         ? [b.id, r1(b.x), r1(b.y), 1, r1(b.lx), r1(b.ly), r1(b.travelLeft / b.speedPx)]
@@ -261,7 +262,7 @@ export class Game {
       id: p.id, nick: p.nick, color: p.color, x: r1(p.x), y: r1(p.y), angle: r1(p.angle),
       hp: r1(p.hp), maxHp: r1(p.maxHp), state: p.state, suspended: p.suspended,
       reviveProgress: r1(p.reviveProgress), deathLeft: r1(p.deathLeft), invuln: r1(p.invuln), busy: r1(p.busy),
-      held: items.heldKind(this.world, p), ready: p.ready, weaponLv: p.weaponLv,
+      held: items.heldKind(this.world, p), ready: p.ready, weaponLv: p.weaponLv, weaponMod: p.weaponMod,
       ammo: p.ammo, reloadLeft: r1(p.reloadLeft),
       ult: r1(p.ult), ultKind: p.ultKind, frenzyLeft: r1(p.frenzyLeft), speedMult: speedMultOf(p),
     };
