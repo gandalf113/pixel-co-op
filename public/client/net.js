@@ -49,6 +49,7 @@ export class Connection {
     this.timeoutS = DEFAULT_TIMEOUT_S;
     this.lostAt = null;
     this.lastMsg = 0;
+    this.rxBytes = 0; // surowy rozmiar tekstu po dekompresji, dla overlayu debug
     this.retry = null;
     this.watchdog = setInterval(() => this.#checkTimeout(), 1000);
   }
@@ -104,6 +105,7 @@ export class Connection {
     ws.onmessage = (e) => {
       if (ws !== this.ws) return;
       this.lastMsg = Date.now();
+      this.rxBytes += typeof e.data === 'string' ? e.data.length : (e.data.byteLength ?? 0);
       let msg;
       try {
         msg = JSON.parse(e.data);

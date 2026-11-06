@@ -6,7 +6,8 @@ import { rifleStats } from '../shared/weapon.js';
 import { MV, MOB_KEY } from '../shared/mobview.js';
 import { Connection, stored } from './net.js';
 import { InputState } from './input.js';
-import { Predictor, SnapshotBuffer, lerpEntities } from './predict.js';
+import { Predictor, SnapshotBuffer, RttTracker, RateMeter, lerpEntities } from './predict.js';
+import { debugLines, drawDebug } from './debug.js';
 import { bakeSprites } from './sprites.js';
 import { VIEW_W, VIEW_H, Camera, computeScale, renderWorld } from './render.js';
 import { renderHud } from './hud.js';
@@ -24,6 +25,11 @@ const hctx = hudCanvas.getContext('2d');
 
 const cam = new Camera();
 const buffer = new SnapshotBuffer();
+const rtt = new RttTracker();
+const rxMeter = new RateMeter();
+let debugOn = false;
+let fpsEma = 60;
+let kbps = 0;
 const input = new InputState(worldCanvas);
 const conn = new Connection(onMessage, onStatus);
 
@@ -116,6 +122,7 @@ function resetGame() {
   latest = null;
   grid = null;
   buffer.clear();
+  rtt.clear();
   itemRot.clear();
   gore.corpses = [];
   gore.splats = [];
@@ -293,7 +300,7 @@ function onEvent(e) {
       break;
     case 'shot': {
       const shooter = latest?.players.find((p) => p.id === e.id);
-      const origin = shooter ? (e.id === myId && predictor?.pos ? predictor.pos : shooter) : e;
+      const origin = shooter ? (e.id === myId && predictor?.viewPos ? predictor.viewPos : shooter) : e;
       fx.shot(now, e, !!shooter, origin.x, origin.y);
       break;
     }
@@ -368,6 +375,7 @@ function onSnap(snap) {
   grid = buildGrid(balance.map.tilesW, balance.map.tilesH, snap.items);
   for (const it of snap.items) itemRot.set(it.id, it.rot ?? 0);
   const me = myView(snap);
+  rtt.acked(snap.you.ackSeq, performance.now());
   if (me) predictor.reconcile(me, snap.you.ackSeq, moveCtx(me));
 }
 
@@ -396,10 +404,15 @@ function tick() {
   const aim = aimWorld();
   const inp = { seq: ++seq, mx: Math.sign(raw.mx), my: Math.sign(raw.my) };
   predictor.apply(inp, moveCtx(me));
+  rtt.sent(inp.seq, performance.now());
   conn.send({ t: 'input', ...inp, aimX: aim.x, aimY: aim.y, fire: raw.fire });
 }
 
 input.onAction((a, down) => {
+  if (a === 'debug') {
+    debugOn = !debugOn;
+    return;
+  }
   if (a === 'tab') {
     tab = down;
     return;
@@ -546,6 +559,8 @@ function frame(now) {
   const playing = (mode === 'game' || mode === 'results') && latest && sprites;
   const dt = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
   lastFrameMs = now;
+  if (dt > 0) fpsEma += (1 / dt - fpsEma) * 0.05;
+  predictor?.smooth(dt);
   fx.update(now, dt);
   document.body.classList.toggle('playing', mode === 'game' && !paused);
   if (!playing) {
@@ -567,7 +582,7 @@ function frame(now) {
   let me = null;
   if (snapMe && predictor.pos) {
     const aim = aimWorld();
-    const pos = predictor.pos;
+    const pos = predictor.viewPos;
     me = {
       ...snapMe, x: pos.x, y: pos.y,
       angle: Math.atan2(aim.y - pos.y, aim.x - pos.x),
@@ -602,6 +617,10 @@ function frame(now) {
     deny: now < denyUntil,
     flash: flash && now - flash.start < FLASH_MS ? { ...flash, k: (now - flash.start) / FLASH_MS } : null,
   });
+  if (debugOn) {
+    kbps = rxMeter.update(conn.rxBytes, now);
+    drawDebug(hctx, scale, debugLines({ rttMs: rtt.rttMs, kbps, delayMs: buffer.delayMs, buffered: buffer.size, fps: fpsEma }));
+  }
 }
 
 async function refreshLeaderboard() {

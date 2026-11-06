@@ -1,5 +1,5 @@
 const MOVE = { KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
-const EDGE = { KeyE: 'e', KeyR: 'r', KeyQ: 'q', KeyG: 'g', KeyF: 'f', Escape: 'esc' };
+const EDGE = { KeyE: 'e', KeyR: 'r', KeyQ: 'q', KeyG: 'g', KeyF: 'f', Escape: 'esc', F3: 'debug' };
 
 // Kółko generuje serię zdarzeń przy gładkim scrollu; jedno "kliknięcie" = jeden obrót.
 const WHEEL_THROTTLE_MS = 120;
@@ -48,7 +48,7 @@ export class InputState {
   #key(e, isDown) {
     if (e.target instanceof HTMLInputElement) return;
     const code = e.code;
-    if (code === 'Space' || code === 'Tab') e.preventDefault();
+    if (code === 'Space' || code === 'Tab' || code === 'F3') e.preventDefault();
     if (code === 'Space') this.fire = isDown;
     else if (code in MOVE) {
       isDown ? this.down.add(code) : this.down.delete(code);
