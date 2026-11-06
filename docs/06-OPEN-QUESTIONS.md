@@ -56,6 +56,7 @@ Wersja: 0.22 (2026-11-05). Właściciele produktu: Aleksander Szczepaniak, Piotr
 | R49 | Obserwator po śmierci | Po upływie licznika śmierci kamera śledzi żywego sojusznika, klik / A / D zmienia cel, napis OBSERWUJESZ, powrót na własną postać przy respawnie (PRD-PLR-10) | 2026-11-05 |
 | R50 | Startowe ruiny | 7 kawałków ściany losowo 4-9 kafelków od spawnu, losowa orientacja, każda na innym losowym poziomie zniszczenia, seed gry, zwykłe wall do podniesienia (PRD-MAP-10) | 2026-11-05 |
 | R51 | Reakcja ściany na cios | Jeden mikroruch 1 px w bok i z powrotem (2 klatki), bez wibracji; dotyczy ciosu potwora i trafienia pociskiem (FX-08, FX-02) | 2026-11-05 |
+| R59 | Rozmiar kolcow i klatki | Oba **2 x 2**. Klatka wyzwala sie z kazdego z czterech kafelkow i lapie wszystko w obrysie, kolce ranią kazdego stojacego na dowolnym kafelku (ITM-H-03, ITM-P-08, V3-D-08) | 2026-11-06 |
 | R58 | Predkosc pociskow potworow | Plujka 250 -> **160 px/s**, granatnik 180 -> **110 px/s** z zasiegiem 7 -> 10 kaf. Pocisk wroga ma byc wyraznie wolniejszy od gracza (450), zeby uskok dzialal (03 sekcja 1 i 1b) | 2026-11-06 |
 | R52 | Skalowanie widoku | **Skala ułamkowa**: stałe 560 x 315 rozciągane do pełnej wysokości okna, HUD wyłącznie na planszy. Uchyla całkowitą krotność z PRD-MAP-05 (V3-B-01) | 2026-11-05 |
 | R53 | Podnoszenie postawionych obiektów | **Nie da się.** Postawione / aktywne stoi do zniszczenia - też ruiny startowe i mur z ultimate. Kasuje ITM-GEN-08 i R27 (V3-J-02) | 2026-11-05 |

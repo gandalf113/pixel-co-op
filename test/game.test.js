@@ -127,6 +127,8 @@ test('input queue rejects old seq and caps at 4', () => {
 test('snapshot shape', () => {
   const g = makeGame();
   run(g, 15.1);
+  const p1 = g.world.players.get(1);
+  Object.assign(g.world.mobs[0], { x: p1.x + 50, y: p1.y }); // snapshot ma area of interest - potwor musi byc w zasiegu
   const s = g.snapshot(1);
   for (const k of ['t', 'seed', 'phase', 'wave', 'breakLeft', 'readyLock', 'mobsLeft', 'you', 'players', 'mobs', 'bullets', 'items']) {
     assert.ok(k in s, k);

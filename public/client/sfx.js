@@ -10,10 +10,14 @@ const FLOOR = 0.0001; // exponentialRamp nie znosi zera
 export const OWN_BOOST = 1.6; // własne przeładowanie: informacja taktyczna, ma przebić walkę
 export const RELOAD_FALLBACK_S = 1.5;
 // Długości ogonów pogłosu (s): "klaps pomieszczenia", osobna szyna karabinu (V3-C-13) i wybuch w hali.
-export const REVERB_S = { room: 0.25, gun: 0.55, hall: 1.3 };
+export const REVERB_S = { room: 0.25, gun: 1.2, hall: 1.3 };
 // Pre-delay przed konwolwerem (s): bez niego ogon zlewa się z transjentem (V3-C-09).
-// Szyna karabinu: 40 ms, bo dopiero od ok. 35 ms ucho slyszy odbicie jako osobne zdarzenie.
-export const PREDELAY_S = { room: 0.012, gun: 0.04, hall: 0.035 };
+// Szyna karabinu: 65 ms (V3-C-14) — na otwartej przestrzeni nie ma blisko czego odbic, wiec ogon
+// startuje wyraznie po transjencie (dopiero od ok. 35 ms ucho slyszy odbicie jako osobne zdarzenie).
+export const PREDELAY_S = { room: 0.012, gun: 0.065, hall: 0.035 };
+// IR szyny karabinu (V3-C-14): otwarta przestrzen, nie kibel. Gorna przepustowosc, jasny dlugi ogon,
+// cisza na poczatku (brak wczesnych odbic), dwa dekorelowane kanaly.
+export const GUN_IR = { hpHz: 400, lpHz: 8000, quietS: 0.05, quietLevel: 0.03, riseS: 0.015 };
 export const IR_PEAK = 0.4; // normalize=false: skalę IR ustalamy sami
 export const WET_MAKEUP = 1; // szyna wet ma wlasny, lagodny limiter — nie ten od dzwiekow suchych
 export const PAN_MAX = 0.85;
@@ -70,13 +74,15 @@ const RECIPES = {
   // rev/wet: do której szyny pogłosu i ile sygnału tam wysłać (ułamek głośności dźwięku)
   // Karabin (V3-C-10): transjent / body / dół / mechanika / własny ogon.
   shot: Object.assign([
-    // V3-C-13: poziomy -30% (suma 2.33 -> 1.631), osobna szyna `gun`; wet 0.45 -> 0.5, zeby ogon sie przebil
+    // V3-C-13: poziomy -30% (suma 2.33 -> 1.631), osobna szyna `gun`.
+    // V3-C-14: wet 0.5 -> 0.34. Ogon 1.2 s niesie ~2.2x energii dawnego 0.55 s (+3,4 dB) i jest jasny,
+    // a seria co 0.14 s naklada ~8-9 ogonow; mniejszy send trzyma szyne wet pod limiterem.
     { n: 'white', dur: 0.008, hp: 3000, level: 0.63 },
     { n: 'white', dur: 0.035, bp: 1200, q: 1.5, lp: 4000, lpTo: 900, level: 0.42 },
     { t: 'sine', f0: 160, f1: 45, dur: 0.06, level: 0.35 },
     { t: 'square', f0: 2500, dur: 0.003, level: 0.105 },
     { n: 'white', dur: 0.18, lp: 1200, level: 0.126, at: 0.025 },
-  ], { rev: 'gun', wet: 0.5 }),
+  ], { rev: 'gun', wet: 0.34 }),
   cannon: Object.assign([
     { n: 'white', dur: 0.02, lp: 1800, level: 0.55 },
     { t: 'square', f0: 150, f1: 40, dur: 0.06, level: 0.28, lp: 1800 },
@@ -237,7 +243,8 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
 
   // Odpowiedź impulsowa: szum z wykładniczym zanikiem (-60 dB po `secs`), z ciemnieniem ogona.
   // Liczona raz przy starcie — żadnych plików IR (PRD-CON-01).
-  function makeIR(secs) {
+  function makeIR(secs, open = false) {
+    if (open) return makeOpenIR(secs);
     const len = Math.max(1, Math.floor(ctx.sampleRate * secs));
     const buf = ctx.createBuffer(1, len, ctx.sampleRate);
     const d = buf.getChannelData(0);
@@ -252,6 +259,42 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
     let peak = 0;
     for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(d[i]));
     if (peak > 0) for (let i = 0; i < len; i++) d[i] *= IR_PEAK / peak;
+    return buf;
+  }
+
+  // IR otwartej przestrzeni (V3-C-14), stereo: osobny szum na kanał, wspólna obwiednia.
+  // Pasmo: górnoprzepustowy ~400 Hz (2 bieguny, wycina dolne środki) + łagodny dolnoprzepust ~8 kHz.
+  // Obwiednia: prawie cisza przez `quietS` (brak wczesnych odbić), narastanie `riseS`, potem zanik -60 dB w `secs`.
+  function makeOpenIR(secs) {
+    const sr = ctx.sampleRate;
+    const len = Math.max(1, Math.floor(sr * secs));
+    const buf = ctx.createBuffer(2, len, sr);
+    const g = GUN_IR;
+    const hpA = Math.exp(-2 * Math.PI * g.hpHz / sr); // 1-biegunowy HP: y = a*(y + x - xPrev)
+    const lpA = 1 - Math.exp(-2 * Math.PI * g.lpHz / sr);
+    const quiet = g.quietS * sr;
+    const rise = Math.max(1, g.riseS * sr);
+    const decayLen = Math.max(1, len - quiet);
+    let peak = 0;
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      let x1 = 0, y1 = 0, x2 = 0, y2 = 0, lp = 0;
+      for (let i = 0; i < len; i++) {
+        const x = random() * 2 - 1;
+        y1 = hpA * (y1 + x - x1); x1 = x; // dwa kaskadowe HP
+        y2 = hpA * (y2 + y1 - x2); x2 = y1;
+        lp += lpA * (y2 - lp);
+        let env;
+        if (i < quiet) env = g.quietLevel;
+        else {
+          const u = Math.min(1, (i - quiet) / rise);
+          env = (g.quietLevel + (1 - g.quietLevel) * u * u * (3 - 2 * u)) * Math.exp(-6.9 * (i - quiet) / decayLen);
+        }
+        d[i] = lp * env;
+        peak = Math.max(peak, Math.abs(d[i]));
+      }
+    }
+    if (peak > 0) for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] *= IR_PEAK / peak; }
     return buf;
   }
 
@@ -281,7 +324,7 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
     for (const [name, secs] of Object.entries(REVERB_S)) {
       const c = ctx.createConvolver();
       c.normalize = false;
-      c.buffer = makeIR(secs);
+      c.buffer = makeIR(secs, name === 'gun');
       c.connect(makeup);
       let input = c;
       if (typeof ctx.createDelay === 'function') {

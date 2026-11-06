@@ -7,9 +7,60 @@ z oznaczeniem, co już jest w kodzie, a co trzeba dopisać.
 Stan kodu, do którego to się odnosi: 3 z 6 typów potworów, 3 z 9 przedmiotów, brak
 startowych ruin (PRD-MAP-10), brak dźwięku, brak awansu poziomu broni, brak listy pokojów.
 
-Kolejność realizacji (uzgodniona): **L + tanie J** → **B** → **C** → **D/E** → **A** → **I** → **G/H** → **K** → **F**.
+Kolejność realizacji: **L + tanie J** → **B** → **C** → **D/E** → **A** (zrobione) → **O (PILNE, sieć)** → **I** → **G/H** → **K** → reszta **F**.
 
 ---
+
+## O. PILNE: gra niegrywalna przez internet powyzej ~30 potworow
+
+Zgloszenie 2026-11-06: gracz laczacy sie z Olsztyna od fali 4 w gore ma lagi, cofanie ekranu
+i nagle "przyspieszenia akcji" (klient nadrabia zalegle snapshoty). Im wiecej potworow, tym
+gorzej. Wlasciciel na tym samym LAN co serwer nie odczuwa niczego.
+
+### Pomiar (2026-11-06, nie szacunek)
+Snapshot przy 4 graczach, 60 potworach, 120 dropach na ziemi i 20 pociskach:
+
+```
+SNAPSHOT: 23 221 B    mobs 2 788 B (60)    items 18 406 B (127)    players 1 125 B
+na gracza:  454 kB/s = 3,72 Mbit/s     4 graczy: 14,9 Mbit/s uploadu z domowego lacza
+```
+
+**79% ruchu to przedmioty, a 120 z nich to nieruchome dropy na ziemi wysylane 20 razy na
+sekunde bez zadnej zmiany.** Potwory, czyli to, co faktycznie sie rusza, to 12%. Domowy upload
+nie ma 15 Mbit/s do oddania, wiec rosnie kolejka, pakiety przychodza paczkami, bufor
+interpolacji raz gloduje, raz dostaje wszystko naraz — stad cofanie i nadrabianie.
+
+| ID | Wymóg | Oczekiwany zysk |
+|---|---|---|
+| V3-O-01 | **Delta dla przedmiotow**: wysylac przedmiot tylko, gdy sie zmienil (nowy, zmieniony stan/HP/pozycja, usuniety). Klient trzyma slownik i nakłada roznice. To jest **jedna zmiana warta wiecej niz cala reszta razem**. | -70% do -75% ruchu |
+| V3-O-02 | **`perMessageDeflate`** w `ws` (dzis wylaczone). JSON z powtarzalnymi kluczami kompresuje sie bardzo dobrze; koszt to CPU serwera, ktory mamy. **Zmierzyc przed i po**, nie wlaczac na wiare. | -60% do -80% tego, co zostanie |
+| V3-O-03 | **Area of interest**: nie wysylac bytow dalszych niz ok. 1.5 ekranu. **UWAGA, pulapka**: klient buduje z `items` siatke kolizji (`buildGrid` w `main.js`), wiec **postawione sciany, glazy, kolce i dzialka musza lecieć zawsze** — inaczej predykcja ruchu rozjedzie sie z serwerem i dostaniemy gumowanie w miejscu, ktore nic z siecia nie ma wspolnego. Ciac wolno **dropy na ziemi, trupy, pociski, kropelki i dalekie potwory**. | -30% do -50% reszty |
+| V3-O-04 | **Adaptacyjny snapshotHz**: przy wykrytym zatorze schodzic z 20 na 12-15 Hz dla tego jednego gracza. Interpolacja to zakryje, a to jest ostatnia deska ratunku dla slabego lacza. | liniowo |
+| V3-O-05 | **Pomiar w produkcie, nie w glowie**: rozmiar snapshotu i bajty na sekunde per gracz w telemetrii i w `/healthz`, oraz overlay debug (RTT, kB/s, stan bufora interpolacji). Bez tego nie da sie powiedziec, czy naprawa zadzialala. **To jest warunek wejscia dla reszty punktu F.** | - |
+| V3-O-06 | **Wygladzanie korekty pozycji**: dzis `reconcile` ustawia pozycje gracza twardo na serwerowa. Przy skoku opoznienia to jest wizualne "cofniecie ekranu". Mala korekta ma byc rozlozona na kilka klatek, duza (powyzej ok. 24 px) nadal natychmiastowa. | odczucie |
+| V3-O-07 | **Adaptacyjny bufor interpolacji**: dzis staly 100 ms. Liczyc jitter i trzymac bufor 60-150 ms. Za maly bufor = szarpanie, za duzy = opoznienie sterowania. | odczucie |
+
+### Wynik (zmierzony 2026-11-06, v0.9.0)
+
+| Etap | Snapshot | Na gracza | 4 graczy |
+|---|---|---|---|
+| Przed | 25 001 B (items 20 410 B) | 500 kB/s | 16,0 Mbit/s |
+| Po delcie (O-01) | 4 593 B (items **2 B**) | 91,9 kB/s | 2,9 Mbit/s |
+| Po delcie i AoI (O-03) | 2 387 B | 47,7 kB/s | 1,5 Mbit/s |
+| **Na lączu, z deflate (O-02)** | - | **6,5 kB/s** | **0,2 Mbit/s** |
+
+**Spadek 77-krotny.** Mierzone `tools/measure-snapshot.mjs --wire` (bajty z prawdziwego gniazda `ws`),
+nie szacowane. Scenariusz jest syntetyczny — w realnej grze potwory tloczą sie wokol graczy,
+wiec AoI utnie mniej.
+
+| ID | Co zostalo | Dlaczego warto |
+|---|---|---|
+| V3-O-08 | **`players` to teraz najwieksza sekcja** (1 173 B przy 4 graczach, ok. 290 B na gracza): dlugie klucze, a wiekszosc pol nie zmienia sie co tick. Do tego `seed` leci w kazdym snapshocie, choc jest staly, a `mobs` ida w calosci. Ta sama delta albo krotka forma tablicowa jak u potworow. | to jest **nowe** waskie gardlo po O-01..O-03 |
+| V3-O-04 | Adaptacyjny `snapshotHz` — teraz da sie go oprzec o `bufferedAmount` albo `NetMeter.bytesPerSecond()`. | ostatnia deska ratunku dla slabego lacza |
+| V3-O-09 | **Weryfikacja na zywym laczu**: po wdrozeniu sprawdzic `/healthz` pole `net.maxPlayerBytesPerSec` przy fali 4+ i zapytac gracza z Olsztyna. Zmierzylismy bajty, nie odczucie. | bez tego nie wiemy, czy problem zniknal |
+
+Kolejnosc: **O-05 (pomiar) i O-01 (delta) razem**, potem O-02, potem O-03, na koncu O-06/O-07.
+Uchyla priorytet punktu F z dolu backlogu — F-01..F-07 zostaja, ale ten punkt idzie pierwszy.
 
 ## A. Nowe potwory, rozmiary 32 x 32 i 64 x 64
 
@@ -116,6 +167,7 @@ Zaimplementowane są 3 z 9 przedmiotów z `02-ITEMS.md`. Do dopisania, z wartoś
 | V3-D-04 | **Platforma lecząca 30 / 60 / 90 s** (ITM-P-04..06) | 3 x 3 kafelki, +5 HP / 0.5 s, powalony na niej wstaje po 2 s bez sojusznika, nie blokuje, potwory ignorują. Pasek czasu nad nią (PRD-HUD-06). |
 | V3-D-05 | **Pułapka-klatka** (ITM-P-08) | Łapie pierwszego potwora na kafelku, 8 s unieruchomienia, +50% przyjmowanych obrażeń, na bossa nie działa. |
 | V3-D-06 | **Boost poziomu broni** (ITM-P-09) | Patrz punkt I - zmienia się jego działanie. |
+| V3-D-08 | **Kolce i klatka 2 x 2** (R59, zgloszenie 2026-11-06). Dzis oba sa 1 x 1, co czyni je trudnymi do trafienia i slabymi wzgledem ceny dropu. Nowy rozmiar `size: [2, 2]` dla obu. **Klatka**: aktywuje sie, gdy potwor wejdzie na **ktorykolwiek** z czterech kafelkow, i lapie **wszystko, co stoi w obrysie 2 x 2** w chwili wyzwolenia (dzis lapie dokladnie jednego) — to zmienia ja z pulapki punktowej w narzedzie na grupe. **Kolce**: zadaja obrazenia kazdemu potworowi stojacemu na dowolnym z czterech kafelkow, w tym samym rytmie 8 obr. / 0.5 s. Limity bez zmian (klatka 12). Po refaktorze z V3-D-03 rozmiar jest polem w `balance.json`, wiec kosztem sa glownie: wyzwalanie i obszar dzialania, ghost stawiania (2 x 2 musi miec cztery wolne kafelki) i sprite'y — kolce i klatka potrzebuja grafiki 32 x 32 zamiast 16 x 16. |
 | V3-D-07 | Wagi dropu i limity aktywnych z `02-ITEMS.md` sekcja 5 do `balance.json`; ghost i podpowiedzi HUD mają działać dla każdego nowego przedmiotu bez wyjątków w kodzie. |
 
 ## E. Czego jeszcze brakuje wobec PRD (audyt)
@@ -218,6 +270,7 @@ Trasa jest poprawna (`out -> send -> ConvolverNode -> master`), wiec problem jes
 | V3-C-10 | **Karabin od nowa, 5 warstw** (struktura z praktyki projektowania broni: transjent / body / mechanika / ogon). Dzis sa 2 warstwy i brzmi jak "pyk". Recepta: (1) **transjent** bialy szum 8 ms, highpass 3 kHz, poziom 0.9, zanik wykladniczy; (2) **body** szum pasmowy 1.2 kHz Q 1.5, 35 ms, poziom 0.6, lowpass jadacy 4000 -> 900 Hz; (3) **dol** sinus 160 -> 45 Hz, 60 ms, poziom 0.5 (to daje "kopa", dzis go nie ma); (4) **mechanika** krotki square 2.5 kHz, 3 ms, poziom 0.15 (zamek); (5) **ogon** szum 180 ms, lowpass 1.2 kHz, poziom 0.18, start 25 ms po transjencie. Rozrzut wysokosci +/-7% zostaje. |
 | V3-C-11 | **Przeladowanie od nowa, 4 zdarzenia** (dzis: za cicho i za plasko). (1) **0%**: zatrzask magazynka — szum 3 ms bp 3.5 kHz + square 1.8 kHz 4 ms + cicha "sprezyna" (trojkat 900 -> 1400 Hz, 40 ms, 0.1); (2) **10%**: wysuniecie magazynka — brazowy szum 60 ms lp 1.5 kHz, 0.25; (3) **60%**: **wbicie nowego, najglosniejsze** — brazowy szum 70 ms lp 600 Hz + sinus 140 -> 50 Hz 60 ms + bialy szum 12 ms bp 2.2 kHz, lacznie ok. 0.8; (4) **koniec**: zamek — szum 25 ms hp 2.5 kHz 0.9 + square 3.2 kHz 5 ms + metaliczny "ring" (trojkat 2600 Hz, 90 ms, 0.12, zanik). Calosc rozciagana na **faktyczny** `reloadS` (V3-C-07 zostaje). |
 | V3-C-12 | **ULTIMATE od nowa, 3 fazy** (dzis: krotki sweep FM, za malo jak na "wlasnie odpalilem super"). (1) **narastanie 0 -> 0.45 s**: pila 120 -> 1400 Hz przez rezonansowy lowpass jadacy w gore + szum narastajacy, glosnosc rosnaca; (2) **uderzenie na 0.45 s**: sinus 90 -> 35 Hz przez 0.5 s + brazowy szum 0.35 s lp 1500 -> 200 Hz + bialy transjent 10 ms; (3) **wybrzmienie**: trzy rozstrojone tony (akord) przez 0.6 s, zanikajace. **Prog III**: narastanie dluzsze (0.6 s), akord bogatszy, wet 0.9 — "pelny" ma byc slyszalnie wiekszy niz prog I, bo dzis roznicy nie ma. |
+| V3-C-14 | **Poglos karabinu ma brzmiec jak otwarta przestrzen, nie jak kibel** (zgloszenie 2026-11-06, po v0.8.0). **Diagnoza**: dzisiejsza odpowiedz impulsowa to szum z jednobiegunowym dolnoprzepustem, ktorego wspolczynnik jedzie `0.9 -> 0.2`, czyli ogon z kazda milisekunda **ciemnieje**; do tego jest krotki (0.55 s), **monofoniczny** i zaczyna sie od razu po 40 ms. Suma tych trzech cech to definicja malego, zamknietego pomieszczenia: duzo sredniego pasma, brak gory, brak szerokosci. **Naprawa, cztery zmiany naraz**: (1) **pasmo w gore** — zamiast ciemniejacego dolnoprzepustu dac ogonowi **gorna przepustowosc od ok. 400 Hz** (to wycina "kiblowe" dolne srednie) i zachowac gore do ok. 8 kHz, lekko sciagajac dopiero powyzej; (2) **dlugosc** 0.55 s -> **1.2-1.6 s**, bo "lush" to przede wszystkim dlugi, gesty ogon; (3) **brak wczesnych odbic** — pierwsze ok. 50 ms IR prawie wyciszone plus narastanie 10-20 ms: na otwartej przestrzeni nie ma blisko czego odbic, i to jest roznica miedzy "swieze powietrze" a "lazienka"; (4) **stereo** — IR **dwukanalowe, dekorelowane** zamiast dzisiejszego mono, zeby ogon byl szeroki (dzis szyna wet jest dodatkowo zawsze na srodku, patrz V3-C-08 — to ta sama sprawa). Pre-delay 40 -> 60-70 ms. Przy okazji: istniejacy test wymusza, zeby wet wybuchu byl ponad 2x wiekszy niz strzalu, co **ogranicza strojenie strzalu z gory** (musi byc < 0.55) — poluzowac ten test, bo pilnuje projektu dzwieku zamiast regresji. |
 | V3-C-13 | **Karabin: ciszej i z dluzszym, opoznionym poglosem** (zgloszenie z gry 2026-11-06, po v0.6.0). Trzy pokretla naraz: (1) **suchy strzal ciszej** — poziomy warstw w dol o ok. 30%, zeby poglos mial sie na czym przebic i zeby seria nie meczyla; (2) **dluzszy ogon** — dla strzalu osobna szyna z IR ok. 0.5-0.6 s zamiast dzisiejszego "pokoju" 0.25 s (wybuchy zostaja na hali 1.3 s); (3) **wyrazniejsze pre-delay** — 12 ms to za malo, zeby uslyszec, ze poglos "wchodzi po czasie"; celowac w 35-45 ms dla strzalu. Efekt docelowy: sucha, krotka reakcja broni, a chwile po niej slyszalne odbicie od otoczenia. Uwaga przy strojeniu: karabin strzela co 0.14 s, wiec przy ogonie 0.6 s naklada sie 4-5 ogonow — dlatego punkt (1) jest warunkiem, a nie dodatkiem. |
 | V3-C-08 | **Dzwiek stereo** (zgloszenie: strzal w mur po lewej brzmi na srodku). Kazdy glos przechodzi przez `StereoPannerNode`; `pan = clamp((x_zdarzenia - x_kamery) / (szerokosc_widoku/2), -1, 1) * 0.85`. Wlasne dzwieki gracza (strzal, przeladowanie, obrazenia) zostaja **na srodku** — to informacja o sobie, nie o swiecie. Panoramowanie liczone w chwili startu dzwieku, bez sledzenia ruchu. |
 

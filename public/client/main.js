@@ -1,4 +1,5 @@
 import { COLORS } from '../shared/protocol.js';
+import { applyItemDelta } from '../shared/delta.js';
 import { buildGrid, footprint, placeTarget, setItemDefs, itemDef, itemLimitReached } from '../shared/world.js';
 import { Fx, LOW_HP } from './fx.js';
 import { rifleStats } from '../shared/weapon.js';
@@ -194,6 +195,8 @@ function onMessage(msg) {
   }
 }
 
+const itemDict = new Map();
+
 function pushCapped(list, entry, max) {
   list.push(entry);
   if (list.length > max) list.splice(0, list.length - max);
@@ -351,6 +354,8 @@ function moveCtx(me) {
 }
 
 function onSnap(snap) {
+  // Delta ZAWSZE, zanim cokolwiek zdecyduje o pominieciu: pominiety pelny snapshot = pusta mapa do konca gry.
+  snap.items = applyItemDelta(itemDict, snap);
   if (mode === 'lobby' || mode === 'nick') {
     mode = 'game';
     ui.hideAll();

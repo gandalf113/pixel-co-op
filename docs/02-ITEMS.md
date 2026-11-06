@@ -76,7 +76,7 @@ Rzucony power-up: zadaje obrażenia trafionemu potworowi (wartość z tabeli w s
 |---|---|---|---|---|---|---|---|
 | ITM-H-01 | **Kawałek ściany** | 2 x 1 kafelki (obracalny) | 150 | Blokuje potwory, graczy i pociski | - | 15 | 60 |
 | ITM-H-02 | **Głaz** | 1 x 1 | 400 | Blokuje potwory, graczy i pociski | - | 30 | 25 |
-| ITM-H-03 | **Kolce** | 1 x 1 | 80 | NIE blokuje (przechodzi się po nich) | 8 obrażeń / 0.5 s każdemu potworowi na kolcach; graczom 10% tego | 20 + krwawienie 2 obr./s przez 3 s | 15 |
+| ITM-H-03 | **Kolce** | **2 x 2** (R59) | 80 | NIE blokuje (przechodzi się po nich) | 8 obrażeń / 0.5 s każdemu potworowi stojącemu na **dowolnym z czterech kafelków**; graczom 10% tego | 20 + krwawienie 2 obr./s przez 3 s | 15 |
 
 Zasady:
 
@@ -96,7 +96,7 @@ Zasady:
 | ITM-P-05 | **Platforma lecząca 60 s** | 60 s | Jak wyżej. | 10 | 8 |
 | ITM-P-06 | **Platforma lecząca 90 s** | 90 s | Jak wyżej. | 10 | 3 |
 | ITM-P-07 | **Mina** | do detonacji | Uzbraja się 1 s po użyciu. Wybucha, gdy potwór wejdzie na kafelek: 60 obrażeń w promieniu 1.5 kafelka, graczom 10%. Widoczna dla graczy (miga), potwory jej nie omijają. | 10 | 20 |
-| ITM-P-08 | **Pułapka-klatka** | 8 s | Postawiona: łapie pierwszego potwora, który wejdzie na kafelek. Unieruchomiony 8 s, przyjmuje 150% obrażeń. Nie działa na bossa. Po 8 s znika. | 10 | 12 |
+| ITM-P-08 | **Pułapka-klatka** | 8 s | Rozmiar **2 x 2** (R59). Wyzwala się, gdy potwór wejdzie na **którykolwiek** z czterech kafelków, i łapie **wszystko, co stoi w obrysie** w chwili wyzwolenia. Unieruchomione 8 s, przyjmują 150% obrażeń. Nie działa na bossa. Po 8 s znika. | 10 | 12 |
 | ITM-P-09 | **Boost poziomu broni** | trwały | +1 poziom broni gracza (max 5). Natychmiast. Złoty, pulsuje, wyraźnie inny niż reszta. | 5 | 2 (rzadki) |
 
 Zasady:

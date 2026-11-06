@@ -226,6 +226,7 @@ test('marker upadku: snapshot niesie punkt i czas do upadku granatu', () => {
 test('snapshot: mobBullets to krotki liczb, plwocina bez markera', () => {
   const g = new Game({ balance, difficulty: 2, players: [{ id: 1, nick: 'A', color: 0 }], seed: 5 });
   assert.deepEqual(g.snapshot(1).mobBullets, []);
+  Object.assign(g.world.players.get(1), { x: 150, y: 100 }); // area of interest
   const m = addMob(g.world, 'spitter', 100, 100);
   spawnMobBullet(g.world, m, 200, 100);
   const [row] = g.snapshot(1).mobBullets;

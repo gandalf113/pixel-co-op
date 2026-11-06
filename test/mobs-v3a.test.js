@@ -46,6 +46,7 @@ const noSiege = (w, type) => {
 
 test('snapshot niesie jawny kat potwora, takze gdy stoi w miejscu', () => {
   const g = new Game({ balance, difficulty: 2, players: [{ id: 1, nick: 'A', color: 0 }], seed: 3 });
+  Object.assign(g.world.players.get(1), { x: 150, y: 100 }); // area of interest
   const m = makeMob(g.world, 'slime', 100, 100);
   m.angle = 1.234;
   const row = g.snapshot(1).mobs.find((r) => r[MV.id] === m.id);
@@ -188,6 +189,7 @@ test('skradajacy sie w stealth jest nietykalny: pocisk przelatuje, brak trafieni
 
 test('stan nietykalnosci jest w snapshocie', () => {
   const g = new Game({ balance, difficulty: 2, players: [{ id: 1, nick: 'A', color: 0 }], seed: 3 });
+  Object.assign(g.world.players.get(1), { x: 220, y: 200 }); // area of interest
   const m = makeMob(g.world, 'stalker', 200, 200);
   m.invul = true;
   assert.equal(g.snapshot(1).mobs.find((r) => r[MV.id] === m.id)[MV.invul], 1);

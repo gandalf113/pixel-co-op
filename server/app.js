@@ -9,6 +9,7 @@ import { WebSocketServer } from 'ws';
 import { loadBalance } from './balance.js';
 import { Session } from './session.js';
 import { Rooms } from './rooms.js';
+import { NetMeter, summarize } from './netmeter.js';
 
 const PUBLIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 const TYPES = {
@@ -90,6 +91,20 @@ async function serveStatic(req, res) {
   }
 }
 
+// perMessageDeflate dla snapshotow. Prog omija drobne wiadomosci (ping-pong, lobby), a ograniczone okno
+// i memLevel trzymaja pamiec zlib na polaczenie w ryzach (ok. 100 kB zamiast ok. 260 kB), zeby 40 pokoi
+// po 4 graczy nie zjadlo RAM-u. concurrencyLimit ogranicza rownolegle zadania w puli watkow zlib.
+export function wsDeflateOptions() {
+  return {
+    threshold: 512,
+    concurrencyLimit: 4,
+    zlibDeflateOptions: { level: 3, memLevel: 7, windowBits: 13 },
+    serverMaxWindowBits: 13,
+    clientNoContextTakeover: false,
+    serverNoContextTakeover: false,
+  };
+}
+
 export function appVersion() {
   if (process.env.APP_VERSION) return process.env.APP_VERSION;
   try {
@@ -103,7 +118,7 @@ export function startServer({
   port, host = undefined, balance = loadBalance(), seed = Date.now(),
   rooms = false, trustProxy = false, telemetry = null,
   maxRooms = 40, maxConnections = 200, roomsPerIp = 10, roomsPerIpWindowMs = 10 * 60 * 1000,
-  emptyTtlS = 90, statsSalt = randomBytes(16).toString('hex'), heartbeatMs = 15000,
+  emptyTtlS = 90, compress = true, statsSalt = randomBytes(16).toString('hex'), heartbeatMs = 15000,
 } = {}) {
   return new Promise((resolve, reject) => {
     const started = Date.now();
@@ -114,18 +129,20 @@ export function startServer({
       ? new Rooms({ balance, version, telemetry, seed: roomSeed, maxRooms, emptyTtlS })
       : null;
     const single = rooms ? null : new Session({ balance, seed, addresses: [], telemetry, version });
+    const meters = new Set();
+    const net = () => summarize(meters);
     const createLimit = new RateLimit({ max: roomsPerIp, windowMs: roomsPerIpWindowMs });
 
     const server = http.createServer((req, res) => {
       if (req.url === '/healthz') {
         const stats = manager ? manager.stats() : { rooms: single.playerCount ? 1 : 0, players: single.playerCount, games: single.game ? 1 : 0 };
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: true, version, mode: rooms ? 'rooms' : 'lan', uptimeS: Math.round((Date.now() - started) / 1000), ...stats }));
+        res.end(JSON.stringify({ ok: true, version, mode: rooms ? 'rooms' : 'lan', uptimeS: Math.round((Date.now() - started) / 1000), ...stats, net: net() }));
         return;
       }
       serveStatic(req, res);
     });
-    const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096 });
+    const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096, perMessageDeflate: compress ? wsDeflateOptions() : false });
     const { heartbeatS, timeoutS } = balance.session;
 
     wss.on('connection', (ws, req) => {
@@ -137,11 +154,19 @@ export function startServer({
       ws.lastPong = Date.now();
       ws.on('pong', () => { ws.lastPong = Date.now(); });
       const ip = clientIp(req, trustProxy);
+      const meter = new NetMeter();
+      meters.add(meter);
       const conn = {
         isLocal: LOCAL.has(ip),
         ipHash: hash(ip),
         pid: null,
-        send: (obj) => { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); },
+        send: (obj) => {
+          if (ws.readyState !== 1) return;
+          const str = JSON.stringify(obj);
+          meter.record(Buffer.byteLength(str), obj.t === 'snap');
+          ws.send(str);
+        },
+        meter,
         close: (code, reason) => ws.close(code, reason),
       };
 
@@ -189,7 +214,7 @@ export function startServer({
         }
         session.message(conn, raw);
       });
-      ws.on('close', () => session?.disconnect(conn));
+      ws.on('close', () => { meters.delete(meter); session?.disconnect(conn); });
       ws.on('error', () => {});
     });
 
@@ -207,7 +232,7 @@ export function startServer({
     const pulse = telemetry?.enabled
       ? setInterval(() => {
         const stats = manager ? manager.stats() : { rooms: single.playerCount ? 1 : 0, players: single.playerCount, games: single.game ? 1 : 0 };
-        telemetry.event('heartbeat', { ...stats, connections: wss.clients.size, uptimeS: Math.round((Date.now() - started) / 1000) });
+        telemetry.event('heartbeat', { ...stats, connections: wss.clients.size, net: net(), uptimeS: Math.round((Date.now() - started) / 1000) });
       }, heartbeatMs)
       : null;
     pulse?.unref?.();

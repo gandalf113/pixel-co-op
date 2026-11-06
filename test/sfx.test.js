@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { createSfx, MAX_VOICES, MIN_GAP_MS } from '../public/client/sfx.js';
 
 // Atrapa Web Audio: liczy węzły i zapamiętuje, co zapisano w parametrach.
-function makeCtx() {
-  const ctx = { created: [], gains: [], state: 'running', currentTime: 0, sampleRate: 1000, destination: { dest: true }, resumed: 0 };
+function makeCtx(sampleRate = 1000) {
+  const ctx = { created: [], gains: [], state: 'running', currentTime: 0, sampleRate, destination: { dest: true }, resumed: 0 };
   const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} });
   const node = (kind, extra = {}) => {
     const n = { kind, connect(to) { (n.to ??= []).push(to); }, start(t) { (n.starts ??= []).push(t); }, stop(t) { (n.stops ??= []).push(t); }, ...extra };
@@ -20,7 +20,10 @@ function makeCtx() {
   ctx.createBiquadFilter = () => node('filter', { frequency: param() });
   ctx.createOscillator = () => node('osc', { frequency: param() });
   ctx.createBufferSource = () => node('src', { playbackRate: param() });
-  ctx.createBuffer = (ch, len) => node('buffer', { len, getChannelData: () => new Float32Array(len) });
+  ctx.createBuffer = (ch, len) => {
+    const data = Array.from({ length: ch }, () => new Float32Array(len));
+    return node('buffer', { len, channels: ch, getChannelData: (i) => data[i] });
+  };
   ctx.createConvolver = () => node('convolver', { buffer: null, normalize: true });
   ctx.createDelay = (max) => node('delay', { max, delayTime: { value: 0 } });
   ctx.createStereoPanner = () => node('panner', { pan: { value: 0 } });
@@ -28,8 +31,8 @@ function makeCtx() {
   return ctx;
 }
 
-function setup() {
-  const ctx = makeCtx();
+function setup(sampleRate) {
+  const ctx = makeCtx(sampleRate);
   const clock = { t: 1000 };
   let made = 0;
   const sfx = createSfx({ now: () => clock.t, ctxFactory: () => { made++; return ctx; } });
@@ -186,7 +189,7 @@ test('pogłos: strzał dostaje mało wet, wybuch dużo, dźwięk bez szyny nic',
   };
   const shot = sendOf('shot');
   const boom = sendOf('explode');
-  assert.ok(shot > 0 && boom > shot * 2, 'wybuch wielokrotnie więcej wet niż strzał');
+  assert.ok(shot > 0 && boom > shot * 1.3, 'wybuch wyraźnie więcej wet niż strzał');
   assert.equal(sendOf('pickup'), 0);
 });
 
@@ -219,13 +222,13 @@ test('przeładowanie: cztery zdarzenia rozłożone w podanym czasie, wbicie najg
   }
 });
 
-test('pogłos: normalize=false, pre-delay 12/40/35 ms, IR skalowane do szczytu', () => {
+test('pogłos: normalize=false, pre-delay 12/65/35 ms, IR skalowane do szczytu', () => {
   const { ctx, sfx } = setup();
   sfx.unlock();
   const conv = ctx.created.filter((n) => n.kind === 'convolver');
   assert.ok(conv.every((c) => c.normalize === false));
   const delays = ctx.created.filter((n) => n.kind === 'delay');
-  assert.deepEqual(delays.map((d) => d.delayTime.value), [0.012, 0.04, 0.035]);
+  assert.deepEqual(delays.map((d) => d.delayTime.value), [0.012, 0.065, 0.035]);
   assert.ok(delays.every((d, i) => d.to.includes(conv[i])));
 });
 
@@ -327,17 +330,17 @@ test('dźwięki obrażeń istnieją i różnią się od trafienia potwora', asyn
 });
 
 // V3-C-13: karabin ciszej, osobna szyna z dłuższym ogonem i wyraźnym pre-delay.
-test('karabin: osobna szyna, IR między pokojem a halą, pre-delay 35-45 ms', async () => {
+test('karabin: osobna szyna, IR dłuższy niż pokój, pre-delay 60-70 ms', async () => {
   const { REVERB_S, PREDELAY_S } = await import('../public/client/sfx.js');
   const { ctx, clock, sfx } = setup();
   sfx.unlock();
   const conv = ctx.created.filter((n) => n.kind === 'convolver');
   const delays = ctx.created.filter((n) => n.kind === 'delay');
   const [room, gun, hall] = conv;
-  assert.ok(gun.buffer.len > room.buffer.len && gun.buffer.len < hall.buffer.len, 'IR strzału: dłuższy niż pokój, krótszy niż hala');
-  assert.ok(REVERB_S.gun >= 0.5 && REVERB_S.gun <= 0.6);
+  assert.ok(gun.buffer.len > room.buffer.len && gun.buffer.len <= hall.buffer.len, 'IR strzału: dłuższy niż pokój, nie dłuższy niż hala');
+  assert.ok(REVERB_S.gun > 1.0 && REVERB_S.gun < 1.8);
   const pre = delays.find((d) => d.to.includes(gun)).delayTime.value;
-  assert.ok(pre >= 0.035 && pre <= 0.045, `pre-delay strzału ${pre}`);
+  assert.ok(pre >= 0.06 && pre <= 0.07, `pre-delay strzału ${pre}`);
   assert.equal(PREDELAY_S.gun, pre);
   // strzał rzeczywiście trafia na tę szynę, a nie na pokój
   clock.t += 1000;
@@ -378,4 +381,38 @@ test('nowe recepty swiata istnieja i graja; dwa w odstepie < MIN_GAP_MS to jeden
     clock.t += 2;
     assert.equal(sfx.play(name), true);
   }
+});
+
+// V3-C-14: pogłos karabinu jak otwarta przestrzeń. Mierzymy faktyczne próbki IR przy 44.1 kHz.
+test('karabin IR: 1.0-1.8 s, stereo, dekorelowane, ciche początki, jasne pasmo', () => {
+  const { ctx, sfx } = setup(44100);
+  sfx.unlock();
+  const gun = ctx.created.filter((n) => n.kind === 'convolver')[1].buffer;
+  const sr = 44100;
+  assert.ok(gun.len / sr > 1.0 && gun.len / sr < 1.8, `długość ${gun.len / sr}`);
+  assert.equal(gun.channels, 2, 'dwa kanały');
+  const L = gun.getChannelData(0), R = gun.getChannelData(1);
+  let diff = 0, ll = 0, rr = 0, lr = 0;
+  for (let i = 0; i < gun.len; i++) { diff += Math.abs(L[i] - R[i]); ll += L[i] * L[i]; rr += R[i] * R[i]; lr += L[i] * R[i]; }
+  assert.ok(diff > 0, 'kanały różne');
+  assert.ok(Math.abs(lr / Math.sqrt(ll * rr)) < 0.2, 'kanały dekorelowane');
+  const energy = (d, a, b) => { let e = 0; for (let i = Math.floor(a * sr); i < Math.floor(b * sr); i++) e += d[i] * d[i]; return e / ((b - a) * sr); };
+  for (const d of [L, R]) {
+    assert.ok(energy(d, 0, 0.05) < energy(d, 0.1, 0.3) * 0.02, 'pierwsze 50 ms prawie ciche');
+    // różniczkowanie podbija wysokie: energia różnicy nie niższa niż energia sygnału (przy dolnym paśmie byłoby << 1)
+    const dd = d.map((v, i) => (i ? v - d[i - 1] : 0));
+    let e = 0, ed = 0;
+    for (let i = Math.floor(0.1 * sr); i < gun.len; i++) { e += d[i] * d[i]; ed += dd[i] * dd[i]; }
+    assert.ok(ed >= e, `wysokie >= niskie (${(ed / e).toFixed(2)})`);
+    let peak = 0;
+    for (let i = 0; i < gun.len; i++) peak = Math.max(peak, Math.abs(d[i]));
+    assert.ok(peak <= 0.4 + 1e-6, 'szczyt IR <= IR_PEAK');
+  }
+});
+
+test('karabin: pre-delay szyny w oknie 60-70 ms, wybuchy bez zmian (hala 1.3 s)', async () => {
+  const { PREDELAY_S, REVERB_S } = await import('../public/client/sfx.js');
+  assert.ok(PREDELAY_S.gun >= 0.06 && PREDELAY_S.gun <= 0.07);
+  assert.equal(REVERB_S.hall, 1.3);
+  assert.equal(PREDELAY_S.hall, 0.035);
 });

@@ -9,6 +9,7 @@ import * as items from './items.js';
 import { Grid } from '../public/shared/world.js';
 import { mobView } from '../public/shared/mobview.js';
 import { makeMob, killsLeftIn } from './mobspawn.js';
+import { inRange, centersFor, AOI } from './aoi.js';
 
 const INPUT_QUEUE_MAX = 4;
 const r1 = (v) => (typeof v === 'number' ? Math.round(v * 10) / 10 : v ?? null);
@@ -41,6 +42,8 @@ export class Game {
     };
     this.roster = [];
     this.lastSeq = new Map();
+    // Co klient juz dostal (delta przedmiotow + histereza potworow). Brak wpisu = nastepny snapshot jest PELNY.
+    this.views = new Map();
     players.forEach((info, i) => {
       const p = createPlayer(info, rules, i);
       this.world.players.set(p.id, p);
@@ -137,6 +140,7 @@ export class Game {
     p.suspendLeft = 0;
     p.inputQueue = [];
     this.lastSeq.set(id, 0);
+    this.views.delete(id);
     this.#checkReady();
   }
 
@@ -146,6 +150,7 @@ export class Game {
     items.dropHeld(this.world, p);
     this.world.players.delete(id);
     this.lastSeq.delete(id);
+    this.views.delete(id);
     this.#checkReady();
   }
 
@@ -163,19 +168,68 @@ export class Game {
     };
   }
 
+  #itemView(it) {
+    const w = this.world;
+    const f = it.flight;
+    return {
+      id: it.id, kind: it.kind, state: it.state, x: r1(it.x), y: r1(it.y), tx: it.tx, ty: it.ty, rot: it.rot,
+      hp: r1(it.hp), maxHp: it.maxHp ?? w.rules.balance.items[it.kind].hp ?? null, timeLeft: r1(it.timeLeft), armed: it.state === 'active' && !(it.armLeft > 0),
+      flight: f ? { x0: r1(f.x0), y0: r1(f.y0), x1: r1(f.x1), y1: r1(f.y1), p: r1(f.t / f.dur) } : null,
+    };
+  }
+
+  // Odcisk przedmiotu: zmiana odcisku = trzeba wyslac przedmiot jeszcze raz. `timeLeft` schodzi co tick,
+  // wiec wchodzi tylko calymi sekundami (pasek na HUD nie musi byc co do klatki).
+  static #itemSig(v) {
+    const f = v.flight;
+    return `${v.state}|${v.x}|${v.y}|${v.tx}|${v.ty}|${v.rot}|${v.hp}|${v.maxHp}|${Math.floor(v.timeLeft ?? 0)}|${v.armed ? 1 : 0}|${f ? `${f.x0},${f.y0},${f.x1},${f.y1},${f.p}` : ''}`;
+  }
+
+  // Delta przedmiotow + area of interest. Postawione i aktywne ZAWSZE (siatka kolizji klienta), dropy
+  // na ziemi i lotne tylko w zasiegu (z histereza).
+  #itemsFor(view, centers) {
+    const changed = [];
+    const seen = new Map();
+    for (const it of this.world.items.values()) {
+      if (it.state === 'held') continue;
+      const always = it.state === 'placed' || it.state === 'active';
+      if (!always) {
+        const mul = view.items.has(it.id) ? AOI.exitMul : AOI.enterMul;
+        if (!inRange(centers, it.x, it.y, mul)) continue;
+      }
+      const v = this.#itemView(it);
+      const sig = Game.#itemSig(v);
+      seen.set(it.id, sig);
+      if (view.items.get(it.id) !== sig) changed.push(v);
+    }
+    const del = [];
+    for (const id of view.items.keys()) if (!seen.has(id)) del.push(id);
+    view.items = seen;
+    return { changed, del };
+  }
+
+  #mobsFor(view, centers) {
+    const out = [];
+    const ids = new Set();
+    for (const m of this.world.mobs) {
+      const mul = view.mobs.has(m.id) ? AOI.exitMul : AOI.enterMul;
+      if (!inRange(centers, m.x, m.y, mul)) continue;
+      ids.add(m.id);
+      out.push(mobView(m, r1));
+    }
+    view.mobs = ids;
+    return out;
+  }
+
   snapshot(id) {
     const w = this.world;
     const me = w.players.get(id);
-    const itemViews = [];
-    for (const it of w.items.values()) {
-      if (it.state === 'held') continue;
-      const f = it.flight;
-      itemViews.push({
-        id: it.id, kind: it.kind, state: it.state, x: r1(it.x), y: r1(it.y), tx: it.tx, ty: it.ty, rot: it.rot,
-        hp: r1(it.hp), maxHp: it.maxHp ?? w.rules.balance.items[it.kind].hp ?? null, timeLeft: r1(it.timeLeft), armed: it.state === 'active' && !(it.armLeft > 0),
-        flight: f ? { x0: r1(f.x0), y0: r1(f.y0), x1: r1(f.x1), y1: r1(f.y1), p: r1(f.t / f.dur) } : null,
-      });
-    }
+    const full = !this.views.has(id);
+    if (full) this.views.set(id, { items: new Map(), mobs: new Set() });
+    const view = this.views.get(id);
+    const centers = centersFor(w, me);
+    const near = (e) => inRange(centers, e.x, e.y, AOI.exitMul);
+    const { changed, del } = this.#itemsFor(view, centers);
     return {
       t: r1(w.time),
       seed: this.seed,
@@ -187,15 +241,18 @@ export class Game {
       you: { id, ackSeq: me?.ackSeq ?? 0 },
       players: [...w.players.values()].map((p) => this.#playerView(p)),
       // [id, typ, x, y, hp, maxHp, stun, frozen, burn, kat, invul, telegraf (dlugosc trajektorii w px albo 0)]
-      mobs: w.mobs.map((m) => mobView(m, r1)),
-      droplets: w.droplets.map((d) => [d.id, r1(d.x), r1(d.y)]),
-      rockets: w.rockets.map((r) => [r.id, r1(r.x), r1(r.y), r1(Math.atan2(r.vy, r.vx))]),
-      bullets: w.bullets.map((b) => [b.id, r1(b.x), r1(b.y)]),
+      mobs: this.#mobsFor(view, centers),
+      droplets: w.droplets.filter(near).map((d) => [d.id, r1(d.x), r1(d.y)]),
+      rockets: w.rockets.filter(near).map((r) => [r.id, r1(r.x), r1(r.y), r1(Math.atan2(r.vy, r.vx))]),
+      bullets: w.bullets.filter(near).map((b) => [b.id, r1(b.x), r1(b.y)]),
       // [id, x, y, rodzaj (0 plwocina, 1 granat), lx, ly (punkt upadku granatu), left (s do upadku)]
-      mobBullets: w.mobBullets.map((b) => b.kind === 'grenade'
+      mobBullets: w.mobBullets.filter(near).map((b) => b.kind === 'grenade'
         ? [b.id, r1(b.x), r1(b.y), 1, r1(b.lx), r1(b.ly), r1(b.travelLeft / b.speedPx)]
         : [b.id, r1(b.x), r1(b.y), 0, 0, 0, 0]),
-      items: itemViews,
+      // full: klient zaczyna od pustego slownika; inaczej `items` to tylko zmiany, `del` to id do skasowania.
+      ...(full ? { full: true } : {}),
+      items: changed,
+      ...(del.length ? { del } : {}),
     };
   }
 

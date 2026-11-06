@@ -1,5 +1,11 @@
 # Changelog dokumentacji
 
+## 0.25 - 2026-11-06
+- Punkt O zrobiony w v0.9.0: 500 -> 6,5 kB/s na gracza (77x), zmierzone na gnieździe. Zostaje V3-O-08 (sekcja players), O-04 i O-09 (weryfikacja na zywym laczu).
+- V3-C-14: poglos karabinu brzmi "kiblowo" — ogon ciemnieje, jest krotki i mono. Naprawa: pasmo gorne od 400 Hz, dlugosc 1.2-1.6 s, wyciszone wczesne odbicia, IR stereo dekorelowane, pre-delay 60-70 ms.
+- R59: kolce i klatka 2 x 2; klatka wyzwala sie z dowolnego kafelka i lapie wszystko w obrysie (V3-D-08, ITM-H-03, ITM-P-08).
+- Punkt O (PILNE): gra niegrywalna przez internet powyzej ~30 potworow. Zmierzone: snapshot 23 kB, 79% to przedmioty, z czego 120 nieruchomych dropow wysylanych 20 Hz; 454 kB/s na gracza, 14,9 Mbit/s uploadu przy czworce. V3-O-01..07 z kolejnoscia i pulapka AoI (siatka kolizji klienta).
+
 ## 0.24 - 2026-11-06
 - V3-C-13: karabin ciszej, poglos dluzszy (0.5-0.6 s) i z wyrazniejszym pre-delay (35-45 ms) — poglos ma wchodzic slyszalnie po czasie.
 - R57: partie glosowe jednak PROBKAMI o niskim bitrate, nie synteza formantowa. Dwie persony: charczacy koks i spokojny zabojca ("Another one cleared"). Generowane u nas na bo3serverze (pocket-tts / VoxCPM2), nie pobierane (V3-N-05..07).
