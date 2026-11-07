@@ -492,6 +492,15 @@ function onEvent(e) {
     case 'eventStart':
       sfx.play('eventStart', { own: true });
       break;
+    case 'quake':
+      sfx.play('quake', { own: true });
+      break;
+    case 'pitsOpen':
+      playSfx('destroyed', e, tp);
+      break;
+    case 'fall':
+      playSfx('expire', e, tp);
+      break;
     case 'reload': {
       const lv = latest?.players.find((p) => p.id === e.id)?.weaponLv ?? 1;
       playSfx('reload', e, tp, { own: e.id === myId, dur: rifleStats(balance, lv).reloadS });
@@ -565,6 +574,13 @@ function onEvent(e) {
       break;
     case 'flame':
       fx.ignite(now, e.x, e.y);
+      break;
+    case 'quake':
+      // wstrzas kamery przez caly etap sciagania graczy (Trzesienie ziemi)
+      fx.shake = { until: now + (e.durS ?? 3) * 1000, amp: 3 };
+      break;
+    case 'pitsOpen':
+      fx.shake = { until: now + 400, amp: 5 };
       break;
     case 'ultDeny':
       if (e.id === myId) denyUntil = now + 800;
@@ -917,6 +933,7 @@ function frame(now) {
     dark: darkFor(now, darkPreview ? DARK_PREVIEW : latest.dark),
     event: latest.event ?? null,
     builders: lerpEntities(a.builders ?? [], b.builders ?? [], alpha, BULLET_KEY),
+    pits: b.pits ?? [],
     effects, shakes, nowMs: now, pxScale: scale, fx,
     highlightId: pickTarget?.id ?? null,
     ghost: me && mode === 'game' ? ghostFor(me, latest, players, aimWorld()) : null,

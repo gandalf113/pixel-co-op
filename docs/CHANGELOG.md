@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.40 - 2026-11-07
+- v0.23.0: **V3-Q-06-01 Trzesienie ziemi** (`quake` w `server/events.js`): wstrzas 1.2 s, sciaganie graczy do wspolnego punktu (moveCircle, slizg po scianach), 8 zapadni 3 x 3 w odleglosci 4 kafelkow (przedmioty na nich spadaja: zdarzenie `fall`, gracze nie wchodza: `world.pitTiles` w `updatePlayers`), extra fala o budzecie `waveBudget(n)` z zapadni naraz (limit zywych szanowany), `world.eventCombat` = w przerwie da sie powalic, po wybiciu zapadnie znikaja i wszyscy wstaja (`startBreakFor`). Snapshot `pits`, klient rysuje zapadnie, wstrzas kamery (`quake`, `pitsOpen`), pomruk `quake`. Pole `event.lock` w snapshocie liczone z `world.lock` (w fazie walki sterowanie wraca). Import cykliczny events/items rozwiazany bezposrednim importem `rebuildGrid`.
+
 ## 0.39 - 2026-11-07
 - v0.22.0: **V3-Q-06 system wydarzen** i **V3-Q-06-03 Armia budowniczych**. `server/events.js`: rejestr wydarzen, losowanie po fali (20%, od fali 3, nie na bossie, nie dwa razy z rzedu), `world.lock` blokuje ruch / strzal / akcje / ultimate (serwer i predykcja klienta), licznik przerwy stoi na czas wydarzenia. Armia: plan do pelnych limitow + sciany/glazy/kolce, pierscien 3-14 kafelkow wokol graczy, odstep 2 kafelki miedzy obiektami blokujacymi, ~50 szarych budowniczych w snapshocie (`builders`), kazde postawienie to zwykly `place`. Klient: baner `WYDARZENIE: ...`, emotka `?!` nad graczami, szare sylwetki (`BUILDER_COLOR`), fanfara `eventStart`. `placeServer` i `freeFootprint` w `items.js`. Sekcja 7 w `03-WAVES-DIFFICULTY.md`.
 

@@ -213,6 +213,11 @@ const RECIPES = {
     { n: 'white', dur: 0.05, hp: 4000, level: 0.2, at: 0.21 },
   ], { rev: 'room', wet: 0.3 }),
   expire: [{ t: 'sine', f0: 400, f1: 200, dur: 0.15, level: 0.15 }],
+  // trzesienie ziemi (V3-Q-06-01): dlugi dudniacy pomruk
+  quake: Object.assign([
+    { n: 'brown', dur: 3.0, lp: 140, level: 0.5, tail: 0.6 },
+    { t: 'sine', f0: 38, f1: 30, dur: 3.0, level: 0.35, tail: 0.6 },
+  ], { rev: 'hall', wet: 0.6 }),
   // wydarzenie (V3-Q-06): krotka fanfara, dwa tony w gore i tremolo
   eventStart: Object.assign([
     { t: 'square', f0: 392, dur: 0.12, level: 0.2 },

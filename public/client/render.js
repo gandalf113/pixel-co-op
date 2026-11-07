@@ -695,6 +695,30 @@ function ring(ctx, x, y, r, color, alpha, fill = 0) {
   ctx.globalAlpha = 1;
 }
 
+// Zapadnie (Trzesienie ziemi, V3-Q-06-01): 3 x 3 kafelki czerni z jasniejsza krawedzia u gory (glebia).
+function drawPits(ctx, view, ox, oy) {
+  const pits = view.pits ?? [];
+  if (!pits.length) return;
+  const tp = view.balance.map.tilePx;
+  const size = view.balance.events?.kinds?.quake?.pitSize ?? 3;
+  const h = Math.floor(size / 2);
+  for (const [tx, ty] of pits) {
+    const x = Math.round((tx - h) * tp + ox);
+    const y = Math.round((ty - h) * tp + oy);
+    const w = size * tp;
+    ctx.fillStyle = '#060504';
+    ctx.fillRect(x, y, w, w);
+    ctx.fillStyle = '#2a241d';
+    ctx.fillRect(x, y, w, 2);
+    ctx.fillStyle = '#16130f';
+    ctx.fillRect(x, y + 2, w, 3);
+    ctx.fillStyle = '#0d0b09';
+    ctx.fillRect(x, y + w - 2, w, 2);
+    ctx.fillRect(x, y, 2, w);
+    ctx.fillRect(x + w - 2, y, 2, w);
+  }
+}
+
 // Plomienie (V3-Q-04): poswiata na podlodze + sprite skalowany sila (wysokosc i szerokosc).
 function drawFlames(ctx, view, ox, oy) {
   const flames = view.flames ?? [];
@@ -821,6 +845,7 @@ export function renderWorld(ctx, view) {
   const fxs = fxSprites(view.sprites);
   drawGround(ctx, view, ox, oy);
   drawGore(ctx, view, ox, oy);
+  drawPits(ctx, view, ox, oy);
   view.fx?.drawGround(ctx, ox, oy, fxs);
   drawDroplets(ctx, view, ox, oy);
   drawItems(ctx, view, ox, oy);

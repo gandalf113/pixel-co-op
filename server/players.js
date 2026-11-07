@@ -49,12 +49,13 @@ export function damagePlayer(world, player, amount, source) {
   if (player.state !== 'alive' || player.suspended || player.invuln > 0) return;
   const before = player.hp;
   player.hp -= amount;
-  if (world.phase === 'break') player.hp = Math.max(1, player.hp);
+  // w przerwie nie da sie powalic, chyba ze trwa walka w wydarzeniu (world.eventCombat)
+  if (world.phase === 'break' && !world.eventCombat) player.hp = Math.max(1, player.hp);
   else player.hp = Math.max(0, player.hp);
   // amount = faktycznie utracone HP (w przerwie obcięte do 1, przy powaleniu do 0); zero = nic nie weszło
   const lost = before - player.hp;
   if (lost > 0) world.events.push({ type: 'hurt', id: player.id, amount: lost, source, x: player.x, y: player.y });
-  if (world.phase === 'break' || player.hp > 0) return;
+  if ((world.phase === 'break' && !world.eventCombat) || player.hp > 0) return;
   player.state = 'downed';
   player.downs++;
   player.deathLeft = world.rules.downedDeathTime();
@@ -116,8 +117,12 @@ export function updatePlayers(world, dt) {
     if (input && !world.lock && p.state === 'alive' && !p.suspended && p.busy <= 0) {
       const heldKind = p.held != null ? world.items.get(p.held)?.kind ?? null : null;
       const pos = stepPlayer(p, input, dt, playerSpeedPx(balance, heldKind, speedMultOf(p)), world.grid, balance);
-      p.x = pos.x;
-      p.y = pos.y;
+      // zapadnie (Trzesienie ziemi, V3-Q-06-01): gracz nie wchodzi na kafelek zapadni
+      const tp = world.rules.tilePx;
+      if (!world.pitTiles?.size || !world.pitTiles.has(`${Math.floor(pos.x / tp)},${Math.floor(pos.y / tp)}`)) {
+        p.x = pos.x;
+        p.y = pos.y;
+      }
     }
 
     if (p.state === 'alive' && !p.suspended && world.phase === 'break') {

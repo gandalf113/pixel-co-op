@@ -611,6 +611,18 @@
         "ringMax": 14,
         "gapTiles": 2,
         "hard": { "wall": 10, "boulder": 5, "spikes": 5 }
+      },
+      "quake": {
+        "name": "TRZĘSIENIE ZIEMI",
+        "weight": 10,
+        "fromWave": 4,
+        "shakeS": 1.2,
+        "pullTiles": 6,
+        "pullMaxS": 4,
+        "pitDist": 4,
+        "pitSize": 3,
+        "budgetMul": 1.0,
+        "fightMaxS": 120
       }
     }
   },

@@ -42,7 +42,10 @@ export class Game {
       dark: null,
       event: null,
       lock: false,
+      eventCombat: false,
       builders: [],
+      pits: [],
+      pitTiles: new Set(),
       lastEventWave: -1,
       rng: makeRng(seed),
       nextId: () => next++,
@@ -274,8 +277,10 @@ export class Game {
       flames: w.flames.filter((f) => near({ x: (f.tx + 0.5) * tp, y: (f.ty + 0.5) * tp })).map((f) => [f.id, f.tx, f.ty, Math.round(f.strength * 100) / 100]),
       dark: w.dark,
       // wydarzenie (V3-Q-06): null albo { type, name, phase, t, lock, emote }; budowniczowie [id, x, y, kat, idzie]
-      event: w.event ? { type: w.event.type, name: w.event.name, phase: w.event.phase, t: r1(w.event.t), lock: !!w.event.lock, emote: w.event.emote ?? null } : null,
+      event: w.event ? { type: w.event.type, name: w.event.name, phase: w.event.phase, t: r1(w.event.t), lock: !!w.lock, emote: w.event.emote ?? null } : null,
       builders: (w.builders ?? []).filter(near).map((b) => [b.id, r1(b.x), r1(b.y), r1(b.angle), b.moving ? 1 : 0]),
+      // zapadnie (Trzesienie ziemi): srodki 3 x 3, zawsze wszystkie (jest ich max 8)
+      pits: (w.pits ?? []).map((p) => [p.tx, p.ty]),
       // gwozdz (lenPx) niesie jeszcze kat, zeby klient narysowal kreske; zwykly pocisk zostaje trojka
       bullets: w.bullets.filter(near).map((b) => (b.lenPx ? [b.id, r1(b.x), r1(b.y), r1(Math.atan2(b.vy, b.vx)), b.lenPx] : [b.id, r1(b.x), r1(b.y)])),
       // [id, x, y, rodzaj (0 plwocina, 1 granat), lx, ly (punkt upadku granatu), left (s do upadku)]

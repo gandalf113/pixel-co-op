@@ -5,9 +5,11 @@
 // Stan `world.event = { type, name, phase, t, lock, emote }` idzie w snapshocie; `world.builders` to kosmetyczne
 // sylwetki (Armia budowniczych), tez w snapshocie.
 import { bossesForWave } from './waves.js';
-import { placeServer, freeFootprint } from './items.js';
+import { placeServer, freeFootprint, rebuildGrid } from './items.js';
 import { pickWeighted } from './rng.js';
-import { blocksBodies, footprint, activeInGroup, tileOf } from '../public/shared/world.js';
+import { blocksBodies, footprint, activeInGroup, tileOf, moveCircle } from '../public/shared/world.js';
+import { spawnFromQueue } from './mobspawn.js';
+import { startBreakFor } from './players.js';
 
 const EPS = 1e-9;
 const cfgOf = (world) => world.rules.balance.events ?? null;
@@ -221,5 +223,173 @@ registerEvent('builders', {
       return true;
     }
     return world.builders.length === 0;
+  },
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Trzesienie ziemi (V3-Q-06-01): (1) wstrzas, (2) gracze traca sterowanie i sa sciagani do wspolnego punktu,
+// (3) wokol otwiera sie 8 zapadni 3 x 3 (przedmioty na nich spadaja i znikaja, gracze nie moga tam wejsc),
+// (4) z zapadni naraz wychodzi extra fala o budzecie waveBudget(n) * budgetMul, (5) po wybiciu zapadnie znikaja,
+// wszyscy wstaja (jak na poczatku przerwy) i przerwa biegnie dalej. W walce przerwa nie chroni przed powaleniem
+// (world.eventCombat).
+
+function freeTileNear(world, tx, ty) {
+  for (let r = 0; r < 8; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = tx + dx;
+        const y = ty + dy;
+        if (world.grid.inside(x, y) && !world.grid.isOccupied(x, y)) return [x, y];
+      }
+    }
+  }
+  return [tx, ty];
+}
+
+function pitTilesOf(pit, size) {
+  const h = Math.floor(size / 2);
+  const out = [];
+  for (let dy = -h; dy <= h; dy++) for (let dx = -h; dx <= h; dx++) out.push([pit.tx + dx, pit.ty + dy]);
+  return out;
+}
+
+function openPits(world, ev, kc) {
+  const { tilePx } = world.rules;
+  const { tilesW, tilesH } = world.rules.balance.map;
+  const size = kc.pitSize ?? 3;
+  const h = Math.floor(size / 2);
+  const mtx = tileOf(ev.meet.x, tilePx);
+  const mty = tileOf(ev.meet.y, tilePx);
+  const dirs = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  const pits = [];
+  const tiles = new Set();
+  for (const [dx, dy] of dirs) {
+    const d = kc.pitDist ?? 4;
+    const tx = Math.round(mtx + dx * d);
+    const ty = Math.round(mty + dy * d);
+    if (tx - h < 0 || ty - h < 0 || tx + h >= tilesW || ty + h >= tilesH) continue;
+    pits.push({ tx, ty });
+    for (const [x, y] of pitTilesOf({ tx, ty }, size)) tiles.add(`${x},${y}`);
+  }
+  // przedmioty na zapadni spadaja: postawione (obrys) i lezace (kafelek)
+  let fell = false;
+  for (const item of [...world.items.values()]) {
+    let hit = false;
+    if (item.state === 'placed' || item.state === 'active') hit = footprint(item.kind, item.tx, item.ty, item.rot).some(([x, y]) => tiles.has(`${x},${y}`));
+    else if (item.state === 'ground') hit = tiles.has(`${tileOf(item.x, tilePx)},${tileOf(item.y, tilePx)}`);
+    if (!hit) continue;
+    for (const p of world.players.values()) if (p.held === item.id) p.held = null;
+    world.items.delete(item.id);
+    world.events.push({ type: 'fall', id: item.id, kind: item.kind, x: item.x, y: item.y });
+    fell = true;
+  }
+  if (fell) rebuildGrid(world);
+  world.pits = pits;
+  world.pitTiles = tiles;
+  ev.pits = pits.length;
+  world.events.push({ type: 'pitsOpen', x: ev.meet.x, y: ev.meet.y });
+}
+
+function composeExtra(world, kc) {
+  const { mobs } = world.rules.balance;
+  const n = world.wave;
+  const types = Object.keys(mobs).filter((t) => mobs[t].fromWave <= n && !mobs[t].bossEvery);
+  let budget = world.rules.waveBudget(n) * (kc.budgetMul ?? 1);
+  const queue = [];
+  for (let guard = 0; guard < 500; guard++) {
+    const fits = types.filter((t) => mobs[t].cost <= budget);
+    if (!fits.length) break;
+    const t = pickWeighted(world.rng, fits.map((k) => [k, mobs[k].weight]));
+    if (!t) break;
+    queue.push(t);
+    budget -= mobs[t].cost;
+  }
+  return queue;
+}
+
+function spawnFromPits(world, ev) {
+  const { tilePx, balance } = world.rules;
+  const room = balance.waves.maxAliveMobs - world.mobs.length;
+  let n = 0;
+  while (ev.queue.length && n < room) {
+    const type = ev.queue.shift();
+    const pit = world.pits[ev.spawned % world.pits.length];
+    const x = (pit.tx + 0.5) * tilePx + (world.rng() - 0.5) * tilePx;
+    const y = (pit.ty + 0.5) * tilePx + (world.rng() - 0.5) * tilePx;
+    const made = spawnFromQueue(world, type, x, y);
+    n += made.length;
+    ev.spawned++;
+  }
+}
+
+registerEvent('quake', {
+  fromWave: 4,
+  weight: 10,
+  emote: '!',
+  start(world, ev, kc) {
+    const { tilePx } = world.rules;
+    const c = centerOf(world);
+    const [tx, ty] = freeTileNear(world, tileOf(c.x, tilePx), tileOf(c.y, tilePx));
+    ev.meet = { x: (tx + 0.5) * tilePx, y: (ty + 0.5) * tilePx };
+    ev.phase = 'shake';
+    ev.pullT = 0;
+    ev.queue = [];
+    ev.spawned = 0;
+    ev.pits = 0;
+    world.pits = [];
+    world.pitTiles = new Set();
+    world.events.push({ type: 'quake', x: ev.meet.x, y: ev.meet.y, durS: (kc.shakeS ?? 1) + (kc.pullMaxS ?? 4) });
+  },
+  update(world, ev, dt, kc) {
+    const { tilePx, balance } = world.rules;
+    if (ev.phase === 'shake') {
+      if (ev.t >= (kc.shakeS ?? 1)) ev.phase = 'pull';
+      return false;
+    }
+    if (ev.phase === 'pull') {
+      ev.pullT += dt;
+      const step = (kc.pullTiles ?? 6) * tilePx * dt;
+      let allIn = true;
+      for (const p of world.players.values()) {
+        if (p.state === 'dead' || p.suspended) continue;
+        const dx = ev.meet.x - p.x;
+        const dy = ev.meet.y - p.y;
+        const d = Math.hypot(dx, dy);
+        if (d <= tilePx * 0.6) continue;
+        allIn = false;
+        const s = Math.min(step, d);
+        const pos = moveCircle(world.grid, p.x, p.y, balance.player.radiusPx, (dx / d) * s, (dy / d) * s, tilePx);
+        p.x = pos.x;
+        p.y = pos.y;
+        p.angle = Math.atan2(dy, dx);
+      }
+      if (allIn || ev.pullT >= (kc.pullMaxS ?? 4)) {
+        openPits(world, ev, kc);
+        if (!world.pits.length) return true; // brak miejsca na zapadnie (teoretyczne): koniec bez walki
+        ev.queue = composeExtra(world, kc);
+        ev.total = ev.queue.length;
+        ev.phase = 'fight';
+        ev.fightT = 0;
+        world.lock = false;
+        world.eventCombat = true;
+        spawnFromPits(world, ev);
+      }
+      return false;
+    }
+    if (ev.phase === 'fight') {
+      ev.fightT += dt;
+      if (ev.queue.length) spawnFromPits(world, ev);
+      return (ev.queue.length === 0 && world.mobs.length === 0) || ev.fightT >= (kc.fightMaxS ?? 120);
+    }
+    return true;
+  },
+  stop(world) {
+    world.pits = [];
+    world.pitTiles = new Set();
+    world.eventCombat = false;
+    world.lock = false;
+    // jak na poczatku przerwy: powaleni wstaja, martwi wracaja na spawn
+    startBreakFor(world);
   },
 });

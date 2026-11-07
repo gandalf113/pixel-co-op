@@ -32,6 +32,7 @@ export const TIPS = [
 
 // Co nowego: ostatnie wersje, po jednym-dwa zdania. Najnowsza pierwsza. Aktualizowane razem z tagiem.
 export const NEWS = [
+  ['0.23.0', 'Wydarzenie Trzęsienie ziemi: ziemia ciągnie graczy do siebie, wokół otwiera się 8 zapadni i wychodzi z nich dodatkowa fala.'],
   ['0.22.0', 'Wydarzenia po fali: czasem zamiast przerwy wbiega Armia budowniczych i stawia wszystko, co da się postawić. Kolejne wydarzenia w drodze.'],
   ['0.21.0', 'Nowy potwór: Kamikaze. Podbiega, miga na czerwono i wybucha po 0,3 s. Strzelaj z daleka, zabity uzbrojony też wybucha.'],
   ['0.20.0', 'Dwa ultimate na gracza: wybierasz dwa w lobby, F odpala pierwsze, C drugie. Pasek jeden, wspólny.'],
