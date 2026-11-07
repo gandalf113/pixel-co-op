@@ -110,8 +110,8 @@ const RECIPES = {
     { n: 'white', dur: 0.01, hp: 2000, level: 0.5 },
     { t: 'square', f0: 1800, dur: 0.002, level: 0.3 },
   ],
-  // Sendy hali (destroyed/explode/split) obnizone 2026-11-07: po sciszeniu karabinu limiter szyny wet przestal
-  // je dociskac i zawalenie sciany bylo "dramatycznie zreverbowane". Ult (0.8/0.9) zostal.
+  // Sendy hali (destroyed/split) obnizone 2026-11-07: po sciszeniu karabinu limiter szyny wet przestal
+  // je dociskac i zawalenie sciany bylo "dramatycznie zreverbowane". Wybuch (1.1) i ult (0.8/0.9) bez zmian.
   destroyed: Object.assign([
     { n: 'brown', dur: 0.4, lp: 800, lpTo: 200, level: 0.7 },
     { n: 'white', dur: 0.02, level: 0.4 },
@@ -120,7 +120,7 @@ const RECIPES = {
     { n: 'brown', dur: 0.7, lp: 800, lpTo: 200, level: 0.4 },
     { t: 'sine', f0: 60, f1: 30, dur: 0.5, level: 0.6 },
     { n: 'white', dur: 0.5, lp: 500, level: 0.15, at: 0.1 },
-  ], { rev: 'hall', wet: 0.5 }),
+  ], { rev: 'hall', wet: 1.1 }),
   // Plujka: mokre "ptuu" — szum w górę + opadający ton z modulacją. Inny charakter niż suchy trzask karabinu.
   spit: Object.assign([
     { n: 'brown', dur: 0.1, lp: 500, lpTo: 1800, level: 0.5 },

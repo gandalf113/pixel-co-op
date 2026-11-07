@@ -3,7 +3,7 @@
 ## 0.30 - 2026-11-07
 - v0.15.0: **V3-C-15 zaimplementowane** w `public/client/sfx.js` - karabin "mech" (6 warstw, klik zamka), dzialko "heavy" zamiast `cannon`, wspolna IR "st-max" (`GUN_IR`: 4 pasma w panoramie + 4 slapbacki ping-pong), pre-delay 60 ms, send 0.035. Testy dzwieku przepisane pod nowy projekt (ciemne pasmo, slapback na starcie).
 - R64, ITM-DROP-03 zmienione: **boss zawsze zostawia boost broni** jako jeden z 3 dropow (`guaranteedDrops` w balansie, `server/items.js`). Powod: zgloszenie z gry - 10 fal bez ani jednego boostu z losowania (szansa ~17% na fale przy wadze 4/76 w puli power 45%).
-- Po v0.15.0: **sendy hali obnizone** - zawalenie sciany 0.7 -> 0.15, wybuch 1.1 -> 0.5, rozpad tanka 0.6 -> 0.25 (ult bez zmian). Powod: po sciszeniu karabinu limiter szyny wet przestal dociskac hale i zawalenie bylo "dramatycznie zreverbowane". Niezatagowane.
+- Po v0.15.0: **sendy hali obnizone** - zawalenie sciany 0.7 -> 0.15, rozpad tanka 0.6 -> 0.25 (wybuch 1.1 i ult bez zmian - wybuch byl dobry, cofniete po ograniu). Powod: po sciszeniu karabinu limiter szyny wet przestal dociskac hale i zawalenie bylo "dramatycznie zreverbowane". Niezatagowane.
 
 ## 0.29 - 2026-11-07
 - V3-C-15 (nowe), R63: **dzwiek karabinu i dzialka wybrany z odsluchu**, zastepuje V3-C-10/13/14. Gracz: suchy strzal "mech" (klik zamka 18 ms po strzale). Dzialko: suchy strzal "heavy" (zamiast dzisiejszej recepty `cannon`). Wspolna szyna poglosu "st-max": ogon 1.2 s w pasmie 300 Hz - 3.5 kHz pociety na 4 pasma rozlozone w panoramie, 4 slapbacki ping-pong, pre-delay 60 ms, send 0.028. Pelne liczby w wierszu V3-C-15, wzorce WAV w `tools/sfx-lab/chosen/`, renderer `tools/sfx-lab/render-rifle.mjs`.
