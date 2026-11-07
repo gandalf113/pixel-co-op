@@ -83,7 +83,8 @@ export function onMobKilled(world, mob, killerId) {
     }
     return;
   }
-  let kind = rollDrop(world, mob.type);
+  // `mob.dropChance` (przelot ninja): wlasna szansa zamiast tej z balansu
+  let kind = rollDrop(world, mob.type, mob.dropChance != null && world.rng() < mob.dropChance);
   const hardSoFar = world.waveHardDrops ?? 0;
   const kindHard = kind !== null && world.rules.balance.items[kind].category === 'hard';
   if (world.wave === 1 && hardSoFar === 0 && !kindHard && world.waveComplete?.()) kind = 'wall';
@@ -549,7 +550,7 @@ function updateMine(world, item, dt) {
   const cfg = cfgOf(world, item);
   item.armLeft = Math.max(0, item.armLeft - dt);
   if (item.armLeft > EPS) return;
-  const triggered = world.mobs.some((m) => tileOf(m.x, tilePx) === item.tx && tileOf(m.y, tilePx) === item.ty);
+  const triggered = world.mobs.some((m) => !m.flyby && tileOf(m.x, tilePx) === item.tx && tileOf(m.y, tilePx) === item.ty);
   if (!triggered) return;
   const cx = (item.tx + 0.5) * tilePx;
   const cy = (item.ty + 0.5) * tilePx;
@@ -574,7 +575,7 @@ function updateSpikes(world, item, dt) {
   if (item.cooldown > EPS) return;
   const tiles = footprint(item.kind, item.tx, item.ty, 0);
   const onTile = (e) => tileIn(tiles, tileOf(e.x, tilePx), tileOf(e.y, tilePx));
-  const mobs = world.mobs.filter(onTile);
+  const mobs = world.mobs.filter((m) => !m.flyby && onTile(m));
   const players = [...world.players.values()].filter((p) => p.state === 'alive' && !p.suspended && onTile(p));
   if (!mobs.length && !players.length) return;
   for (const m of mobs) {
@@ -621,7 +622,7 @@ function updateCage(world, item, dt) {
   const cfg = cfgOf(world, item);
   if (item.caught == null) {
     const tiles = footprint(item.kind, item.tx, item.ty, 0);
-    const mobs = world.mobs.filter((m) => !balance.mobs[m.type].immuneCage && tileIn(tiles, tileOf(m.x, tilePx), tileOf(m.y, tilePx)));
+    const mobs = world.mobs.filter((m) => !m.flyby && !balance.mobs[m.type].immuneCage && tileIn(tiles, tileOf(m.x, tilePx), tileOf(m.y, tilePx)));
     if (!mobs.length) return;
     item.caught = mobs.map((m) => m.id);
     item.timeLeft = cfg.durationS;

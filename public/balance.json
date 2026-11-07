@@ -623,6 +623,17 @@
         "pitSize": 3,
         "budgetMul": 1.0,
         "fightMaxS": 120
+      },
+      "flyby": {
+        "name": "PRZELOT NINJA",
+        "weight": 10,
+        "fromWave": 8,
+        "durS": 12,
+        "base": 6,
+        "perWave": 0.5,
+        "perPlayerMin": 2,
+        "dropChance": 1.0,
+        "dark": { "alpha": 0.7, "tint": "#050010", "radiusTiles": 5 }
       }
     }
   },

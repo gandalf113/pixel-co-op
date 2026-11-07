@@ -453,6 +453,7 @@ function separate(world) {
     for (let j = i + 1; j < mobs.length; j++) {
       const a = mobs[i];
       const b = mobs[j];
+      if (a.flyby || b.flyby) continue;
       const ra = balance.mobs[a.type].radiusPx;
       const rb = balance.mobs[b.type].radiusPx;
       let dx = b.x - a.x;
@@ -480,6 +481,7 @@ function separate(world) {
 export function updateMobs(world, dt, hooks = {}) {
   refreshFields(world, dt);
   for (const mob of [...world.mobs]) {
+    if (mob.flyby) continue; // przelot ninja (V3-Q-06-04): rusza nim wydarzenie, nie AI
     if (mob.burnLeft > 0) {
       mob.burnLeft -= dt;
       damageMob(world, mob, mob.burnDps * dt, mob.burnOwner);

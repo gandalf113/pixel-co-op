@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.42 - 2026-11-07
+- v0.24.0: **V3-Q-06-04 Przelot ninja** (`flyby` w `server/events.js`): ciemnosc z `setDark`, ninja z polem `flyby` (ruch przez wydarzenie, nie AI: `updateMobs` i `separate` je pomijaja, miny / kolce / klatki ignoruja), tory przez cala mape z czterech krawedzi, co najmniej 2 przez ekran kazdego gracza, despawn za krawedzia bez smierci, `mob.dropChance` = 100% dropu po zabiciu w locie, `eventCombat` bez blokady sterowania. Pierwsze wydarzenie, ktore korzysta z ciemnosci (V3-Q-05).
+
 ## 0.41 - 2026-11-07
 - v0.23.1 (hotfix): **start gry wymaga na serwerze tylko pierwszego ultimate**. Od v0.20.0 serwer odrzucal `start`, dopoki kazdy gracz nie mial dwoch, co lamalo klientow i skrypty sprzed tej wersji (hello -> ult -> start -> snap); deploy od v0.20.0 nie przechodzil smoke testow na hostingu. Dwa ultimate wymusza nadal interfejs lobby (Start nieaktywny, dopoki wszyscy nie maja obu); z pustym slotem 2 klawisz `C` nic nie robi. ULT-05 doprecyzowane.
 

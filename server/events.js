@@ -9,7 +9,8 @@ import { placeServer, freeFootprint, rebuildGrid } from './items.js';
 import { pickWeighted } from './rng.js';
 import { blocksBodies, footprint, activeInGroup, tileOf, moveCircle } from '../public/shared/world.js';
 import { spawnFromQueue } from './mobspawn.js';
-import { startBreakFor } from './players.js';
+import { startBreakFor, damagePlayer } from './players.js';
+import { setDark } from './flames.js';
 
 const EPS = 1e-9;
 const cfgOf = (world) => world.rules.balance.events ?? null;
@@ -390,6 +391,121 @@ registerEvent('quake', {
     world.eventCombat = false;
     world.lock = false;
     // jak na poczatku przerwy: powaleni wstaja, martwi wracaja na spawn
+    startBreakFor(world);
+  },
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Przelot ninja (V3-Q-06-04): robi sie ciemno, przez `durS` z czterech krawedzi mapy startuja ninja w trybie `flyby`:
+// lecą po prostej przez CALA mape (gora->dol, lewo->prawo, dol->gora, prawo->lewo, naprzemiennie), bez telegrafu,
+// ponad scianami, poza pulapkami, i despawnuja za krawedzia. Tory: kazdy zywy gracz dostaje co najmniej
+// `perPlayerMin` przelotow przez swoj ekran, reszta losowo. Zabity w locie zostawia drop z szansa `dropChance`.
+// Sterowanie NIE jest blokowane (to wydarzenie o uskoku i strzale), przerwa nie chroni przed powaleniem.
+
+const SCREEN_TILES = { w: 35, h: 20 };
+
+function laneFor(world, dir, player, rng) {
+  const { tilesW, tilesH, tilePx } = world.rules.balance.map;
+  const W = tilesW * tilePx;
+  const H = tilesH * tilePx;
+  const off = tilePx * 1.5;
+  const horizontal = dir === 1 || dir === 3;
+  let coord;
+  if (player) {
+    const span = horizontal ? SCREEN_TILES.h / 2 - 1 : SCREEN_TILES.w / 2 - 1;
+    const base = horizontal ? player.y : player.x;
+    coord = base + (rng() * 2 - 1) * span * tilePx;
+  } else coord = rng() * (horizontal ? H : W);
+  coord = Math.max(tilePx, Math.min((horizontal ? H : W) - tilePx, coord));
+  if (dir === 0) return { x: coord, y: -off, vx: 0, vy: 1 };
+  if (dir === 1) return { x: -off, y: coord, vx: 1, vy: 0 };
+  if (dir === 2) return { x: coord, y: H + off, vx: 0, vy: -1 };
+  return { x: W + off, y: coord, vx: -1, vy: 0 };
+}
+
+function spawnFlyer(world, lane, kc) {
+  const type = 'ninja';
+  const cfg = world.rules.balance.mobs[type];
+  const speed = cfg.charge.speedTiles * world.rules.tilePx;
+  const hp = world.rules.mobHp(type, world.wave);
+  const mob = {
+    id: world.nextId(), type, hp, maxHp: hp, stun: 0, attackCd: 0,
+    x: lane.x, y: lane.y, angle: Math.atan2(lane.vy, lane.vx),
+    flyby: { vx: lane.vx * speed, vy: lane.vy * speed, hit: new Set() },
+    dropChance: kc.dropChance ?? 1,
+  };
+  world.mobs.push(mob);
+  world.events.push({ type: 'ninjaCharge', id: mob.id, x: mob.x, y: mob.y });
+  return mob;
+}
+
+function segDist(px, py, x0, y0, x1, y1) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const l2 = dx * dx + dy * dy;
+  const t = l2 > 0 ? Math.max(0, Math.min(1, ((px - x0) * dx + (py - y0) * dy) / l2)) : 0;
+  return Math.hypot(px - (x0 + dx * t), py - (y0 + dy * t));
+}
+
+export function updateFlyers(world, dt) {
+  const { tilePx, balance } = world.rules;
+  const { tilesW, tilesH } = balance.map;
+  const W = tilesW * tilePx;
+  const H = tilesH * tilePx;
+  const margin = tilePx * 2;
+  for (const m of [...world.mobs]) {
+    const f = m.flyby;
+    if (!f) continue;
+    const x0 = m.x;
+    const y0 = m.y;
+    m.x += f.vx * dt;
+    m.y += f.vy * dt;
+    const reach = balance.mobs[m.type].radiusPx + balance.player.radiusPx;
+    for (const p of world.players.values()) {
+      if (p.state !== 'alive' || p.suspended || f.hit.has(p.id)) continue;
+      if (segDist(p.x, p.y, x0, y0, m.x, m.y) > reach) continue;
+      f.hit.add(p.id);
+      damagePlayer(world, p, world.rules.mobDamage(m.type), 'mob');
+    }
+    if (m.x < -margin || m.x > W + margin || m.y < -margin || m.y > H + margin) {
+      const i = world.mobs.indexOf(m);
+      if (i >= 0) world.mobs.splice(i, 1); // despawn bez smierci: bez trupa, bez dropu, bez kropelek
+    }
+  }
+}
+
+registerEvent('flyby', {
+  fromWave: 8,
+  weight: 10,
+  emote: null,
+  start(world, ev, kc) {
+    const rng = world.rng;
+    const alive = [...world.players.values()].filter((p) => p.state !== 'dead' && !p.suspended);
+    const total = Math.max(1, Math.round((kc.base ?? 6) + (kc.perWave ?? 0.5) * world.wave));
+    const lanes = [];
+    let dir = Math.floor(rng() * 4);
+    for (const p of alive) for (let k = 0; k < (kc.perPlayerMin ?? 2); k++) { lanes.push(laneFor(world, dir, p, rng)); dir = (dir + 1) % 4; }
+    while (lanes.length < total) { lanes.push(laneFor(world, dir, null, rng)); dir = (dir + 1) % 4; }
+    for (let i = lanes.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [lanes[i], lanes[j]] = [lanes[j], lanes[i]]; }
+    const durS = kc.durS ?? 12;
+    ev.lanes = lanes.map((l, i) => ({ ...l, at: (i / lanes.length) * durS * 0.85 + 0.6 }));
+    ev.next = 0;
+    ev.phase = 'fly';
+    world.lock = false;
+    world.eventCombat = true;
+    setDark(world, kc.dark ?? { alpha: 0.7, tint: '#050010', radiusTiles: 5 });
+  },
+  update(world, ev, dt, kc) {
+    while (ev.next < ev.lanes.length && ev.lanes[ev.next].at <= ev.t) spawnFlyer(world, ev.lanes[ev.next++], kc);
+    updateFlyers(world, dt);
+    const flying = world.mobs.some((m) => m.flyby);
+    return ev.next >= ev.lanes.length && !flying && ev.t >= (kc.durS ?? 12) * 0.5;
+  },
+  stop(world) {
+    world.mobs = world.mobs.filter((m) => !m.flyby);
+    world.eventCombat = false;
+    world.lock = false;
+    setDark(world, null);
     startBreakFor(world);
   },
 });
