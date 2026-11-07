@@ -129,3 +129,15 @@ test('podswietlony przedmiot bez sprite\'a nie wywala klatki', () => {
   it.kind = 'przedmiot-ktorego-nie-ma';
   assert.doesNotThrow(() => renderWorld(ctx, makeView({ mobs: [], items: [it], highlightId: it.id })));
 });
+
+// Plomienie (V3-Q-04) i ciemnosc (V3-Q-05): nowa warstwa i maska nie moga wywalic klatki.
+test('klatka z plomieniami i ciemnoscia renderuje sie bez wyjatku', () => {
+  const canvas = fakeCanvas(560, 315);
+  const ctx = canvas.getContext('2d');
+  renderWorld(ctx, makeView({
+    flames: [[1, 18, 18, 1], [2, 19, 18, 0.5], [3, 18, 19, 0.02]],
+    dark: { alpha: 0.75, tint: '#200000', radiusTiles: 4 },
+  }));
+  renderWorld(ctx, makeView({ flames: [], dark: { alpha: 0.4, tint: '#000000', radiusTiles: 6, flicker: false } }));
+  renderWorld(ctx, makeView({ flames: undefined, dark: null }));
+});

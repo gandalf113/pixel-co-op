@@ -657,6 +657,79 @@ function ring(ctx, x, y, r, color, alpha, fill = 0) {
   ctx.globalAlpha = 1;
 }
 
+// Plomienie (V3-Q-04): poswiata na podlodze + sprite skalowany sila (wysokosc i szerokosc).
+function drawFlames(ctx, view, ox, oy) {
+  const flames = view.flames ?? [];
+  if (!flames.length) return;
+  const tp = view.balance.map.tilePx;
+  for (const [id, tx, ty, s] of flames) {
+    const cx = (tx + 0.5) * tp + ox;
+    const cy = (ty + 0.5) * tp + oy;
+    const flick = 0.85 + 0.15 * Math.sin(view.nowMs / 90 + id);
+    const gr = Math.round(tp * (0.6 + 0.9 * s) * flick);
+    ctx.globalAlpha = 0.10 + 0.25 * s;
+    ctx.fillStyle = '#ff8a2a';
+    ctx.fillRect(Math.round(cx) - gr, Math.round(cy) - gr, gr * 2, gr * 2);
+    ctx.globalAlpha = 1;
+    const img = view.sprites.get(`flame_${((view.frame >> 2) + id) & 1}`);
+    if (!img) continue;
+    const k = 0.35 + 0.65 * s;
+    const w = Math.max(4, Math.round(img.width * k));
+    const h = Math.max(4, Math.round(img.height * k));
+    ctx.drawImage(img, Math.round(cx - w / 2), Math.round(cy + tp / 2 - h), w, h);
+  }
+}
+
+// Ciemnosc (V3-Q-05): maska na osobnym plotnie w rozdzielczosci widoku, zabarwiona, z wycietymi kolami
+// swiatla wokol zywych graczy (miekka krawedz 1 kafelek, migotanie jak pochodnia) i wokol plomieni.
+let darkCanvas = null;
+function darkMask(doc) {
+  if (!darkCanvas) {
+    darkCanvas = doc.createElement('canvas');
+    darkCanvas.width = VIEW_W;
+    darkCanvas.height = VIEW_H;
+  }
+  return darkCanvas;
+}
+
+function cutLight(mctx, x, y, r, soft, inner = 1) {
+  const g = mctx.createRadialGradient(x, y, Math.max(0, r - soft), x, y, r);
+  g.addColorStop(0, `rgba(0,0,0,${inner})`);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  mctx.fillStyle = g;
+  mctx.beginPath();
+  mctx.arc(x, y, r, 0, Math.PI * 2);
+  mctx.fill();
+}
+
+function drawDark(ctx, view, ox, oy) {
+  const d = view.dark;
+  if (!d || !(d.alpha > 0)) return;
+  const doc = view.document ?? globalThis.document;
+  if (!doc) return;
+  const tp = view.balance.map.tilePx;
+  const mask = darkMask(doc);
+  const m = mask.getContext('2d');
+  m.setTransform(1, 0, 0, 1, 0, 0);
+  m.globalCompositeOperation = 'source-over';
+  m.clearRect(0, 0, VIEW_W, VIEW_H);
+  m.fillStyle = d.tint ?? '#000000';
+  m.fillRect(0, 0, VIEW_W, VIEW_H);
+  m.globalCompositeOperation = 'destination-out';
+  const flicker = d.flicker === false ? 1 : 0.96 + 0.04 * Math.sin(view.nowMs / 70) * Math.sin(view.nowMs / 190);
+  for (const p of view.players ?? []) {
+    if (p.state !== 'alive') continue;
+    cutLight(m, p.x + ox, p.y + oy, (d.radiusTiles ?? 4) * tp * flicker, tp);
+  }
+  for (const [, tx, ty, s] of view.flames ?? []) {
+    cutLight(m, (tx + 0.5) * tp + ox, (ty + 0.5) * tp + oy, (1 + 2 * s) * tp, tp * 0.8, 0.9);
+  }
+  m.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = Math.min(1, d.alpha);
+  ctx.drawImage(mask, 0, 0);
+  ctx.globalAlpha = 1;
+}
+
 function drawEffects(ctx, view, ox, oy) {
   const { balance, nowMs } = view;
   const tp = balance.map.tilePx;
@@ -715,6 +788,7 @@ export function renderWorld(ctx, view) {
   drawItems(ctx, view, ox, oy);
   drawGhost(ctx, view, ox, oy);
   drawLandingMarkers(ctx, view, ox, oy);
+  drawFlames(ctx, view, ox, oy);
   drawTelegraphs(ctx, view, ox, oy);
   drawMobs(ctx, view, ox, oy);
   drawPlayers(ctx, view, ox, oy);
@@ -727,5 +801,6 @@ export function renderWorld(ctx, view) {
   drawMobBullets(ctx, view, ox, oy);
   view.fx?.drawTop(ctx, ox, oy, view.nowMs, fxs, view.balance.map.tilePx);
   drawEffects(ctx, view, ox, oy);
+  drawDark(ctx, view, ox, oy);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }

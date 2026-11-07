@@ -90,6 +90,11 @@ export class Fx {
     this.boosts.push({ text, x: e.x, y: e.y, own: e.id === myId, born: now });
   }
 
+  // Plomien zapalony (V3-Q-04): zar w gore.
+  ignite(now, x, y) {
+    this.#burst(now, x, y, 8, { colors: ['#ff8a2a', '#ffd23a', '#ffffff'], speed: 35, life: 0.5, rise: 30 });
+  }
+
   knock(id, now) {
     const k = this.mobKnock.get(id);
     if (!k || now >= k.until) return { x: 0, y: 0 };

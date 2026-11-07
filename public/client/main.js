@@ -31,6 +31,21 @@ const buffer = new SnapshotBuffer();
 const rtt = new RttTracker();
 const rxMeter = new RateMeter();
 let debugOn = false;
+// Ciemnosc (V3-Q-05): cel z serwera (snapshot.dark) albo lokalny podglad (F4); alpha dochodzi do celu w 1 s.
+const DARK_FADE_MS = 1000;
+const DARK_PREVIEW = { alpha: 0.78, tint: '#1a0000', radiusTiles: 4 };
+let darkPreview = false;
+let darkNow = { alpha: 0, tint: '#000000', radiusTiles: 4 };
+let darkLastMs = 0;
+
+function darkFor(now, target) {
+  const dt = darkLastMs ? Math.min(0.25, (now - darkLastMs) / DARK_FADE_MS) : 1;
+  darkLastMs = now;
+  const want = target ? Math.min(1, target.alpha ?? 0.75) : 0;
+  if (target) darkNow = { ...darkNow, tint: target.tint ?? darkNow.tint, radiusTiles: target.radiusTiles ?? darkNow.radiusTiles };
+  darkNow.alpha += Math.sign(want - darkNow.alpha) * Math.min(Math.abs(want - darkNow.alpha), dt);
+  return darkNow.alpha > 0.005 ? darkNow : null;
+}
 let fpsEma = 60;
 let kbps = 0;
 const input = new InputState(worldCanvas);
@@ -307,6 +322,7 @@ function renderDemo(now, dt) {
   cam.follow(h.x + (range ? rangeShift() : 0), h.y);
   demoFx.update(now, dt);
   const view = demo.view(now, { cam, sprites, fx: demoFx, gore: demoGore, pxScale: scale, aim });
+  view.dark = darkFor(now, darkPreview && range ? DARK_PREVIEW : null);
   guardedDraw('demo', () => renderWorld(wctx, view));
   guardedDraw('hud', () => renderHud(hctx, scale, { version, status, mouse: boardMouse(), showCursor: range, sprites, cam, nowMs: now, fx: demoFx }));
   if (!range) {
@@ -470,7 +486,7 @@ function onEvent(e) {
       break;
     case 'objHit': case 'destroyed': case 'explode': case 'pickup': case 'place':
     case 'drop': case 'down': case 'revive': case 'death':
-    case 'droplet': case 'ff': case 'expire':
+    case 'droplet': case 'ff': case 'expire': case 'flame':
       playSfx(e.type, e, tp);
       break;
     case 'reload': {
@@ -543,6 +559,9 @@ function onEvent(e) {
       break;
     case 'permUp':
       fx.permUp(now, e, myId, balance.items[e.kind]);
+      break;
+    case 'flame':
+      fx.ignite(now, e.x, e.y);
       break;
     case 'ultDeny':
       if (e.id === myId) denyUntil = now + 800;
@@ -646,6 +665,10 @@ function tick() {
 input.onAction((a, down) => {
   if (a === 'debug') {
     debugOn = !debugOn;
+    return;
+  }
+  if (a === 'dark') {
+    darkPreview = !darkPreview;
     return;
   }
   if (a === 'tab') {
@@ -887,6 +910,8 @@ function frame(now) {
     items: b.items, myId, gore, seed: latest.seed,
     droplets: lerpEntities(a.droplets ?? [], b.droplets ?? [], alpha, BULLET_KEY),
     rockets: lerpEntities(a.rockets ?? [], b.rockets ?? [], alpha, BULLET_KEY),
+    flames: b.flames ?? [],
+    dark: darkFor(now, darkPreview ? DARK_PREVIEW : latest.dark),
     effects, shakes, nowMs: now, pxScale: scale, fx,
     highlightId: pickTarget?.id ?? null,
     ghost: me && mode === 'game' ? ghostFor(me, latest, players, aimWorld()) : null,

@@ -2,6 +2,7 @@ import { damagePlayer } from './players.js';
 import { onMobKilled } from './items.js';
 import { spawnDroplets } from './ultimate.js';
 import { spawnSplit } from './mobspawn.js';
+import { igniteBlast } from './flames.js';
 import { KIND, tileOf, footprint, itemDef } from '../public/shared/world.js';
 import { rifleStats, modConfig } from '../public/shared/weapon.js';
 
@@ -304,6 +305,8 @@ function explodeMobBullet(world, b, hooks) {
   }
   addGore(world.gore.scorches, [Math.round(b.x), Math.round(b.y), Math.round(radius)], balance.gore.maxScorches);
   world.events.push({ type: 'explode', id: b.id, x: b.x, y: b.y, radiusPx: radius, mine: true, foe: true });
+  // granat zostawia plomien (V3-Q-04): srodek pelny, sasiedzi polowa
+  if (world.flames) igniteBlast(world, b.x, b.y, balance.flames.grenade);
 }
 
 function stepMobBullet(world, b, dt, hooks) {

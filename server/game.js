@@ -4,6 +4,7 @@ import { composeWave, SpawnDirector, bossesForWave, spawnPoints } from './waves.
 import { createPlayer, updatePlayers, startBreakFor, allDown, setDropHeld, speedMultOf } from './players.js';
 import { updateUltimate, useUltimate } from './ultimate.js';
 import { updateMobs } from './mobs.js';
+import { updateFlames } from './flames.js';
 import { fireWeapons, updateBullets, updateMobBullets, startReload } from './combat.js';
 import * as items from './items.js';
 import { Grid } from '../public/shared/world.js';
@@ -35,6 +36,9 @@ export class Game {
       gore: { corpses: [], splats: [], scorches: [], rubble: [] },
       droplets: [],
       rockets: [],
+      flames: [],
+      flameTick: 0,
+      dark: null,
       rng: makeRng(seed),
       nextId: () => next++,
       fieldsDirty: false,
@@ -80,6 +84,7 @@ export class Game {
     updateMobs(w, dt, this.mobHooks);
     updateBullets(w, dt, this.bulletHooks);
     updateMobBullets(w, dt, this.bulletHooks);
+    updateFlames(w, dt, this.bulletHooks);
     updateUltimate(w, dt);
     if (w.phase === 'wave') this.#spawn(dt);
 
@@ -231,6 +236,7 @@ export class Game {
     const view = this.views.get(id);
     const centers = centersFor(w, me);
     const near = (e) => inRange(centers, e.x, e.y, AOI.exitMul);
+    const tp = w.rules.tilePx;
     const { changed, del } = this.#itemsFor(view, centers);
     const { rows, statics } = this.#playersFor(view);
     return {
@@ -253,6 +259,9 @@ export class Game {
       mobs: this.#mobsFor(view, centers),
       droplets: w.droplets.filter(near).map((d) => [d.id, r1(d.x), r1(d.y)]),
       rockets: w.rockets.filter(near).map((r) => [r.id, r1(r.x), r1(r.y), r1(Math.atan2(r.vy, r.vx))]),
+      // [id, tx, ty, sila 0..1] (V3-Q-04); ciemnosc (V3-Q-05) null albo { alpha, tint, radiusTiles }
+      flames: w.flames.filter((f) => near({ x: (f.tx + 0.5) * tp, y: (f.ty + 0.5) * tp })).map((f) => [f.id, f.tx, f.ty, Math.round(f.strength * 100) / 100]),
+      dark: w.dark,
       // gwozdz (lenPx) niesie jeszcze kat, zeby klient narysowal kreske; zwykly pocisk zostaje trojka
       bullets: w.bullets.filter(near).map((b) => (b.lenPx ? [b.id, r1(b.x), r1(b.y), r1(Math.atan2(b.vy, b.vx)), b.lenPx] : [b.id, r1(b.x), r1(b.y)])),
       // [id, x, y, rodzaj (0 plwocina, 1 granat), lx, ly (punkt upadku granatu), left (s do upadku)]

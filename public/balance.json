@@ -572,6 +572,13 @@
     "scatterPx": 8,
     "groundLimit": 200
   },
+  "flames": {
+    "lifeS": 8,
+    "dps": 12,
+    "tickS": 0.5,
+    "max": 60,
+    "grenade": { "center": 1, "ring": 0.5 }
+  },
   "throw": {
     "rangeTiles": 4,
     "flightS": 0.5,

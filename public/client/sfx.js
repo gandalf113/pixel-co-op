@@ -213,6 +213,12 @@ const RECIPES = {
     { n: 'white', dur: 0.05, hp: 4000, level: 0.2, at: 0.21 },
   ], { rev: 'room', wet: 0.3 }),
   expire: [{ t: 'sine', f0: 400, f1: 200, dur: 0.15, level: 0.15 }],
+  // plomien (V3-Q-04): krotki trzask i buchniecie, bez petli
+  flame: [
+    { n: 'white', dur: 0.22, hp: 900, level: 0.16 },
+    { t: 'triangle', f0: 160, f1: 70, dur: 0.18, level: 0.12 },
+    { n: 'white', dur: 0.05, hp: 3000, level: 0.1, at: 0.09 },
+  ],
 };
 RECIPES.ultDeny = RECIPES.deny;
 

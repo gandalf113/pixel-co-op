@@ -155,3 +155,19 @@ Nazwy w UI: **Łatwy / Normalny / Trudny / Koszmar**. Suwak z 4 pozycjami i opis
 - Łatwy, 1 gracz: fala 8+.
 - Fala 1 na dowolnym poziomie nie powinna powalić nikogo, kto się rusza.
 - Pierwsza ściana powinna dać się postawić już po fali 1 (czyli min. 1 hard object w dropie z fali 1: gwarantowany, jeśli losowanie nie dało).
+
+## 6. Płomień i ciemność (V3-Q-04, V3-Q-05, v0.19.0)
+
+**Płomień** to byt świata na kafelku (`world.flames`, snapshot `flames: [[id, tx, ty, siła]]`), nie przedmiot.
+Siła 1.0 → 0 liniowo przez `flames.lifeS` (8 s), potem znika. Co `tickS` (0.5 s) zadaje `dps · tickS · siła`
+(12 obr./s przy pełnej sile) każdemu graczowi, potworowi i hard objectowi stojącemu na kafelku. Ten sam kafelek
+zapalony ponownie dostaje max(siła), nie sumę. Limit `flames.max` (60), najstarsze wylatują. Źródła są
+**wyłącznie wrogie**: granat Granatnika zapala kafelek trafienia pełną siłą i czterech sąsiadów połową
+(`flames.grenade`); Kamikaze (V3-Q-03) i random eventy (V3-Q-06) dołożą swoje. Gracz nie ma niczego, co stawia
+ogień: to decyzja właściciela, nie luka. Potwór spalony umiera bez zabójcy (nie liczy się nikomu do leaderboardu).
+
+**Ciemność** to warstwa renderu nad światem, pod HUD: cała plansza zabarwiona (`dark: { alpha, tint, radiusTiles }`
+w snapshocie, `null` = brak) z wyciętymi kołami światła wokół żywych graczy (promień `radiusTiles`, miękka
+krawędź 1 kafelek, migotanie ±4% jak pochodnia) i wokół płomieni (promień 1 + 2 · siła kafelka). Serwer tylko niesie
+pole (`setDark(world, cfg)` w `server/flames.js`); dziś nic go nie włącza poza testem. Klient dochodzi do celu w 1 s.
+**F4** w grze i na poligonie włącza lokalny podgląd (czerwień 0.78, promień 4), żeby obejrzeć efekt bez eventu.

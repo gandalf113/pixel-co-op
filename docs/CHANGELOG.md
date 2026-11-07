@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.35 - 2026-11-07
+- v0.19.0: **V3-Q-04 Plomien** i **V3-Q-05 ciemnosc**. Nowy modul `server/flames.js`: plomien na kafelku, sila 1 -> 0 przez 8 s, 12 obr./s razy sila co 0.5 s dla graczy, potworow i hard objectow na kafelku, limit 60, ten sam kafelek = max sily. Granat Granatnika zapala kafelek trafienia i czterech sasiadow (polowa). Snapshot `flames` (AOI) i `dark`. Klient: sprite ognia w dwoch klatkach skalowany sila, poswiata, zar przy zapaleniu, trzask `flame`; ciemnosc jako maska na osobnym plotnie z kolami swiatla wokol zywych graczy (migotanie) i plomieni, przejscie 1 s, **F4 = lokalny podglad**. Zrodla ognia wylacznie wrogie (decyzja wlasciciela). Sekcja 6 w `03-WAVES-DIFFICULTY.md`.
+
 ## 0.34 - 2026-11-07
 - v0.18.0: **V3-Q-01 Serce i V3-Q-02 Buty** - dropy stale (nowe `behavior: permanent` w `balance.json`, pola `effect`, `amount`, `cap`). Serce +10 maxHp (sufit +100), Buty +3% predkosci (sufit +30%); przy suficie `E` odmawia i przedmiot zostaje w rekach, rzut = podanie jak boost broni. Bonus predkosci wchodzi w `speedMultOf` (szal razy buty), wiec snapshot i predykcja klienta sa spojne. Poswiata na ziemi z pola `glow` (boost broni zloty, Serce czerwone, Buty niebieskie), zdarzenie `permUp` z rozbryzgiem i napisem. ITM-P-10, ITM-P-11 w `02-ITEMS.md`.
 

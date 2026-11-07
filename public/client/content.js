@@ -26,10 +26,12 @@ export const TIPS = [
   'Link do pokoju z lobby wrzuć znajomym. Wchodzą prosto do środka.',
   'Trudność wybiera host w lobby i nie zmienia się do końca partii.',
   'Serce i Buty zostają na stałe. Rzuć je koledze, który ma mniej HP.',
+  'Po granacie zostaje ogień. Nie stój w nim, ściany też się palą.',
 ];
 
 // Co nowego: ostatnie wersje, po jednym-dwa zdania. Najnowsza pierwsza. Aktualizowane razem z tagiem.
 export const NEWS = [
+  ['0.19.0', 'Granaty zostawiają ogień, który gaśnie przez 8 s i pali wszystko na kafelku. Ciemność z pochodnią wokół gracza gotowa pod wydarzenia (F4 = podgląd).'],
   ['0.18.0', 'Dwa nowe dropy na stałe: Serce (+10 max HP) i Buty (+3% prędkości). Działają do końca partii, rzucone można podać koledze.'],
   ['0.17.1', 'Rakieta mocniejsza: większe obrażenia i promień, dalszy lot, wybuch ogłusza potwory na pół sekundy.'],
   ['0.17.0', 'Pokoje jako osobna sekcja: złota ramka, licznik, siatka kart z wiekiem pokoju. Ustawienia schowane pod przyciskiem.'],
