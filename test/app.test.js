@@ -51,7 +51,10 @@ test('http static and websocket flow', async () => {
     const a = client(srv.port);
     const b = client(srv.port);
     await Promise.all([a.opened, b.opened]);
+    // Host = pierwszy `hello`. Dwa gniazda nie gwarantuja kolejnosci dostarczenia, wiec B wita sie dopiero po
+    // welcome A; inaczej pod obciazeniem B bywal hostem, `start` od A byl ignorowany i test wisial bez snapshotu.
     a.send({ t: 'hello', token: null, nick: 'A' });
+    await a.wait((m) => m.t === 'welcome', 'welcome A');
     b.send({ t: 'hello', token: null, nick: 'B' });
     for (const c of [a, b]) {
       await c.wait((m) => m.t === 'welcome');

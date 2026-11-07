@@ -51,7 +51,7 @@ test('snapshot niesie jawny kat potwora, takze gdy stoi w miejscu', () => {
   m.angle = 1.234;
   const row = g.snapshot(1).mobs.find((r) => r[MV.id] === m.id);
   assert.equal(row[MV.angle], 1.23);
-  assert.equal(row.length, 12);
+  assert.equal(row.length, 13);
 });
 
 test('cofajaca sie plujka patrzy na gracza (kat z serwera), nie w kierunku ruchu', () => {

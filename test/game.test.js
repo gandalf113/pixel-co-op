@@ -144,7 +144,7 @@ test('snapshot shape', () => {
     'ready', 'reloadLeft', 'reviveProgress', 'speedMult', 'state', 'suspended', 'ult', 'ultKind', 'ultKind2', 'weaponLv', 'weaponMod', 'x', 'y',
   ]);
   assert.ok(s.mobs.length > 0);
-  assert.equal(s.mobs[0].length, 12);
+  assert.equal(s.mobs[0].length, 13);
   assert.equal(s.mobsLeft, g.world.mobs.length + g.director.pending);
   assert.ok(g.director.pending > 0);
   for (const v of [s.t, s.players[0].x, s.players[0].angle, s.mobs[0][2], s.mobs[0][3]]) {

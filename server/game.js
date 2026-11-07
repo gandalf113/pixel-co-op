@@ -64,6 +64,7 @@ export class Game {
     this.overAt = null;
     this.mobHooks = { onObjectDestroyed: (item) => items.onObjectDestroyed(this.world, item) };
     this.bulletHooks = { onWallHit: (item, dmg) => this.#damageObject(item, dmg) };
+    this.world.onWallHit = this.bulletHooks.onWallHit;
     this.prevFire = new Map();
     this.world.waveComplete = () => this.director?.done === true && this.world.mobs.length === 0;
     setDropHeld((w, p) => items.dropHeld(w, p));

@@ -101,6 +101,12 @@ export function killMob(world, mob, killerId) {
   const i = world.mobs.indexOf(mob);
   if (i < 0) return;
   world.mobs.splice(i, 1);
+  // Kamikaze zabity w trakcie uzbrojenia tez wybucha, slabiej (killedMult); po detonacji armed jest juz 0.
+  const kz = world.rules.balance.mobs[mob.type].kamikaze;
+  if (kz && mob.armed > 0) {
+    mob.armed = 0;
+    explodeMob(world, mob, kz.killedMult ?? 0.5);
+  }
   const killer = killerId != null ? world.players.get(killerId) : undefined;
   if (killer) killer.kills++;
   const a = mob.angle ?? 0;
@@ -289,6 +295,40 @@ export function spawnMobBullet(world, mob, tx, ty) {
   world.mobBullets.push(b);
   world.events.push({ type: 'mobShot', id: mob.id, kind: b.kind, x, y, angle });
   return b;
+}
+
+// Wybuch potwora (Kamikaze, V3-Q-03): rani graczy z opadem do `edgeMult` na krawedzi, INNE potwory (pelne
+// obrazenia razy opad), hard objecty przez world.onWallHit (ustawia Game), zostawia przypalenie i plomien na kafelku.
+export function explodeMob(world, mob, mult = 1) {
+  const { balance, tilePx } = world.rules;
+  const k = balance.mobs[mob.type].kamikaze;
+  const radius = k.radiusTiles * tilePx;
+  const edge = k.edgeMult ?? 0.5;
+  const falloff = (d) => 1 - (1 - edge) * Math.min(1, d / radius);
+  const dmg = world.rules.mobDamage(mob.type) * mult;
+  const objDmg = world.rules.mobObjDamage(mob.type) * mult;
+  for (const p of world.players.values()) {
+    const d = Math.hypot(p.x - mob.x, p.y - mob.y);
+    if (p.state === 'alive' && !p.suspended && d <= radius + balance.player.radiusPx) damagePlayer(world, p, dmg * falloff(d), 'kamikaze');
+  }
+  for (const m of [...world.mobs]) {
+    if (m === mob) continue;
+    const d = Math.hypot(m.x - mob.x, m.y - mob.y);
+    if (d <= radius + balance.mobs[m.type].radiusPx) damageMob(world, m, dmg * falloff(d), null);
+  }
+  for (const item of [...world.items.values()]) {
+    if (item.state !== 'placed' || itemDef(item.kind)?.category !== 'hard' || !(item.hp > 0)) continue;
+    let d = Infinity;
+    for (const [tx, ty] of footprint(item.kind, item.tx, item.ty, item.rot)) {
+      d = Math.min(d, Math.hypot((tx + 0.5) * tilePx - mob.x, (ty + 0.5) * tilePx - mob.y));
+    }
+    if (d > radius) continue;
+    world.events.push({ type: 'objHit', id: item.id, x: mob.x, y: mob.y });
+    world.onWallHit?.(item, objDmg * falloff(d));
+  }
+  addGore(world.gore.scorches, [Math.round(mob.x), Math.round(mob.y), Math.round(radius)], balance.gore.maxScorches);
+  world.events.push({ type: 'explode', id: mob.id, x: mob.x, y: mob.y, radiusPx: radius, mine: true, foe: true });
+  if (world.flames) igniteBlast(world, mob.x, mob.y, { center: mult, ring: 0 });
 }
 
 function explodeMobBullet(world, b, hooks) {

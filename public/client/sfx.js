@@ -213,6 +213,12 @@ const RECIPES = {
     { n: 'white', dur: 0.05, hp: 4000, level: 0.2, at: 0.21 },
   ], { rev: 'room', wet: 0.3 }),
   expire: [{ t: 'sine', f0: 400, f1: 200, dur: 0.15, level: 0.15 }],
+  // kamikaze uzbrojony (V3-Q-03): trzy szybkie piski w gore, dlugosc = lont 0.3 s
+  armed: [
+    { t: 'square', f0: 1200, dur: 0.05, level: 0.22 },
+    { t: 'square', f0: 1500, dur: 0.05, level: 0.22, at: 0.09 },
+    { t: 'square', f0: 1900, dur: 0.07, level: 0.24, at: 0.18 },
+  ],
   // plomien (V3-Q-04): krotki trzask i buchniecie, bez petli
   flame: [
     { n: 'white', dur: 0.22, hp: 900, level: 0.16 },

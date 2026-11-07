@@ -52,7 +52,7 @@ test('attract: bohater wedruje i strzela, potwory sie snuja, zaden nie gryzie (h
   const view = d.view(1000, { cam: { x: 0, y: 0 }, sprites: new Map(), fx: null, gore: null, pxScale: 1, aim: null });
   assert.equal(view.players.length, 1);
   for (const m of view.mobs) {
-    assert.equal(m.length, 12, 'krotka potwora w ksztalcie MV');
+    assert.equal(m.length, 13, 'krotka potwora w ksztalcie MV');
     assert.ok(balance.mobs[m[MV.type]]);
   }
   assert.ok(view.items.some((i) => i.state === 'placed'), 'ruiny w tle');

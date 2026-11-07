@@ -1,7 +1,7 @@
 import { buildField, nextStep, sizeBlocked } from './flowfield.js';
 import { damagePlayer } from './players.js';
 import { spawnAround } from './mobspawn.js';
-import { damageMob, lineClear, spawnMobBullet, solidAlong } from './combat.js';
+import { explodeMob, killMob, damageMob, lineClear, spawnMobBullet, solidAlong } from './combat.js';
 import { KIND, moveCircle, tileOf } from '../public/shared/world.js';
 
 const EPS = 1e-9;
@@ -342,6 +342,30 @@ function ninjaStep(world, mob, stand, dt, hooks) {
   return true;
 }
 
+// Kamikaze (V3-Q-03): podbiega na `armTiles`, staje, uzbraja sie (`armed` = lont) i po `fuseS` wybucha.
+// Uzbrojony nie sledzi gracza i nie da sie go zatrzymac: zamrozenie/ogluszenie wstrzymuja updateMob, ale lont
+// liczy sie w updateMobs niezaleznie. Zwraca true, gdy potwor jest w cyklu uzbrojenia.
+function kamikazeStep(world, mob, stand, dt) {
+  const k = world.rules.balance.mobs[mob.type].kamikaze;
+  if (mob.armed > 0) return true;
+  const { tilePx, balance } = world.rules;
+  if (!stand.player || stand.dist > k.armTiles * tilePx + balance.player.radiusPx) return false;
+  mob.armed = k.fuseS;
+  mob.angle = Math.atan2(stand.player.y - mob.y, stand.player.x - mob.x);
+  world.events.push({ type: 'armed', id: mob.id, x: mob.x, y: mob.y, fuseS: k.fuseS });
+  return true;
+}
+
+function tickFuse(world, mob, dt) {
+  if (!(mob.armed > 0)) return false;
+  mob.armed -= dt;
+  if (mob.armed > EPS) return true;
+  mob.armed = 0;
+  killMob(world, mob, null);
+  explodeMob(world, mob, 1);
+  return true;
+}
+
 function updateMob(world, mob, dt, hooks) {
   const { tilePx, balance } = world.rules;
   const cfg = balance.mobs[mob.type];
@@ -351,8 +375,8 @@ function updateMob(world, mob, dt, hooks) {
   if (cfg.stealth) stealthTick(world, mob, dt);
 
   const stand = nearest(world, mob, isStand);
-  // ninja bije tylko szarza, skradajacy sie nie bije w ukryciu
-  const melee = !cfg.charge && !mob.invul;
+  // ninja bije tylko szarza, skradajacy sie nie bije w ukryciu, kamikaze nie bije wcale (wybucha)
+  const melee = !cfg.charge && !cfg.kamikaze && !mob.invul;
   if (melee && stand.player && stand.dist <= cfg.radiusPx + playerR + balance.mobAi.meleeReachPx && mob.attackCd <= EPS) {
     if (cfg.aoe) {
       // cios obszarowy: dostaje KAZDY stojacy gracz, ktorego cialo zahacza o kolo `aoe.radiusTiles` wokol srodka
@@ -377,6 +401,7 @@ function updateMob(world, mob, dt, hooks) {
 
   const target = pickTarget(world, mob, stand);
   if (!target.player) return;
+  if (cfg.kamikaze && kamikazeStep(world, mob, stand, dt)) return;
   if (cfg.charge && ninjaStep(world, mob, stand, dt, hooks)) return;
   if (cfg.stealth && stealthStep(world, mob, stand, dt)) return;
   if (target.dist <= cfg.radiusPx + playerR) {
@@ -466,6 +491,8 @@ export function updateMobs(world, dt, hooks = {}) {
       damageMob(world, mob, mob.bleedDps * step, mob.bleedOwner);
       if (!world.mobs.includes(mob)) continue;
     }
+    // lont kamikaze liczy sie zawsze (takze zamrozony / ogluszony): uzbrojonego nie da sie juz zatrzymac
+    if (tickFuse(world, mob, dt)) continue;
     if (mob.frozen > 0) {
       mob.frozen = Math.max(0, mob.frozen - dt);
       if (mob.frozen === 0 && mob.slowAfter > 0) mob.slowLeft = mob.slowAfter;

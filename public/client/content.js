@@ -5,6 +5,7 @@ export const BESTIARY = [
   ['slime', 'Ślimak', 'Mięso armatnie. Powolny, od pierwszej fali.'],
   ['runner', 'Biegacz', 'Szybki i słaby. Omija fortyfikacje, szuka dziur.'],
   ['brute', 'Osiłek', 'Niszczy fortyfikacje. Idzie na ściany, nie na ciebie.'],
+  ['kamikaze', 'Kamikaze', 'Podbiega, uzbraja się i po 0,3 s wybucha. Zabity uzbrojony też wybucha, słabiej. Strzelaj z daleka.'],
   ['spitter', 'Plujka', 'Trzyma dystans i pluje. Pocisku nie zestrzelisz.'],
   ['stalker', 'Skradający się', 'W ukryciu nietykalny, okrąża cię i dopada z boku.'],
   ['swarm', 'Rój', 'Trzy naraz, najmniejszy w grze. Jeden strzał, jeden mniej.'],
@@ -31,6 +32,7 @@ export const TIPS = [
 
 // Co nowego: ostatnie wersje, po jednym-dwa zdania. Najnowsza pierwsza. Aktualizowane razem z tagiem.
 export const NEWS = [
+  ['0.21.0', 'Nowy potwór: Kamikaze. Podbiega, miga na czerwono i wybucha po 0,3 s. Strzelaj z daleka, zabity uzbrojony też wybucha.'],
   ['0.20.0', 'Dwa ultimate na gracza: wybierasz dwa w lobby, F odpala pierwsze, C drugie. Pasek jeden, wspólny.'],
   ['0.19.1', 'Gwoździarka przebija potwory: każdy kolejny na linii dostaje 15% mniej.'],
   ['0.19.0', 'Granaty zostawiają ogień, który gaśnie przez 8 s i pali wszystko na kafelku. Ciemność z pochodnią wokół gracza gotowa pod wydarzenia (F4 = podgląd).'],

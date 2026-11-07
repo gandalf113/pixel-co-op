@@ -486,7 +486,7 @@ function onEvent(e) {
       break;
     case 'objHit': case 'destroyed': case 'explode': case 'pickup': case 'place':
     case 'drop': case 'down': case 'revive': case 'death':
-    case 'droplet': case 'ff': case 'expire': case 'flame':
+    case 'droplet': case 'ff': case 'expire': case 'flame': case 'armed':
       playSfx(e.type, e, tp);
       break;
     case 'reload': {

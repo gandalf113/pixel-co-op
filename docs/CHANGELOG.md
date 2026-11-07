@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.38 - 2026-11-07
+- v0.21.0: **V3-Q-03 Kamikaze** (MOB-11): maly, szybki, od fali 4. Podbiega na 1.5 kafelka, uzbraja sie (zdarzenie `armed`, czerwone miganie, trzy piski) i po 0.3 s wybucha (`explodeMob` w `combat.js`): promien 2 kafelki, 25 obr. w srodku, 50% na krawedzi, rani inne potwory i hard objecty (`world.onWallHit`), przypalenie i plomien. Zabity uzbrojony wybucha na 50%, zabity wczesniej nie; lont liczy sie takze zamrozonemu. Krotka potwora ma 13. pole `armed` (MV.armed). Test `app.test.js`: B wita sie po welcome A (host = pierwszy hello; pod obciazeniem kolejnosc dwoch gniazd nie byla pewna i test wisial).
+
 ## 0.37 - 2026-11-07
 - v0.20.0: **V3-Q-08 dwa ultimate na gracza**. Lobby: dwa sloty (klik w wolny kafelek = pierwszy pusty slot, klik w wybrany = zdjecie, oba pelne = podmiana drugiego; plakietki F / C), start dopiero z oboma, sloty musza byc rozne (`{t: ult, kind, slot}`, `kind: null` czysci). Gra: `F` = slot 1, `C` = slot 2, jeden wspolny pasek, uzycie dowolnego zeruje. HUD: dwie ikony z literami, napis `ULTI GOTOWE [F] / [C]`. `ultKind2` doklejony na koncu krotki gracza (PLAYER_FIELDS) i w wynikach. Poligon i ekran sterowania maja klawisz C. ULT-05, ULT-CTRL-01, ULT-HUD-02, PRD-CTRL-10 zaktualizowane.
 

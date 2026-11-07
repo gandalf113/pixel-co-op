@@ -452,6 +452,8 @@ export function drawMobs(ctx, view, ox, oy) {
       continue;
     }
     if (view.fx && view.nowMs < (view.fx.mobFlash.get(id) ?? 0)) img = silhouette(img, '#ffffff');
+    // uzbrojony kamikaze (V3-Q-03): szybkie czerwone miganie, zeby bylo widac, ze zaraz wybuchnie
+    else if (m[MV.armed] && (frame >> 1) & 1) img = silhouette(img, '#ff3a2a');
     if (invul) {
       // nietykalny: sam zarys (biala poswiata dookola) i ledwo widoczne wnetrze
       const sil = silhouette(img, '#c9c2b4');

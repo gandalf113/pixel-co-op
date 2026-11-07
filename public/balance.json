@@ -122,6 +122,27 @@
       "weight": 30,
       "radiusPx": 5
     },
+    "kamikaze": {
+      "hp": 25,
+      "damage": 25,
+      "objDamage": 40,
+      "wanderDeg": 15,
+      "look": false,
+      "speedTiles": 5.5,
+      "attackS": 1,
+      "fromWave": 4,
+      "drop": 0.25,
+      "cost": 2.5,
+      "weight": 14,
+      "radiusPx": 5,
+      "kamikaze": {
+        "armTiles": 1.5,
+        "fuseS": 0.3,
+        "radiusTiles": 2,
+        "edgeMult": 0.5,
+        "killedMult": 0.5
+      }
+    },
     "brute": {
       "hp": 150,
       "damage": 25,
@@ -598,6 +619,7 @@
     "droplets": {
       "slime": 1,
       "runner": 1,
+      "kamikaze": 1,
       "brute": 3,
       "spitter": 2,
       "grenadier": 2,

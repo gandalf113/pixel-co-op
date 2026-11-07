@@ -23,6 +23,7 @@ Pelne opisy zachowan: `10-BACKLOG-V3.md` punkt A. Tu sa liczby, bo to jest tabel
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | MOB-07 | **Granatnik** (64 px sylwetki nie ma, 16 px) | 60 | 18 (wybuch) | 10 | 2.0 | lob 110 px/s, zasieg 10 kaf., co 3 s, wybuch 1.5 kaf. (50% na krawedzi), marker upadku 0.7 s | 9 | 40% | 4 | 8 | 2 |
 | MOB-08 | **Skradajacy sie** (32 x 32) | 45 | 14 | 6 | 3.2 | wrecz co 1 s; cykl ukrycie 4-6 s / jawny 3-4 s, w ukryciu **nietykalny** i okraza gracza stycznie | 7 | 35% | 3 | 12 | 2 |
+| MOB-11 | **Kamikaze** (16 x 16, V3-Q-03, v0.21.0) | 25 | 25 (wybuch) | 40 (wybuch) | 5.5 | podbiega na **1.5 kafelka**, staje, **uzbraja sie** (miga na czerwono, sygnal) i po **0.3 s** wybucha: promien 2 kafelki, pelne obrazenia w srodku, 50% na krawedzi, rani tez potwory i hard objecty, zostawia plomien. Zabity **uzbrojony** tez wybucha (50%); zabity przed uzbrojeniem nie. Uzbrojonego nie zatrzymuje zamrozenie ani ogluszenie. Nie bije wrecz. | 4 | 25% | 2.5 | 14 | 1 |
 | MOB-09 | **Ninja** (32 x 32) | 70 | 22 | 8 | - | wandering **1.6-3.2 s** -> telegraf **0.85 s** -> szarza **18 kaf./s** po **ustalonej** trajektorii, do **13 kafli**, jedno trafienie na szarze | 8 | 45% | 4 | 8 | 3 |
 | MOB-10 | **Tank** (64 x 64) | 600 | 30 | 60 | 1.2 | wrecz; zmienia kolor w 4 progach HP; po smierci **rozpada sie na runnerow** (5/6/8/9 wg trudnosci) | 10 | 60% | 8 | 6 | 5 |
 

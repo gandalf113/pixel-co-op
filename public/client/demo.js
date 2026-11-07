@@ -396,6 +396,7 @@ export class DemoWorld {
       t[MV.angle] = m.angle;
       t[MV.invul] = 0;
       t[MV.tele] = 0;
+      t[MV.armed] = 0;
       return t;
     });
   }
