@@ -207,7 +207,7 @@ test('lobby: dwa sloty ultimate, rozne; serwer startuje z jednym (zgodnosc wstec
   assert.ok(s.game, 'z oboma slotami startuje');
   const me = s.game.world.players.values().next().value;
   assert.deepEqual([me.ultKind, me.ultKind2], ['shockwave', 'heal']);
-  assert.equal(s.game.snapshot(me.id).players[0].at(-1), 'heal', 'ultKind2 jest ostatnim polem krotki gracza');
+  assert.equal(s.game.snapshot(me.id).players[0].at(-2), 'heal', 'ultKind2 jest przedostatnim polem krotki gracza (ostatnie: powerBonus)');
 });
 
 test('zgodnosc wstecz (hotfix v0.23.1): hello -> ult -> start bez slotu 2 startuje gre i daje snapshot', () => {

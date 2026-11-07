@@ -93,3 +93,73 @@ test('rzucony drop staly nie aktywuje sie: lezy na ziemi (podanie koledze)', () 
   assert.equal(it.state, 'ground');
   assert.equal(p.maxHp, max0, 'rzut nie daje bonusu');
 });
+
+// Zbrojmistrz (V3-Q-09): mocniejsze ofensywne przedmioty stawiane przez tego, kto go podniosl.
+test('Zbrojmistrz: +25% na sztuke, sufit +100%, zdarzenie permUp z effect power', () => {
+  const { w, p } = oneWorld();
+  use(w, p, 'armorer');
+  assert.equal(p.powerBonus, 0.25);
+  assert.ok(w.events.some((e) => e.type === 'permUp' && e.effect === 'power' && e.total === 0.25));
+  for (let i = 0; i < 5; i++) use(w, p, 'armorer');
+  assert.equal(p.powerBonus, 1);
+  assert.ok(p.held != null, 'przy suficie zostaje w rekach');
+});
+
+test('Zbrojmistrz: dzialko postawione przez wzmocnionego strzela mocniej, postawione przez kolege nie; power zapisany przy stawianiu', async () => {
+  const { updateItems, spawnDrop: sd, placeServer } = await import('../server/items.js');
+  const { addMob } = await import('./helpers.js');
+  const w = makeWorld({ players: [{ x: C(40), y: C(30), angle: 0 }, { x: C(40), y: C(36), angle: 0 }] });
+  const a = w.players.get('p1');
+  const b = w.players.get('p2');
+  use(w, a, 'armorer');
+  use(w, a, 'armorer');
+  const place = (p, kind, tx, ty) => {
+    const it = sd(w, kind, p.x, p.y);
+    it.x = p.x; it.y = p.y;
+    handleAction(w, p, 'e');
+    p.busy = 0;
+    p.input.aimX = (tx + 0.5) * T; p.input.aimY = (ty + 0.5) * T;
+    handleAction(w, p, 'e');
+    return it;
+  };
+  const ta = place(a, 'turret30', 42, 30);
+  const tb = place(b, 'turret30', 42, 36);
+  assert.equal(ta.state, 'active');
+  assert.equal(ta.power, 1.5, 'power z chwili postawienia');
+  assert.equal(tb.power, 1);
+  use(w, a, 'armorer');
+  assert.equal(ta.power, 1.5, 'pozniejszy drop nie zmienia juz stojacego');
+  const srv = placeServer(w, 'turret60', 50, 30, 0);
+  assert.equal(srv.power, 1, 'wydarzenia stawiaja bez bonusu');
+  addMob(w, 'tank', C(46), C(30));
+  addMob(w, 'tank', C(46), C(36));
+  updateItems(w, 1 / 30);
+  const dmgA = w.bullets.find((bu) => bu.owner === 'p1' && bu.fromTurret)?.damage;
+  const dmgB = w.bullets.find((bu) => bu.owner === 'p2' && bu.fromTurret)?.damage;
+  assert.equal(dmgA, balance.items.turret30.damage * 1.5);
+  assert.equal(dmgB, balance.items.turret30.damage);
+});
+
+test('Zbrojmistrz: mina mocniejsza i szersza, kolce mocniejsze', async () => {
+  const { updateItems, placeServer } = await import('../server/items.js');
+  const { addMob } = await import('./helpers.js');
+  const w = makeWorld({ players: [{ x: C(10), y: C(10), angle: 0 }] });
+  const p = w.players.get('p1');
+  p.powerBonus = 1; // 4 sztuki
+  const mine = placeServer(w, 'mine', 40, 30, 0);
+  mine.power = 2; // jak po postawieniu przez p (placeServer daje 1)
+  mine.owner = 'p1';
+  const near = addMob(w, 'tank', C(40), C(30));
+  const rr = balance.items.mine.radiusTiles * (1 + 1 * balance.items.armorer.radiusPerPower);
+  const edge = addMob(w, 'tank', C(40) + (rr - 0.1) * T, C(30));
+  const out = addMob(w, 'tank', C(40) + (rr + 0.5) * T, C(30));
+  for (let i = 0; i < 60; i++) updateItems(w, 1 / 30);
+  assert.equal(balance.mobs.tank.hp - near.hp, balance.items.mine.damage * 2, 'x2 obrazenia');
+  assert.equal(balance.mobs.tank.hp - edge.hp, balance.items.mine.damage * 2, 'promien x1.6');
+  assert.equal(out.hp, balance.mobs.tank.hp, 'poza nowym promieniem');
+  const sp = placeServer(w, 'spikes', 60, 30, 0);
+  sp.power = 1.25;
+  const m = addMob(w, 'tank', C(60), C(30));
+  updateItems(w, 1 / 30);
+  assert.ok(Math.abs((balance.mobs.tank.hp - m.hp) - balance.items.spikes.tickDamage * 1.25) < 1e-9);
+});

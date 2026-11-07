@@ -32,6 +32,7 @@ export const TIPS = [
 
 // Co nowego: ostatnie wersje, po jednym-dwa zdania. Najnowsza pierwsza. Aktualizowane razem z tagiem.
 export const NEWS = [
+  ['0.25.0', 'Nowy drop na stałe: Zbrojmistrz. Kto go podniesie, stawia mocniejsze działka, miny i kolce (+25% na sztukę).'],
   ['0.24.0', 'Wydarzenie Przelot ninja: robi się ciemno, a przez całą mapę przelatują ninja. Zestrzelony w locie zawsze coś zostawia.'],
   ['0.23.0', 'Wydarzenie Trzęsienie ziemi: ziemia ciągnie graczy do siebie, wokół otwiera się 8 zapadni i wychodzi z nich dodatkowa fala.'],
   ['0.22.0', 'Wydarzenia po fali: czasem zamiast przerwy wbiega Armia budowniczych i stawia wszystko, co da się postawić. Kolejne wydarzenia w drodze.'],

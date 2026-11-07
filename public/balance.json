@@ -547,6 +547,19 @@
       "sprite": "speedboost",
       "glow": "#6fe0ff"
     },
+    "armorer": {
+      "category": "power",
+      "behavior": "permanent",
+      "effect": "power",
+      "name": "Zbrojmistrz",
+      "amount": 0.25,
+      "cap": 1.0,
+      "radiusPerPower": 0.6,
+      "throwDamage": 5,
+      "weight": 2,
+      "sprite": "armorer",
+      "glow": "#ffb347"
+    },
     "cage": {
       "category": "power",
       "behavior": "cage",

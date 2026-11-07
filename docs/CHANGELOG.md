@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.43 - 2026-11-07
+- v0.25.0: **V3-Q-09 Zbrojmistrz** (ITM-P-12): trzeci drop staly (`effect: power`, +25% na sztuke, sufit +100%). `powerOf(world, ownerId)` zapisuje `item.power` przy stawianiu (`activate`, `placeHardItem`); dzialko mnozy obrazenia, mina obrazenia i promien (`radiusPerPower` 0.6 -> +15% promienia na sztuke), kolce obrazenia, rzut obrazenia z rzutu. Przedmioty z wydarzen maja 1. Snapshot: `power` w przedmiocie (i w odcisku delty), `powerBonus` na koncu krotki gracza. Klient: zloty znacznik w rogu wzmocnionego przedmiotu, `+N%` przy trzymanym ofensywnym w HUD, napis `ZBROJMISTRZ +N%`.
+
 ## 0.42 - 2026-11-07
 - v0.24.0: **V3-Q-06-04 Przelot ninja** (`flyby` w `server/events.js`): ciemnosc z `setDark`, ninja z polem `flyby` (ruch przez wydarzenie, nie AI: `updateMobs` i `separate` je pomijaja, miny / kolce / klatki ignoruja), tory przez cala mape z czterech krawedzi, co najmniej 2 przez ekran kazdego gracza, despawn za krawedzia bez smierci, `mob.dropChance` = 100% dropu po zabiciu w locie, `eventCombat` bez blokady sterowania. Pierwsze wydarzenie, ktore korzysta z ciemnosci (V3-Q-05).
 

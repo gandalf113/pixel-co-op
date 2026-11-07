@@ -166,9 +166,16 @@ const ACTIVATORS = {
   },
 };
 
+// Mnoznik sily przedmiotu z bonusu stawiajacego (Zbrojmistrz, V3-Q-09): zapisany W CHWILI postawienia,
+// nie liczony na zywo. Przedmiot bez wlasciciela (wydarzenia) ma 1.
+export function powerOf(world, ownerId) {
+  const p = ownerId != null ? world.players.get(ownerId) : null;
+  return Math.round((1 + (p?.powerBonus ?? 0)) * 1000) / 1000;
+}
+
 function activate(world, item, tx, ty, owner) {
   const cfg = cfgOf(world, item);
-  Object.assign(item, { state: 'active', tx, ty, holder: null, flight: null, owner, cooldown: 0 });
+  Object.assign(item, { state: 'active', tx, ty, holder: null, flight: null, owner, cooldown: 0, power: powerOf(world, owner) });
   ACTIVATORS[cfg.behavior]?.(item, cfg);
   if (inGrid(item)) rebuildGrid(world);
   world.events.push({ type: 'place', id: item.id, kind: item.kind, tx, ty });
@@ -320,7 +327,7 @@ function targetFor(world, player, item, limit) {
 function placeHardItem(world, player, item) {
   const { tx, ty, valid } = targetFor(world, player, item, false);
   if (!valid) return deny(world, player);
-  Object.assign(item, { state: 'placed', tx, ty, holder: null, owner: player.id, cooldown: 0 });
+  Object.assign(item, { state: 'placed', tx, ty, holder: null, owner: player.id, cooldown: 0, power: powerOf(world, player.id) });
   player.held = null;
   rebuildGrid(world);
   world.events.push({ type: 'place', id: item.id, kind: item.kind, tx, ty });
@@ -353,6 +360,11 @@ export function applyPermanent(world, player, cfg) {
     const room = cfg.cap - (player.speedBonus ?? 0);
     if (room <= 1e-9) return false;
     player.speedBonus = Math.round(((player.speedBonus ?? 0) + Math.min(cfg.amount, room)) * 1000) / 1000;
+  } else if (cfg.effect === 'power') {
+    // Zbrojmistrz (V3-Q-09): mocniejsze ofensywne przedmioty (dzialko, mina, kolce) stawiane przez tego gracza
+    const room = cfg.cap - (player.powerBonus ?? 0);
+    if (room <= 1e-9) return false;
+    player.powerBonus = Math.round(((player.powerBonus ?? 0) + Math.min(cfg.amount, room)) * 1000) / 1000;
   } else return false;
   return true;
 }
@@ -369,7 +381,7 @@ function usePower(world, player, item) {
     player.held = null;
     world.items.delete(item.id);
     world.events.push({ type: 'permUp', id: player.id, x: player.x, y: player.y, kind: item.kind, effect: cfg.effect,
-      total: cfg.effect === 'hp' ? player.hpBonus : player.speedBonus });
+      total: cfg.effect === 'hp' ? player.hpBonus : cfg.effect === 'speed' ? player.speedBonus : player.powerBonus });
     return;
   }
   const { tx, ty, valid } = targetFor(world, player, item, limitReached(world, item.kind));
@@ -493,8 +505,9 @@ function updateFlight(world, item, dt) {
   if (hit?.mob) {
     if (isHard(world, item)) hit.mob.stun = Math.max(hit.mob.stun, balance.throw.stunS);
     if (cfg.throwBleed) Object.assign(hit.mob, { bleedLeft: cfg.throwBleed.durationS, bleedDps: cfg.throwBleed.dps, bleedOwner: f.thrower });
-    mobHit(world, hit.x, hit.y, hit.mob, Math.atan2(f.y1 - f.y0, f.x1 - f.x0), cfg.throwDamage);
-    damageMob(world, hit.mob, cfg.throwDamage, f.thrower);
+    const thrown = cfg.throwDamage * powerOf(world, f.thrower);
+    mobHit(world, hit.x, hit.y, hit.mob, Math.atan2(f.y1 - f.y0, f.x1 - f.x0), thrown);
+    damageMob(world, hit.mob, thrown, f.thrower);
     return land(world, item, hit.x, hit.y, hit.mob);
   }
   if (hit?.player) {
@@ -539,7 +552,7 @@ function updateTurret(world, item, dt) {
   if (!target) return;
   spawnBullet(world, {
     owner: item.owner, fromTurret: true, x: cx, y: cy, angle: Math.atan2(target.y - cy, target.x - cx),
-    damage: cfg.damage, speedPx: balance.rifle.speedPx, rangePx: range,
+    damage: cfg.damage * (item.power ?? 1), speedPx: balance.rifle.speedPx, rangePx: range,
   });
   item.cooldown = cfg.cooldownS;
   world.events.push({ type: 'shot', id: item.id, x: cx, y: cy, angle: Math.atan2(target.y - cy, target.x - cx) });
@@ -554,14 +567,18 @@ function updateMine(world, item, dt) {
   if (!triggered) return;
   const cx = (item.tx + 0.5) * tilePx;
   const cy = (item.ty + 0.5) * tilePx;
-  const r = cfg.radiusTiles * tilePx;
+  const power = item.power ?? 1;
+  // Zbrojmistrz: obrazenia razy power, promien rosnie wolniej (radiusPerPower z wpisu Zbrojmistrza, 0.6 -> +15% na sztuke)
+  const rMul = 1 + (power - 1) * (balance.items.armorer?.radiusPerPower ?? 0.6);
+  const r = cfg.radiusTiles * tilePx * rMul;
+  const dmg = cfg.damage * power;
   world.items.delete(item.id);
   for (const m of [...world.mobs]) {
     if (Math.hypot(m.x - cx, m.y - cy) > r) continue;
-    damageMob(world, m, cfg.damage, item.owner);
+    damageMob(world, m, dmg, item.owner);
   }
   for (const p of world.players.values()) {
-    if (p.state === 'alive' && Math.hypot(p.x - cx, p.y - cy) <= r) damagePlayer(world, p, cfg.damage * balance.friendlyFire, 'mine');
+    if (p.state === 'alive' && Math.hypot(p.x - cx, p.y - cy) <= r) damagePlayer(world, p, dmg * balance.friendlyFire, 'mine');
   }
   addGore(world.gore.scorches, [Math.round(cx), Math.round(cy), Math.round(r)], balance.gore.maxScorches);
   world.events.push({ type: 'explode', id: item.id, x: cx, y: cy, radiusPx: r, mine: true });
@@ -578,11 +595,12 @@ function updateSpikes(world, item, dt) {
   const mobs = world.mobs.filter((m) => !m.flyby && onTile(m));
   const players = [...world.players.values()].filter((p) => p.state === 'alive' && !p.suspended && onTile(p));
   if (!mobs.length && !players.length) return;
+  const tick = cfg.tickDamage * (item.power ?? 1);
   for (const m of mobs) {
-    mobHit(world, m.x, m.y, m, m.angle ?? 0, cfg.tickDamage);
-    damageMob(world, m, cfg.tickDamage, item.owner);
+    mobHit(world, m.x, m.y, m, m.angle ?? 0, tick);
+    damageMob(world, m, tick, item.owner);
   }
-  for (const p of players) damagePlayer(world, p, cfg.tickDamage * balance.friendlyFire, 'spikes');
+  for (const p of players) damagePlayer(world, p, tick * balance.friendlyFire, 'spikes');
   item.cooldown = cfg.tickS;
 }
 

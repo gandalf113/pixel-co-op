@@ -86,7 +86,7 @@ export class Fx {
   permUp(now, e, myId, cfg) {
     const color = cfg?.glow ?? '#ffffff';
     this.#burst(now, e.x, e.y, 14, { colors: [color, '#ffffff'], speed: 90, life: 0.45 });
-    const text = e.effect === 'hp' ? `MAX HP +${Math.round(e.total)}` : `SZYBKOŚĆ +${Math.round(e.total * 100)}%`;
+    const text = e.effect === 'hp' ? `MAX HP +${Math.round(e.total)}` : e.effect === 'speed' ? `SZYBKOŚĆ +${Math.round(e.total * 100)}%` : `ZBROJMISTRZ +${Math.round(e.total * 100)}%`;
     this.boosts.push({ text, x: e.x, y: e.y, own: e.id === myId, born: now });
   }
 

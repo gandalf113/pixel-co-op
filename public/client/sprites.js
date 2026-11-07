@@ -883,6 +883,25 @@ export const SPRITES = {
     '................',
     '................',
   ],
+  // Zbrojmistrz (V3-Q-09): klucz francuski na zlotym tle; mocniejsze ofensywne przedmioty.
+  item_armorer: [
+    '................',
+    '................',
+    '..........KKK...',
+    '.........KSSSK..',
+    '.........KS.SK..',
+    '........KSSSSK..',
+    '.......KSSSK....',
+    '......KSSSK.....',
+    '.....KSSSK......',
+    '....KSSSK.......',
+    '...KSSSK........',
+    '..KoSSK.........',
+    '..KooK..........',
+    '...KK...........',
+    '................',
+    '................',
+  ],
   // Buty (V3-Q-02): niebieski but ze skrzydelkiem; staly bonus predkosci (bardzo lekki).
   item_speedboost: [
     '................',

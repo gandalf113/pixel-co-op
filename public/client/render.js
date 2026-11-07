@@ -373,6 +373,13 @@ function drawItems(ctx, view, ox, oy) {
         const f = cfg?.behavior === 'mine' && !it.armed ? 0 : (frame >> 3) & 1;
         blit(ctx, sprites.get(`${base}_${f}`), it.tx * tp + sx, it.ty * tp + oy);
       }
+      if (it.power > 1) {
+        // Zbrojmistrz (V3-Q-09): zloty znacznik w rogu wzmocnionego przedmiotu
+        ctx.fillStyle = '#14120f';
+        ctx.fillRect(it.tx * tp + sx, it.ty * tp + oy, 5, 5);
+        ctx.fillStyle = '#ffb347';
+        ctx.fillRect(it.tx * tp + sx + 1, it.ty * tp + oy + 1, 3, 3);
+      }
     } else if (it.state === 'flying' && it.flight) {
       const { x0, y0, x1, y1, p } = it.flight;
       const x = x0 + (x1 - x0) * p;

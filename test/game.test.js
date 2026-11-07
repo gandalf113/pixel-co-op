@@ -141,7 +141,7 @@ test('snapshot shape', () => {
   assert.equal(s.you.id, 1);
   assert.deepEqual(Object.keys(s.players[0]).sort(), [
     'ammo', 'angle', 'busy', 'color', 'deathLeft', 'frenzyLeft', 'held', 'hp', 'id', 'invuln', 'maxHp', 'nick',
-    'ready', 'reloadLeft', 'reviveProgress', 'speedMult', 'state', 'suspended', 'ult', 'ultKind', 'ultKind2', 'weaponLv', 'weaponMod', 'x', 'y',
+    'powerBonus', 'ready', 'reloadLeft', 'reviveProgress', 'speedMult', 'state', 'suspended', 'ult', 'ultKind', 'ultKind2', 'weaponLv', 'weaponMod', 'x', 'y',
   ]);
   assert.ok(s.mobs.length > 0);
   assert.equal(s.mobs[0].length, 13);
@@ -161,7 +161,7 @@ test('snapshot shape', () => {
   assert.ok(s2.bullets.length > 0);
   assert.equal(s2.bullets[0].length, 3);
   assert.deepEqual(s2.items.map((i) => i.id), [500]);
-  assert.deepEqual(Object.keys(s2.items[0]).sort(), ['armed', 'flight', 'hp', 'id', 'kind', 'maxHp', 'rot', 'state', 'timeLeft', 'tx', 'ty', 'x', 'y']);
+  assert.deepEqual(Object.keys(s2.items[0]).sort(), ['armed', 'flight', 'hp', 'id', 'kind', 'maxHp', 'power', 'rot', 'state', 'timeLeft', 'tx', 'ty', 'x', 'y']);
   assert.equal(s2.items[0].armed, true);
   assert.equal(s2.items[0].flight, null);
 });

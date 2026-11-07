@@ -326,7 +326,9 @@ export function renderHud(ctx, scale, state) {
       if (me.frenzyLeft > 0) text(ctx, `SZAŁ ${Math.ceil(me.frenzyLeft)} s`, W / 2, H - PAD - 40 * scale, { size: fs, align: 'center', color: '#ff5a4a' });
 
       const held = me.held;
-      const label = held ? balance.items[held].name : 'nic';
+      const offensive = held && ['turret', 'mine', 'spikes'].includes(balance.items[held].behavior);
+      const bonus = offensive && me.powerBonus > 0 ? ` +${Math.round(me.powerBonus * 100)}%` : '';
+      const label = held ? balance.items[held].name + bonus : 'nic';
       text(ctx, label, W - PAD, H - PAD - 3 * scale, { size: fs, align: 'right', base: 'middle' });
       if (held) {
         ctx.font = `bold ${fs}px monospace`;

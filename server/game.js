@@ -194,6 +194,7 @@ export class Game {
     return {
       id: it.id, kind: it.kind, state: it.state, x: r1(it.x), y: r1(it.y), tx: it.tx, ty: it.ty, rot: it.rot,
       hp: r1(it.hp), maxHp: it.maxHp ?? w.rules.balance.items[it.kind].hp ?? null, timeLeft: r1(it.timeLeft), armed: it.state === 'active' && !(it.armLeft > 0),
+      power: it.power > 1 ? it.power : 1,
       flight: f ? { x0: r1(f.x0), y0: r1(f.y0), x1: r1(f.x1), y1: r1(f.y1), p: r1(f.t / f.dur) } : null,
     };
   }
@@ -202,7 +203,7 @@ export class Game {
   // wiec wchodzi tylko calymi sekundami (pasek na HUD nie musi byc co do klatki).
   static #itemSig(v) {
     const f = v.flight;
-    return `${v.state}|${v.x}|${v.y}|${v.tx}|${v.ty}|${v.rot}|${v.hp}|${v.maxHp}|${Math.floor(v.timeLeft ?? 0)}|${v.armed ? 1 : 0}|${f ? `${f.x0},${f.y0},${f.x1},${f.y1},${f.p}` : ''}`;
+    return `${v.state}|${v.x}|${v.y}|${v.tx}|${v.ty}|${v.rot}|${v.hp}|${v.maxHp}|${Math.floor(v.timeLeft ?? 0)}|${v.armed ? 1 : 0}|${v.power}|${f ? `${f.x0},${f.y0},${f.x1},${f.y1},${f.p}` : ''}`;
   }
 
   // Delta przedmiotow + area of interest. Postawione i aktywne ZAWSZE (siatka kolizji klienta), dropy
@@ -265,7 +266,7 @@ export class Game {
       you: { id, ackSeq: me?.ackSeq ?? 0 },
       // Pola zmienne gracza jako krotki, kolejnosc = PLAYER_FIELDS z public/shared/delta.js:
       // [id, x, y, angle, hp, maxHp, state, suspended, reviveProgress, deathLeft, invuln, busy, held, ready,
-      //  weaponLv, weaponMod, ammo, reloadLeft, ult, ultKind, frenzyLeft, speedMult, ultKind2]
+      //  weaponLv, weaponMod, ammo, reloadLeft, ult, ultKind, frenzyLeft, speedMult, ultKind2, powerBonus]
       players: rows,
       // Pola stale [id, nick, color]: tylko w pelnym snapshocie i przy graczu, ktorego ten klient jeszcze nie widzial.
       ...(statics.length ? { pstatic: statics } : {}),
@@ -315,7 +316,7 @@ export class Game {
       reviveProgress: r1(p.reviveProgress), deathLeft: r1(p.deathLeft), invuln: r1(p.invuln), busy: r1(p.busy),
       held: items.heldKind(this.world, p), ready: p.ready, weaponLv: p.weaponLv, weaponMod: p.weaponMod,
       ammo: p.ammo, reloadLeft: r1(p.reloadLeft),
-      ult: r1(p.ult), ultKind: p.ultKind, frenzyLeft: r1(p.frenzyLeft), speedMult: speedMultOf(p), ultKind2: p.ultKind2 ?? null,
+      ult: r1(p.ult), ultKind: p.ultKind, frenzyLeft: r1(p.frenzyLeft), speedMult: speedMultOf(p), ultKind2: p.ultKind2 ?? null, powerBonus: p.powerBonus ?? 0,
     };
   }
 
