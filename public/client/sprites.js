@@ -1369,6 +1369,8 @@ for (const [secs, pips] of Object.entries(TIME_PIPS)) {
 export const DECOR_SPRITES = Object.keys(SPRITES).filter(n => n.startsWith('decor_'));
 
 export const PLAYER_SPRITES = Object.keys(SPRITES).filter(n => SPRITES[n].some(row => /[PQ]/.test(row)));
+// Szary "gracz" budowniczych (V3-Q-06-03): pieczony razem z kolorami graczy.
+export const BUILDER_COLOR = '#8c8c8c';
 
 function hexToRgb(hex) {
   const v = parseInt(hex.slice(1), 16);

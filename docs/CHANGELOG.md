@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.39 - 2026-11-07
+- v0.22.0: **V3-Q-06 system wydarzen** i **V3-Q-06-03 Armia budowniczych**. `server/events.js`: rejestr wydarzen, losowanie po fali (20%, od fali 3, nie na bossie, nie dwa razy z rzedu), `world.lock` blokuje ruch / strzal / akcje / ultimate (serwer i predykcja klienta), licznik przerwy stoi na czas wydarzenia. Armia: plan do pelnych limitow + sciany/glazy/kolce, pierscien 3-14 kafelkow wokol graczy, odstep 2 kafelki miedzy obiektami blokujacymi, ~50 szarych budowniczych w snapshocie (`builders`), kazde postawienie to zwykly `place`. Klient: baner `WYDARZENIE: ...`, emotka `?!` nad graczami, szare sylwetki (`BUILDER_COLOR`), fanfara `eventStart`. `placeServer` i `freeFootprint` w `items.js`. Sekcja 7 w `03-WAVES-DIFFICULTY.md`.
+
 ## 0.38 - 2026-11-07
 - v0.21.0: **V3-Q-03 Kamikaze** (MOB-11): maly, szybki, od fali 4. Podbiega na 1.5 kafelka, uzbraja sie (zdarzenie `armed`, czerwone miganie, trzy piski) i po 0.3 s wybucha (`explodeMob` w `combat.js`): promien 2 kafelki, 25 obr. w srodku, 50% na krawedzi, rani inne potwory i hard objecty (`world.onWallHit`), przypalenie i plomien. Zabity uzbrojony wybucha na 50%, zabity wczesniej nie; lont liczy sie takze zamrozonemu. Krotka potwora ma 13. pole `armed` (MV.armed). Test `app.test.js`: B wita sie po welcome A (host = pierwszy hello; pod obciazeniem kolejnosc dwoch gniazd nie byla pewna i test wisial).
 

@@ -173,6 +173,41 @@ function activate(world, item, tx, ty, owner) {
   world.events.push({ type: 'place', id: item.id, kind: item.kind, tx, ty });
 }
 
+// Czy obrys przedmiotu zmiesci sie na wolnych kafelkach (siatka, ciala graczy i potworow, `reserved` = "x,y").
+export function freeFootprint(world, kind, tx, ty, rot = 0, reserved = null) {
+  const { tilePx } = world.rules;
+  const cs = circles(world);
+  for (const [x, y] of footprint(kind, tx, ty, rot)) {
+    if (!world.grid.inside(x, y) || world.grid.isOccupied(x, y)) return false;
+    if (reserved?.has(`${x},${y}`)) return false;
+    for (const c of cs) {
+      const nx = Math.max(x * tilePx, Math.min(c.x, (x + 1) * tilePx));
+      const ny = Math.max(y * tilePx, Math.min(c.y, (y + 1) * tilePx));
+      if ((c.x - nx) ** 2 + (c.y - ny) ** 2 < c.r * c.r) return false;
+    }
+  }
+  return true;
+}
+
+// Stawia przedmiot "z reki serwera" (wydarzenia, V3-Q-06): hard object w stanie `placed`, power-up od razu aktywny,
+// bez wlasciciela. Nie sprawdza miejsca (od tego jest freeFootprint) ani limitow (plan wydarzenia liczy je sam).
+export function placeServer(world, kind, tx, ty, rot = 0) {
+  const { tilePx } = world.rules;
+  const cfg = world.rules.balance.items[kind];
+  const item = {
+    id: world.nextId(), kind, state: 'ground', x: (tx + 0.5) * tilePx, y: (ty + 0.5) * tilePx,
+    tx, ty, rot: cfg.rotatable ? rot : 0, hp: cfg.hp ?? 0, holder: null, owner: null, groundSince: world.time,
+    timeLeft: 0, armLeft: 0, cooldown: 0, flight: null,
+  };
+  world.items.set(item.id, item);
+  if (cfg.category === 'hard') {
+    Object.assign(item, { state: 'placed', maxHp: cfg.hp });
+    rebuildGrid(world);
+    world.events.push({ type: 'place', id: item.id, kind, tx, ty });
+  } else activate(world, item, tx, ty, null);
+  return item;
+}
+
 export function spawnUltWall(world, tx, ty, rot, hp, expireS) {
   const tiles = footprint('wall', tx, ty, rot);
   const { tilePx } = world.rules;
@@ -358,6 +393,7 @@ function throwItem(world, player, item) {
 }
 
 export function handleAction(world, player, action) {
+  if (world.lock) return; // wydarzenie (V3-Q-06): sterowanie zablokowane
   if (player.state !== 'alive' || player.suspended || player.busy > 0) return;
   const item = player.held != null ? world.items.get(player.held) : null;
   if (action === 'e') {

@@ -172,3 +172,18 @@ w snapshocie, `null` = brak) z wyciętymi kołami światła wokół żywych grac
 krawędź 1 kafelek, migotanie ±4% jak pochodnia) i wokół płomieni (promień 1 + 2 · siła kafelka). Serwer tylko niesie
 pole (`setDark(world, cfg)` w `server/flames.js`); dziś nic go nie włącza poza testem. Klient dochodzi do celu w 1 s.
 **F4** w grze i na poligonie włącza lokalny podgląd (czerwień 0.78, promień 4), żeby obejrzeć efekt bez eventu.
+
+## 7. Wydarzenia na końcu fali (V3-Q-06, v0.22.0)
+
+Po wyczyszczeniu fali, zamiast od razu zwykłej przerwy, z szansą `events.chance` (20%) startuje wydarzenie:
+od fali `events.fromWave` (3), nigdy na fali bossa, nigdy dwa razy z rzędu. Wydarzenie **zatrzymuje licznik
+przerwy** i gotowość, **blokuje sterowanie** (`world.lock`: ruch, strzał, akcje, ultimate), a po zakończeniu
+przerwa biegnie dalej z pełnym czasem. Stan w snapshocie: `event: { type, name, phase, t, lock, emote }` albo
+`null`; HUD pokazuje `WYDARZENIE: <nazwa>` (miga 2 s), nad graczami emotka. Rejestr w `server/events.js`, każde
+wydarzenie to `{ fromWave, weight, start, update -> done, stop }` i blok w `balance.json` → `events.kinds.<typ>`.
+
+| Wydarzenie | Przebieg | Liczby |
+|---|---|---|
+| **Armia budowniczych** (`builders`, V3-Q-06-03) | Gracze stoją z emotką `?!`. Zza krawędzi mapy wbiega ok. 50 szarych "graczy" (kosmetyczni, lista `builders` w snapshocie, bez kolizji) i stawiają według planu ułożonego na starcie: **wszystko do pełnych limitów** (działka, miny, klatki, platformy z `limit` w balansie, minus to, co już stoi) plus ściany / głazy / kolce w liczbie `hard`. Każde postawienie to zwykły `place` (dźwięk, efekt). Po robocie wybiegają za krawędź. Rozmieszczenie: pierścień `ringMin..ringMax` kafelków wokół środka ciężkości żywych graczy, platformy 1-4 kafelki od graczy, obiekty blokujące ciało z odstępem `gapTiles` wolnych kafelków od innych blokujących (żeby nie zamurować ścieżki). Nic nie staje na graczu ani potworze. | `count` 50, `speedTiles` 8, `placeS` 0.15, `maxS` 14 (awaryjnie reszta planu staje od razu), `ringMin` 3, `ringMax` 14, `gapTiles` 2, `hard`: ściana 10, głaz 5, kolce 5. Waga 10, od fali 3. |
+
+Kolejne wydarzenia z backlogu (Trzęsienie ziemi, Deszcz ognia, Przelot ninja) wchodzą jako nowe wpisy rejestru.

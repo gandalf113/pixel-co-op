@@ -273,14 +273,18 @@ export function renderHud(ctx, scale, state) {
 
     const bossH = drawBossBar(ctx, state, scale, PAD + fs + 6, fs, small);
     let topLine;
-    if (snap.phase === 'break') {
+    if (snap.event) {
+      // wydarzenie (V3-Q-06): nazwa miga przez pierwsze 2 s, potem stoi na zloto
+      const fresh = snap.event.t < 2 && Math.floor(state.nowMs / 200) % 2 === 0;
+      topLine = { str: `WYDARZENIE: ${snap.event.name}`, color: fresh ? '#ffffff' : '#ffd23a' };
+    } else if (snap.phase === 'break') {
       const blink = snap.breakLeft <= 5 && Math.floor(state.nowMs / 250) % 2 === 0;
       topLine = { str: `PRZERWA ${formatTime(snap.breakLeft)}`, color: blink ? '#ff5a4a' : '#d9b53a' };
     } else {
       topLine = { str: `FALA ${snap.wave} · potwory: ${snap.mobsLeft}`, color: '#e8e2d4' };
     }
     text(ctx, topLine.str, W / 2, PAD + fs, { color: topLine.color, size: fs, align: 'center' });
-    if (snap.phase === 'break') {
+    if (snap.phase === 'break' && !snap.event) {
       const ready = snap.players.filter((p) => p.ready).map((p) => p.nick);
       const line = `${ready.length ? `Gotowi: ${ready.join(', ')} · ` : ''}${me?.ready ? 'gotowy ✓' : '[G] Gotowy'}`;
       text(ctx, line, W / 2, PAD + fs * 2 + 4 + bossH, { size: small, align: 'center' });

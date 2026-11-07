@@ -213,6 +213,13 @@ const RECIPES = {
     { n: 'white', dur: 0.05, hp: 4000, level: 0.2, at: 0.21 },
   ], { rev: 'room', wet: 0.3 }),
   expire: [{ t: 'sine', f0: 400, f1: 200, dur: 0.15, level: 0.15 }],
+  // wydarzenie (V3-Q-06): krotka fanfara, dwa tony w gore i tremolo
+  eventStart: Object.assign([
+    { t: 'square', f0: 392, dur: 0.12, level: 0.2 },
+    { t: 'square', f0: 523, dur: 0.12, level: 0.2, at: 0.12 },
+    { t: 'square', f0: 784, dur: 0.35, level: 0.22, at: 0.24, tail: 0.2 },
+    { t: 'triangle', f0: 1568, dur: 0.3, level: 0.1, at: 0.24, tail: 0.2 },
+  ], { rev: 'hall', wet: 0.5 }),
   // kamikaze uzbrojony (V3-Q-03): trzy szybkie piski w gore, dlugosc = lont 0.3 s
   armed: [
     { t: 'square', f0: 1200, dur: 0.05, level: 0.22 },

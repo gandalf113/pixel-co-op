@@ -113,7 +113,7 @@ export function updatePlayers(world, dt) {
 
     p.angle = Math.atan2(p.input.aimY - p.y, p.input.aimX - p.x);
 
-    if (input && p.state === 'alive' && !p.suspended && p.busy <= 0) {
+    if (input && !world.lock && p.state === 'alive' && !p.suspended && p.busy <= 0) {
       const heldKind = p.held != null ? world.items.get(p.held)?.kind ?? null : null;
       const pos = stepPlayer(p, input, dt, playerSpeedPx(balance, heldKind, speedMultOf(p)), world.grid, balance);
       p.x = pos.x;

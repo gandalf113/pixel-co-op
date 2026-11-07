@@ -595,6 +595,25 @@
     "scatterPx": 8,
     "groundLimit": 200
   },
+  "events": {
+    "chance": 0.2,
+    "fromWave": 3,
+    "kinds": {
+      "builders": {
+        "name": "ARMIA BUDOWNICZYCH",
+        "weight": 10,
+        "fromWave": 3,
+        "count": 50,
+        "speedTiles": 8,
+        "placeS": 0.15,
+        "maxS": 14,
+        "ringMin": 3,
+        "ringMax": 14,
+        "gapTiles": 2,
+        "hard": { "wall": 10, "boulder": 5, "spikes": 5 }
+      }
+    }
+  },
   "flames": {
     "lifeS": 8,
     "dps": 12,

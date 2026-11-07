@@ -10,7 +10,7 @@ import { InputState } from './input.js';
 import { Predictor, SnapshotBuffer, RttTracker, RateMeter, lerpEntities } from './predict.js';
 import { ShotPredictor } from './shotpred.js';
 import { debugLines, drawDebug } from './debug.js';
-import { bakeSprites } from './sprites.js';
+import { bakeSprites, BUILDER_COLOR } from './sprites.js';
 import { VIEW_W, VIEW_H, Camera, computeScale, renderWorld } from './render.js';
 import { renderHud } from './hud.js';
 import * as ui from './ui.js';
@@ -401,7 +401,7 @@ function onMessage(msg) {
       // Ksztalty i limity przedmiotow musza byc znane, zanim przyjdzie pierwszy snapshot.
       setItemDefs(balance.items);
       version = msg.version ?? null;
-      sprites ??= bakeSprites(document, COLORS);
+      sprites ??= bakeSprites(document, [...COLORS, BUILDER_COLOR]);
       predictor ??= new Predictor(balance);
       shots ??= new ShotPredictor(balance);
       if (!tickTimer) tickTimer = setInterval(tick, 1000 / balance.tickHz);
@@ -488,6 +488,9 @@ function onEvent(e) {
     case 'drop': case 'down': case 'revive': case 'death':
     case 'droplet': case 'ff': case 'expire': case 'flame': case 'armed':
       playSfx(e.type, e, tp);
+      break;
+    case 'eventStart':
+      sfx.play('eventStart', { own: true });
       break;
     case 'reload': {
       const lv = latest?.players.find((p) => p.id === e.id)?.weaponLv ?? 1;
@@ -603,7 +606,7 @@ function onStatus(s, reason) {
 }
 
 function moveCtx(me) {
-  return { grid, heldKind: me.held, speedMult: me.speedMult ?? 1, canMove: me.state === 'alive' && !me.suspended && !(me.busy > 0) };
+  return { grid, heldKind: me.held, speedMult: me.speedMult ?? 1, canMove: me.state === 'alive' && !me.suspended && !(me.busy > 0) && !latest?.event?.lock };
 }
 
 function onSnap(snap) {
@@ -912,6 +915,8 @@ function frame(now) {
     rockets: lerpEntities(a.rockets ?? [], b.rockets ?? [], alpha, BULLET_KEY),
     flames: b.flames ?? [],
     dark: darkFor(now, darkPreview ? DARK_PREVIEW : latest.dark),
+    event: latest.event ?? null,
+    builders: lerpEntities(a.builders ?? [], b.builders ?? [], alpha, BULLET_KEY),
     effects, shakes, nowMs: now, pxScale: scale, fx,
     highlightId: pickTarget?.id ?? null,
     ghost: me && mode === 'game' ? ghostFor(me, latest, players, aimWorld()) : null,
@@ -959,7 +964,7 @@ async function loadDemoBalance() {
     balance = b;
     gore.cfg = balance.gore;
     setItemDefs(balance.items);
-    sprites ??= bakeSprites(document, COLORS);
+    sprites ??= bakeSprites(document, [...COLORS, BUILDER_COLOR]);
   } catch { /* demo jest opcjonalne */ }
 }
 

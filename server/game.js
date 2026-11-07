@@ -5,6 +5,7 @@ import { createPlayer, updatePlayers, startBreakFor, allDown, setDropHeld, speed
 import { updateUltimate, useUltimate } from './ultimate.js';
 import { updateMobs } from './mobs.js';
 import { updateFlames } from './flames.js';
+import { pickEvent, startEvent, updateEvent } from './events.js';
 import { fireWeapons, updateBullets, updateMobBullets, startReload } from './combat.js';
 import * as items from './items.js';
 import { Grid } from '../public/shared/world.js';
@@ -39,6 +40,10 @@ export class Game {
       flames: [],
       flameTick: 0,
       dark: null,
+      event: null,
+      lock: false,
+      builders: [],
+      lastEventWave: -1,
       rng: makeRng(seed),
       nextId: () => next++,
       fieldsDirty: false,
@@ -90,6 +95,11 @@ export class Game {
     if (w.phase === 'wave') this.#spawn(dt);
 
     if (w.phase === 'break') {
+      // wydarzenie (V3-Q-06) zatrzymuje licznik przerwy i gotowosc; po nim przerwa biegnie dalej
+      if (w.event) {
+        updateEvent(w, dt);
+        return;
+      }
       this.breakLeft -= dt;
       this.#checkReady();
       if (this.breakLeft <= 0) this.#startWave();
@@ -263,6 +273,9 @@ export class Game {
       // [id, tx, ty, sila 0..1] (V3-Q-04); ciemnosc (V3-Q-05) null albo { alpha, tint, radiusTiles }
       flames: w.flames.filter((f) => near({ x: (f.tx + 0.5) * tp, y: (f.ty + 0.5) * tp })).map((f) => [f.id, f.tx, f.ty, Math.round(f.strength * 100) / 100]),
       dark: w.dark,
+      // wydarzenie (V3-Q-06): null albo { type, name, phase, t, lock, emote }; budowniczowie [id, x, y, kat, idzie]
+      event: w.event ? { type: w.event.type, name: w.event.name, phase: w.event.phase, t: r1(w.event.t), lock: !!w.event.lock, emote: w.event.emote ?? null } : null,
+      builders: (w.builders ?? []).filter(near).map((b) => [b.id, r1(b.x), r1(b.y), r1(b.angle), b.moving ? 1 : 0]),
       // gwozdz (lenPx) niesie jeszcze kat, zeby klient narysowal kreske; zwykly pocisk zostaje trojka
       bullets: w.bullets.filter(near).map((b) => (b.lenPx ? [b.id, r1(b.x), r1(b.y), r1(Math.atan2(b.vy, b.vx)), b.lenPx] : [b.id, r1(b.x), r1(b.y)])),
       // [id, x, y, rodzaj (0 plwocina, 1 granat), lx, ly (punkt upadku granatu), left (s do upadku)]
@@ -385,5 +398,7 @@ export class Game {
     w.phase = 'break';
     this.breakLeft = w.rules.breakLength(w.wave);
     startBreakFor(w);
+    const type = pickEvent(w, w.wave);
+    if (type) startEvent(w, type);
   }
 }

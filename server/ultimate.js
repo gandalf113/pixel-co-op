@@ -215,7 +215,7 @@ function freeze(world, p, c) {
 // uzycie dowolnego zeruje go, wiec to wybor w chwili uzycia, nie podwojna sila.
 export function useUltimate(world, p, slot = 1) {
   const kind = slot === 2 ? p.ultKind2 : p.ultKind;
-  if (p.state !== 'alive' || p.suspended || !kind) return;
+  if (world.lock || p.state !== 'alive' || p.suspended || !kind) return;
   const tier = ultTier(world, p);
   if (tier === 0) {
     world.events.push({ type: 'ultDeny', id: p.id });

@@ -1,4 +1,4 @@
-import { DECOR_SPRITES } from './sprites.js';
+import { BUILDER_COLOR, DECOR_SPRITES } from './sprites.js';
 import { footprint, itemDef, setItemDefs } from '../shared/world.js';
 import { rifleStats } from '../shared/weapon.js';
 import { STAGE_BONES, STAGE_BLOAT, STAGE_FADED } from './gore.js';
@@ -527,6 +527,42 @@ function drawPlayers(ctx, view, ox, oy) {
   }
 }
 
+// Budowniczowie (V3-Q-06-03): szare sylwetki gracza, bez nicku i bez kolizji; brak sprite'a (test bez koloru) = pomin.
+function drawBuilders(ctx, view, ox, oy) {
+  const list = view.builders ?? [];
+  if (!list.length) return;
+  const { sprites, frame } = view;
+  for (const [id, x, y, angle, moving] of list) {
+    const walk = moving ? ((frame >> 2) + id) & 1 : 0;
+    const img = sprites.get(`player_${walk}@${BUILDER_COLOR}`);
+    if (!img) continue;
+    ctx.globalAlpha = 0.9;
+    drawCentered(ctx, img, x + ox, y + oy, angle ?? 0);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// Emotka nad glowa (wydarzenia, V3-Q-06): maly dymek z tekstem, lekko podskakuje.
+function drawEmotes(ctx, view, ox, oy) {
+  const emote = view.event?.emote;
+  if (!emote) return;
+  const bob = Math.round(Math.sin(view.nowMs / 160) * 1.5);
+  ctx.font = 'bold 8px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const p of view.players ?? []) {
+    if (p.state === 'dead') continue;
+    const x = Math.round(p.x + ox);
+    const y = Math.round(p.y + oy) - 16 + bob;
+    ctx.fillStyle = '#14120f';
+    ctx.fillRect(x - 8, y - 5, 16, 10);
+    ctx.fillStyle = '#ffe07a';
+    ctx.fillRect(x - 7, y - 4, 14, 8);
+    ctx.fillStyle = '#14120f';
+    ctx.fillText(emote, x, y + 0.5);
+  }
+}
+
 const reloadSeen = new Map();
 const RING_FLASH_MS = 150;
 
@@ -794,6 +830,8 @@ export function renderWorld(ctx, view) {
   drawTelegraphs(ctx, view, ox, oy);
   drawMobs(ctx, view, ox, oy);
   drawPlayers(ctx, view, ox, oy);
+  drawBuilders(ctx, view, ox, oy);
+  drawEmotes(ctx, view, ox, oy);
   const bullet = view.sprites.get('bullet');
   for (const [, x, y, a, len] of view.bullets) {
     if (len > 0) drawNail(ctx, x + ox, y + oy, a, len);

@@ -31,6 +31,7 @@ export function startReload(world, p) {
 
 export function fireWeapons(world, dt) {
   const { balance, tilePx } = world.rules;
+  if (world.lock) return; // wydarzenie (V3-Q-06): bez strzalu
   const { rifle } = balance;
   const r = balance.player.radiusPx;
   const spread = (rifle.spreadDeg * Math.PI) / 180;
