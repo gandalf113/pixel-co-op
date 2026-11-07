@@ -1,13 +1,13 @@
 # 10 - Backlog V3
 
-Wersja: 0.1 (2026-11-05). Zgłoszone przez właściciela produktu (Piotr) po hostowaniu gry na
+Wersja: 0.2 (2026-11-07, dodana sekcja Q). Zgłoszone przez właściciela produktu (Piotr) po hostowaniu gry na
 `obrzyn.online`. Punkty A-L to oryginalne zgłoszenie; tutaj są rozpisane na wymagania z ID,
 z oznaczeniem, co już jest w kodzie, a co trzeba dopisać.
 
 Stan kodu, do którego to się odnosi: 3 z 6 typów potworów, 3 z 9 przedmiotów, brak
 startowych ruin (PRD-MAP-10), brak dźwięku, brak awansu poziomu broni, brak listy pokojów.
 
-Kolejność realizacji: **L + tanie J** → **B** → **C** → **D/E** → **A** → **O (sieć)** → **I** → **P (krytyczne)** → **G/H** → **K** → **F-01** → **E-02/E-03 + skład fal (R60-R62)** (wszystko powyżej zrobione, ostatnie w v0.14.0) → **N** (czeka na trzy decyzje właściciela) → reszta **E** (E-01 ruiny, E-05..E-07) → **F-05** (lag compensation, tylko jeśli F-01 nie wystarczy).
+Kolejność realizacji: **L + tanie J** → **B** → **C** → **D/E** → **A** → **O (sieć)** → **I** → **P (krytyczne)** → **G/H** → **K** → **F-01** → **E-02/E-03 + skład fal (R60-R62)** (wszystko powyżej zrobione, ostatnie w v0.14.0) → **N** (czeka na trzy decyzje właściciela) → reszta **E** (E-01 ruiny, E-05..E-07) → **F-05** (lag compensation, tylko jeśli F-01 nie wystarczy) → **Q** (zgłoszenia 2026-11-07: Q-01/Q-02 dropy stałe, Q-03 Kamikaze, Q-04 płomień, Q-05 ciemność, Q-06 random eventy).
 
 ---
 
@@ -368,6 +368,27 @@ tylko w kodzie.
 | ID | Wymóg |
 |---|---|
 | V3-L-01 | **Osłabienie magnesu** (R55): `magnetTiles` 14 → **9**, `magnetBoostPx` 700 → **380**. Wartość kropelki zostaje **5** - tempo ładowania paska się nie zmienia, zmienia się tylko to, że kropelki trzeba zebrać, zamiast dostawać je z drugiego końca ekranu. Jeśli po pomiarze pasek nadal rośnie za szybko, drugim krokiem jest wartość kropelki 5 → 4. Modyfikuje R44 i `08-ULTIMATE.md` sekcja 1 (ULT-07). |
+
+---
+
+## Q. Zgłoszenia z 2026-11-07 (po v0.17.0): dropy stałe, kamikaze, płomień, ciemność, random eventy
+
+Sześć pomysłów właściciela produktu, zapisane jako wymagania. Wartości liczbowe poniżej to
+**propozycje startowe do zbalansowania**, nie decyzje; decyzją są tylko mechanizmy. Kolejność
+w tabeli to proponowana kolejność realizacji: dwa dropy to kilka linii w `balance.json` i
+`items.js`, kamikaze to nowy typ potwora na istniejącym szkielecie, płomień i ciemność to nowe
+byty świata i renderu, a random event na końcu jest złożeniem wszystkiego powyżej.
+
+| ID | Wymóg |
+|---|---|
+| V3-Q-01 | **Drop: stały bonus HP** (nowa kategoria przedmiotu: `permanent`, nie `hard` ani `placed`). Podniesienie **na stałe** podnosi maksymalne HP gracza, który go podniósł (start: **+10 HP**, od razu doleczone o tę samą wartość), do końca partii, także po powaleniu i respawnie. Nie da się go rzucić ani odłożyć: `E` zużywa natychmiast, `R` i spacja nic nie robią. Limit skumulowany per gracz (start: **+50**), potem drop traktowany jak zebrany bez efektu, z komunikatem. Wartość `maxHp` musi stać się polem **per gracz w snapshocie**, bo dziś pasek HP zakłada jedną stałą. Waga dropu niska, `fromWave` ok. 3. |
+| V3-Q-02 | **Drop: stały bonus prędkości, bardzo lekki.** Jak V3-Q-01, ale podnosi `speedTiles` gracza o **+0.15 kafelka/s** (3% z bazowych 5), limit skumulowany **+0.75** (5 sztuk, łącznie +15%). Mnożnik `carryHardSpeedMult` nakłada się na nową bazę. Prędkość gracza musi trafić do snapshotu i do predykcji ruchu po stronie klienta (`predict.js`), inaczej klient przewiduje wolniej niż serwer liczy i gracz widzi szarpnięcia. Waga dropu jeszcze niższa niż HP. Zaznaczone przez właściciela: **naprawdę lekki**; jeśli ma być odczuwalny, to dopiero po kilku sztukach. |
+| V3-Q-03 | **Potwór: Kamikaze.** Mały, szybki (jak Biegacz), mało HP. Podbiega do gracza na dystans **ok. 1.5 kafelka**, **uzbraja się** (zatrzymuje się, stan `armed` w snapshocie, sprite miga na czerwono, sygnał dźwiękowy) i **po 0.3 s wybucha**: AoE promień 2 kafelki, pełne obrażenia w centrum (start: 25), 50% na krawędzi, rani też hard objecty graczy i inne potwory. Uzbrojony **nie śledzi** gracza i nie da się go już zatrzymać: zabity w trakcie 0.3 s **też wybucha** (z 50% siły), więc zestrzelenie z daleka jest jedyną czystą odpowiedzią. 0.3 s to za mało na ucieczkę piechotą z promienia 2 kafelków przy 5 kafelkach/s, więc mechanika wymusza strzelanie z dystansu, a nie uskok: to jest zamierzone. Wybuch korzysta z tej samej ścieżki co granat Granatnika (V3-A-04). Wpis w bestiariuszu (`content.js`) i w `03-WAVES-DIFFICULTY.md`. |
+| V3-Q-04 | **Obiekt świata: Płomień.** Nowy byt w snapshocie (osobna lista `flames`, nie przedmiot): kafelek, na którym się pali, **siła** 1.0 → 0 malejąca liniowo w czasie (start: **8 s**), po czym znika. Zadaje obrażenia **graczom i potworom** stojącym na kafelku proporcjonalnie do siły (start: 6 obr. / 0.5 s przy sile 1.0), podpala też hard objecty na kafelku (obrażenia jak wyżej). Render: sprite ognia skalowany siłą, światło na podłodze, dym; dźwięk trzasku cichnący razem z siłą. **Wyłącznie ze źródeł wrogich**: wybuch Granatnika i Kamikaze (V3-Q-03) zostawiają płomień na kafelku trafienia, random eventy (V3-Q-06) mogą rozsiewać płomienie. Gracz nie ma żadnego przedmiotu ani ultimate, które stawia ogień: to decyzja właściciela, nie luka. |
+| V3-Q-05 | **Możliwość techniczna: ciemność z zabarwieniem i światło wokół gracza.** Warstwa renderu nad światem, pod HUD: cała plansza przyciemniona i zabarwiona (parametry: `alpha` 0..1, kolor, np. 0.75 i czerwień), z **wyciętym kołem światła** wokół każdego żywego gracza (start: promień **4 kafelki**, miękka krawędź 1 kafelek, lekkie migotanie jak pochodnia). Implementacja: osobny canvas-maska rysowany raz na klatkę w rozdzielczości świata, `destination-out` na koła, potem nałożony `source-over`. Płomienie z V3-Q-04 też świecą (promień zależny od siły). Sterowane z serwera jednym polem w snapshocie (`dark: {alpha, tint, radiusTiles}` albo `null`), z płynnym przejściem 1 s po stronie klienta. To jest **narzędzie**, nie tryb gry: pierwszym klientem będzie random event (V3-Q-06), kolejnym mogą być wybrane fale albo tryb "noc". Wyłączane przy `prefers-reduced-motion` tylko migotanie, nie sama ciemność. |
+| V3-Q-06 | **Random event na końcu fali.** Po wyczyszczeniu fali, zamiast zwykłej przerwy, z prawdopodobieństwem p (start: **20%**, nigdy na fali bossa, nigdy dwa razy z rzędu) serwer odpala jedno z wydarzeń. Stan `event` w snapshocie z fazą i czasem, komunikat na ekranie. Pierwsze wydarzenie, **Trzęsienie ziemi**: (1) wstrząs kamery i dźwięk, (2) gracze **tracą sterowanie** i są **przyciągani do siebie** do wspólnego punktu (środek ciężkości żywych graczy, przesunięty na najbliższy wolny kafelek), aż wszyscy się spotkają, powaleni też; (3) wokół punktu spotkania otwiera się **8 zapadni 3 x 3** (układ: 8 kierunków, środek zapadni ok. 4 kafelki od punktu spotkania), **przedmioty i hard objecty stojące na zapadni spadają i znikają**, gracze nie mogą tam wejść; (4) z każdej zapadni **jednocześnie wychodzi fala potworów**: budżet tej extra fali = `waveBudget(n)` dla **faktycznej** fali n (nie stały), podzielony po równo na 8 zapadni, skład losowany z typów dozwolonych dla fali n; (5) po wybiciu extra fali zapadnie zamykają się i zaczyna się zwykła przerwa. Potwory z extra fali liczą się do leaderboardu, nie do licznika fali. Budżet eventu osobnym mnożnikiem w `balance.json` (start: 1.0 normalnego budżetu). Drugi kandydat na wydarzenie, bez decyzji: deszcz ognia (płomienie V3-Q-04 w losowych miejscach przez 10 s, w ciemności V3-Q-05). |
+
+Zależności: V3-Q-03 i V3-Q-04 korzystają z wybuchu AoE z V3-A-04 (zrobione). V3-Q-06 korzysta z V3-Q-04 i V3-Q-05 tylko w wariancie "deszcz ognia"; Trzęsienie ziemi nie potrzebuje żadnego z nich.
 
 ---
 
