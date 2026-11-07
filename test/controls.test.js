@@ -23,3 +23,18 @@ test('drawControls rysuje klawiatury, mysz i opisy akcji bez wyjątku', () => {
   }
   assert.ok(CONTROLS_SIZE.w > 0 && CONTROLS_SIZE.h > 0);
 });
+
+// V3-K-07: trzymany klawisz jest podswietlony na bialo (poligon).
+test('drawControls z pressed podswietla wskazane klawisze i przyciski myszy', () => {
+  const fills = [];
+  const ctx = {
+    set fillStyle(v) { fills.push(v); },
+    fillRect() {}, fillText() {},
+  };
+  drawControls(ctx);
+  const plain = fills.filter((f) => f === '#ffffff').length;
+  fills.length = 0;
+  drawControls(ctx, new Set(['W', 'SPACJA', 'LPM', 'kółko']));
+  const hot = fills.filter((f) => f === '#ffffff').length;
+  assert.ok(hot >= plain + 4, `bialych wypelnien: ${hot} vs ${plain}`);
+});

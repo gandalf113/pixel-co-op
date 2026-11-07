@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.31 - 2026-11-07
+- v0.16.0: **V3-K-06 ekran glowny v2** i **V3-K-07 sterowanie jako poligon** (zgloszenie: "ekran po nicku to dramat"). Nowe moduly klienta: `demo.js` (swiat bez serwera, tryby attract/range, czysta logika), `logo.js` (logotyp pixel-art z glifow 5x7), `content.js` (bestiariusz, porady, co nowego). Ekran glowny: arena demo w tle, wizytowka, GRAJ, karty pokojow ze slotami, leaderboard top 6, bestiariusz, puls serwera, dzwieki interfejsu. Poligon: scena z gry po lewej reagujaca na prawdziwe klawisze, trzymany klawisz swieci na obrazku. PRD-SES-08 i PRD-CTRL-11 uzupelnione. Wchodza tez poprawki sendow hali z 0.30.
+
 ## 0.30 - 2026-11-07
 - v0.15.0: **V3-C-15 zaimplementowane** w `public/client/sfx.js` - karabin "mech" (6 warstw, klik zamka), dzialko "heavy" zamiast `cannon`, wspolna IR "st-max" (`GUN_IR`: 4 pasma w panoramie + 4 slapbacki ping-pong), pre-delay 60 ms, send 0.035. Testy dzwieku przepisane pod nowy projekt (ciemne pasmo, slapback na starcie).
 - R64, ITM-DROP-03 zmienione: **boss zawsze zostawia boost broni** jako jeden z 3 dropow (`guaranteedDrops` w balansie, `server/items.js`). Powod: zgloszenie z gry - 10 fal bez ani jednego boostu z losowania (szansa ~17% na fale przy wadze 4/76 w puli power 45%).

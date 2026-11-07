@@ -55,6 +55,56 @@
     table.lb { width: 100%; font-size: 13px; }
     table.lb th { color: #a39b8c; font-weight: normal; }
     table.lb td, table.lb th { padding: 1px 10px 1px 0; }
+    table.lb tr.me td { color: #d9b53a; }
+    .lb-me { margin-top: 4px; }
+
+    /* Ekran glowny (V3-K-06): arena w tle, panel polprzezroczysty, trzy kolumny, bestiariusz, stopka. */
+    .panel.home { width: min(1100px, 96vw); min-width: 0; padding: 14px 22px 12px; background: rgba(14, 12, 10, 0.86); }
+    .panel.home canvas.logo { display: block; margin: 0 auto 10px; image-rendering: pixelated; max-width: 100%; height: auto; }
+    .home-grid { display: grid; grid-template-columns: 220px 1fr 300px; gap: 16px; align-items: start; }
+    @media (max-width: 900px) { .home-grid { grid-template-columns: 1fr; } }
+    .card { background: rgba(26, 24, 21, 0.9); border: 1px solid #3b342d; padding: 10px 12px; }
+    .card.me { text-align: center; }
+    .card.me .hero { height: 72px; display: flex; align-items: center; justify-content: center; }
+    .card.me .hero-img { image-rendering: pixelated; }
+    .card.me .nick { font-size: 20px; font-weight: bold; letter-spacing: 1px; margin-top: 2px; }
+    .card.me .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 10px 0 4px; }
+    .card.me .stat b { display: block; font-size: 18px; color: #e8e2d4; }
+    .card.me .stat span { font-size: 11px; }
+    .card.me label { margin: 8px 0 2px; font-size: 12px; text-align: left; }
+    .panel button.small { font-size: 13px; padding: 4px 10px; margin: 8px 0 0; }
+    .panel button.big { display: block; width: 100%; margin: 0 0 8px; padding: 14px; font-size: 26px; letter-spacing: 6px; font-weight: bold; background: #d9b53a; box-shadow: 0 4px 0 #8c6a1e; }
+    .panel button.big:hover { background: #ffe07a; }
+    .panel button.big:active { transform: translateY(3px); box-shadow: 0 1px 0 #8c6a1e; }
+    .card.play .row { display: flex; gap: 8px; }
+    .card.play .row button { flex: 1; margin: 0; }
+    .card.play label { margin-top: 12px; }
+    .card.play .note { min-height: 1.2em; margin-top: 6px; }
+    .panel ul.rooms { max-height: 200px; overflow-y: auto; }
+    .room-row { display: flex; align-items: center; gap: 10px; }
+    .room-row .slots { display: flex; gap: 3px; }
+    .room-row .slot { width: 22px; height: 22px; border: 1px dashed #4a4238; display: flex; align-items: center; justify-content: center; }
+    .room-row .slot.taken { border-style: solid; background: #14120f; }
+    .room-row .slot-img { image-rendering: pixelated; width: 16px; height: 16px; }
+    .room-row .room-info { flex: 1; font-size: 12px; }
+    .room-row .badge { font-size: 11px; padding: 1px 6px; background: #5e1a10; color: #ffd7d2; }
+    .card.board .lb-wrap { margin-top: 0; border-top: 0; padding-top: 0; }
+    .bestiary { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    .beast { width: 72px; text-align: center; padding: 4px 2px; border: 1px solid transparent; cursor: default; }
+    .beast:hover { border-color: #5a4f44; background: #1d1a16; }
+    .beast-img { image-rendering: pixelated; height: 32px; width: auto; }
+    .beast-name { font-size: 11px; color: #a39b8c; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .blurb { min-height: 1.3em; font-size: 12px; margin-top: 2px; }
+    .home-foot { margin-top: 8px; border-top: 1px solid #3b342d; padding-top: 6px; display: grid; grid-template-columns: 1fr auto; gap: 12px; font-size: 12px; align-items: center; }
+    .home-foot .tip { color: #d9a877; }
+    .home-foot .tip::before { content: '» '; color: #7d766b; }
+    .home-foot .news { grid-column: 1 / -1; color: #a39b8c; font-size: 12px; }
+    .home-foot .news b { color: #d9b53a; }
+
+    /* Poligon (V3-K-07): panel po prawej, scena z gry zostaje widoczna po lewej. */
+    #ui.side { justify-content: flex-end; align-items: stretch; }
+    .panel.range { width: 420px; max-width: 46vw; max-height: none; background: rgba(14, 12, 10, 0.9); border-right: 0; display: flex; flex-direction: column; justify-content: center; }
+    .panel.range p { margin: 0 0 10px; font-size: 12px; }
   </style>
 </head>
 <body>

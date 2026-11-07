@@ -23,11 +23,12 @@ export const CONTROL_ROWS = [
   ['esc', COL.misc, 'Esc', 'pauza'],
 ];
 
-function key(ctx, x, y, w, h, label, color) {
+// `hot` = klawisz trzymany w tej chwili (poligon, V3-K-07): wcisniety w dol i rozjasniony.
+function key(ctx, x, y, w, h, label, color, hot = false) {
   const lit = !!color;
-  ctx.fillStyle = '#0c0b09';
+  ctx.fillStyle = hot ? '#fff6d0' : '#0c0b09';
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = lit ? color : '#3b342d';
+  ctx.fillStyle = hot ? '#ffffff' : lit ? color : '#3b342d';
   ctx.fillRect(x + 2, y + 2, w - 4, h - 6);
   ctx.fillStyle = lit ? 'rgba(255,255,255,0.28)' : '#4a4238';
   ctx.fillRect(x + 2, y + 2, w - 4, 3);
@@ -40,18 +41,18 @@ function key(ctx, x, y, w, h, label, color) {
   ctx.fillText(label, x + w / 2, y + h / 2 - 2);
 }
 
-function mouse(ctx, x, y) {
+function mouse(ctx, x, y, pressed) {
   ctx.fillStyle = '#0c0b09';
   ctx.fillRect(x, y, 64, 92);
   ctx.fillRect(x + 4, y - 4, 56, 4);
   ctx.fillRect(x + 4, y + 92, 56, 4);
   ctx.fillStyle = '#3b342d';
   ctx.fillRect(x + 4, y + 4, 56, 84);
-  ctx.fillStyle = COL.fire;
+  ctx.fillStyle = pressed.has('LPM') ? '#ffffff' : COL.fire;
   ctx.fillRect(x + 4, y + 4, 25, 36);
-  ctx.fillStyle = COL.misc;
+  ctx.fillStyle = pressed.has('PPM') ? '#ffffff' : COL.misc;
   ctx.fillRect(x + 35, y + 4, 25, 36);
-  ctx.fillStyle = COL.rot;
+  ctx.fillStyle = pressed.has('kółko') ? '#ffffff' : COL.rot;
   ctx.fillRect(x + 28, y + 8, 8, 26);
   ctx.fillStyle = '#0c0b09';
   ctx.fillRect(x + 4, y + 40, 56, 3);
@@ -66,7 +67,8 @@ function mouse(ctx, x, y) {
 }
 
 // Rysuje całość w obszarze CONTROLS_SIZE. Nic nie czyta z globali.
-export function drawControls(ctx) {
+// `pressed` = zbiór etykiet trzymanych w tej chwili ('W', 'SPACJA', 'LPM', 'kółko'...), poligon V3-K-07.
+export function drawControls(ctx, pressed = new Set()) {
   const { w, h } = CONTROLS_SIZE;
   if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = '#17150f';
@@ -75,19 +77,20 @@ export function drawControls(ctx) {
   // Klawiatura: tylko klawisze, które coś robią.
   const k = 38;
   const x0 = 8;
-  key(ctx, x0, 12, 52, k, 'Tab', COL.misc);
-  key(ctx, x0 + 56, 12, k, k, 'Q', COL.rot);
-  key(ctx, x0 + 56 + 42, 12, k, k, 'W', COL.move);
-  key(ctx, x0 + 56 + 84, 12, k, k, 'E', COL.use);
-  key(ctx, x0 + 56 + 126, 12, k, k, 'R', COL.drop);
-  key(ctx, x0 + 12, 56, k, k, 'A', COL.move);
-  key(ctx, x0 + 12 + 42, 56, k, k, 'S', COL.move);
-  key(ctx, x0 + 12 + 84, 56, k, k, 'D', COL.move);
-  key(ctx, x0 + 12 + 126, 56, k, k, 'F', COL.ult);
-  key(ctx, x0 + 12 + 168, 56, k, k, 'G', COL.ready);
-  key(ctx, x0 + 56, 100, 168, k, 'SPACJA', COL.fire);
-  key(ctx, x0, 100, 48, k, 'Esc', COL.misc);
-  mouse(ctx, 40, 176);
+  const K = (x, y, kw, label, color) => key(ctx, x, y, kw, k, label, color, pressed.has(label));
+  K(x0, 12, 52, 'Tab', COL.misc);
+  K(x0 + 56, 12, k, 'Q', COL.rot);
+  K(x0 + 56 + 42, 12, k, 'W', COL.move);
+  K(x0 + 56 + 84, 12, k, 'E', COL.use);
+  K(x0 + 56 + 126, 12, k, 'R', COL.drop);
+  K(x0 + 12, 56, k, 'A', COL.move);
+  K(x0 + 12 + 42, 56, k, 'S', COL.move);
+  K(x0 + 12 + 84, 56, k, 'D', COL.move);
+  K(x0 + 12 + 126, 56, k, 'F', COL.ult);
+  K(x0 + 12 + 168, 56, k, 'G', COL.ready);
+  K(x0 + 56, 100, 168, 'SPACJA', COL.fire);
+  K(x0, 100, 48, 'Esc', COL.misc);
+  mouse(ctx, 40, 176, pressed);
   ctx.fillStyle = '#a39b8c';
   ctx.font = '12px monospace';
   ctx.textAlign = 'left';

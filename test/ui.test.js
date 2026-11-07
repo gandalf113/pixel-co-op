@@ -162,12 +162,73 @@ test('ekran główny: pusta lista, setRooms i komunikat', () => {
   assert.match(texts(root).join(' '), /ZZZZ/);
 });
 
-test('ekran główny w trybie LAN: bez listy, przycisk Dołącz', () => {
-  ui.showHome({ nick: 'O', lan: true }, { onJoin() {}, onNew() {}, onControls() {}, onChangeNick() {} });
+test('ekran główny w trybie LAN: bez listy i bez "Nowy pokój", GRAJ dołącza', () => {
+  let joined = 0;
+  ui.showHome({ nick: 'O', lan: true }, { onJoin() {}, onNew: () => { joined++; }, onControls() {}, onChangeNick() {} });
   const shown = texts(root).join(' ');
-  assert.doesNotMatch(shown, /Otwarte pokoje|brak otwartych/);
-  assert.match(shown, /Dołącz/);
+  assert.doesNotMatch(shown, /Otwarte pokoje|brak otwartych|Nowy pokój/);
+  assert.match(shown, /GRAJ/);
   assert.match(shown, /Sterowanie/);
+  flat(root).find((n) => n.tagName === 'BUTTON' && texts(n).includes('GRAJ')).listeners.click();
+  assert.equal(joined, 1);
+});
+
+// V3-K-06: GRAJ = pierwszy pokoj z miejscem, bez takiego = nowy; stopka z pulsem, porada rotuje, co nowego, bestiariusz.
+test('ekran główny: GRAJ wchodzi do pierwszego wolnego pokoju, a bez wolnych zakłada nowy', () => {
+  const got = [];
+  const cb = { onJoin() {}, onNew() {}, onControls() {}, onChangeNick() {}, onPlay: (c) => got.push(c) };
+  const view = ui.showHome({ nick: 'O', rooms: [
+    { code: 'FULL', players: 4, maxPlayers: 4, inGame: false, wave: 0, ageS: 1 },
+    { code: 'GAME', players: 1, maxPlayers: 4, inGame: true, wave: 3, ageS: 1 },
+    { code: 'OPEN', players: 1, maxPlayers: 4, inGame: false, wave: 0, ageS: 1 },
+  ] }, cb);
+  const play = () => flat(root).find((n) => n.tagName === 'BUTTON' && texts(n).includes('GRAJ')).listeners.click();
+  const shown = texts(root).join(' ');
+  play();
+  view.setRooms([]);
+  play();
+  view.setRooms(null);
+  play();
+  assert.deepEqual(got, ['OPEN', null, null]);
+  assert.match(shown, /w toku/);
+  assert.match(shown, /Bestiariusz/);
+  assert.match(shown, /Ślimak/);
+  assert.match(shown, /co nowego/);
+  assert.match(shown, /Głośność/);
+  assert.match(shown, /Pełny ekran/);
+});
+
+test('ekran główny: wizytówka z wynikami gracza, miejsce poza top 6, puls serwera i rotacja porady', () => {
+  const players = Array.from({ length: 9 }, (_, i) => ({ nick: `g${i}`, kills: 100 - i, games: 2, bestWave: 9 - i }));
+  const view = ui.showHome({ nick: 'g8', rooms: [], version: '0.16.0', online: { players: 3, rooms: 1 },
+    leaderboard: { runs: [{ wave: 5, timeS: 60, kills: 10, difficulty: 2, players: ['g8'] }], players } },
+  { onJoin() {}, onNew() {}, onControls() {}, onChangeNick() {} });
+  let shown = texts(root).join(' ');
+  assert.match(shown, /online: 3 · pokoje: 1/);
+  assert.match(shown, /v0\.16\.0/);
+  // statystyki z leaderboardu: najd. fala 1, zabojstw 92, partii 2
+  assert.match(shown, /\b92\b/);
+  const tipBefore = flat(root).find((n) => n.className === 'tip').textContent;
+  view.tick();
+  const tipAfter = flat(root).find((n) => n.className === 'tip').textContent;
+  assert.notEqual(tipBefore, tipAfter);
+  view.setOnline(null);
+  shown = texts(root).join(' ');
+  assert.doesNotMatch(shown, /online:/);
+  // zakladka Gracze: 6 wierszy + "Ty: miejsce 9"
+  const tab = flat(root).find((n) => n.tagName === 'BUTTON' && texts(n).includes('Gracze'));
+  tab.listeners.click();
+  shown = texts(root).join(' ');
+  assert.match(shown, /Ty: miejsce 9/);
+  assert.doesNotMatch(shown, /\bg7\b/);
+});
+
+test('poligon: panel dokowany z boku, setPressed nie wywala sie bez kontekstu 2D', () => {
+  const view = ui.showControls(() => {});
+  assert.equal(root.classes.get('side'), true);
+  view.setPressed(new Set(['W']));
+  ui.hideAll();
+  assert.equal(root.classes.get('side'), false);
 });
 
 test('pauza ma przycisk Sterowanie, a ekran sterowania wraca przyciskiem', () => {

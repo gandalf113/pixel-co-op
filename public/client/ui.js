@@ -1,9 +1,22 @@
 import { drawControls, CONTROLS_SIZE } from './controls.js';
+import { drawLogo, logoSize } from './logo.js';
+import { COLORS } from '../shared/protocol.js';
+import { BESTIARY, TIPS, NEWS } from './content.js';
 
 const root = () => document.getElementById('ui');
 
+// Dzwieki interfejsu (V3-K-06): main.js podpina syntezator; bez niego przyciski sa nieme (testy).
+let uiSfx = null;
+export function setUiSfx(fn) {
+  uiSfx = fn;
+}
+
 function el(tag, props = {}, ...children) {
   const e = document.createElement(tag);
+  if (tag === 'button') {
+    e.addEventListener('mouseenter', () => uiSfx?.('uiHover'));
+    e.addEventListener('click', () => uiSfx?.('uiClick'));
+  }
   for (const [k, v] of Object.entries(props)) {
     if (k === 'style') Object.assign(e.style, v);
     else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
@@ -13,9 +26,20 @@ function el(tag, props = {}, ...children) {
   return e;
 }
 
-function show(panel) {
-  root().replaceChildren(panel);
+// `side` = panel dokowany do prawej krawedzi (poligon sterowania), zeby scena z gry byla widoczna po lewej.
+function show(panel, { side = false } = {}) {
+  const r = root();
+  r.classList?.toggle('side', side);
+  r.replaceChildren(panel);
   return panel;
+}
+
+// Obrazek sprite'a jako <img> (data URL); atrapa canvasu w testach nie ma toDataURL, wtedy null.
+function spriteImg(sprites, name, className, scale = 3) {
+  const c = sprites?.get(name);
+  const url = c?.toDataURL?.();
+  if (!url) return null;
+  return el('img', { className, src: url, alt: '', width: c.width * scale, height: c.height * scale });
 }
 
 export function formatTime(s) {
@@ -24,6 +48,7 @@ export function formatTime(s) {
 }
 
 export function hideAll() {
+  root().classList?.toggle('side', false);
   root().replaceChildren();
 }
 
@@ -35,7 +60,7 @@ const DIFF_NAMES = ['łatwy', 'normalny', 'trudny', 'koszmar'];
 
 // Leaderboard przychodzi z serwera statystyk (wyniki liczy symulacja serwerowa,
 // klient nie ma jak ich podrobić). Brak danych = panel się nie pokazuje.
-export function leaderboardPanel(data) {
+export function leaderboardPanel(data, { limit = Infinity, nick = null } = {}) {
   if (!data || (!data.runs?.length && !data.players?.length)) return null;
   const body = el('div', {});
   const tabs = el('div', { className: 'lb-tabs' });
@@ -44,7 +69,7 @@ export function leaderboardPanel(data) {
     if (which === 'runs') {
       body.replaceChildren(el('table', { className: 'lb' },
         el('tr', {}, el('th', {}, '#'), el('th', {}, 'Fala'), el('th', {}, 'Czas'), el('th', {}, 'Zab.'), el('th', {}, 'Poziom'), el('th', {}, 'Gracze')),
-        ...data.runs.map((r, i) => el('tr', {},
+        ...data.runs.slice(0, limit).map((r, i) => el('tr', { className: nick && (r.players ?? []).includes(nick) ? 'me' : '' },
           el('td', {}, String(i + 1)),
           el('td', {}, String(r.wave)),
           el('td', {}, formatTime(r.timeS)),
@@ -54,12 +79,15 @@ export function leaderboardPanel(data) {
     } else {
       body.replaceChildren(el('table', { className: 'lb' },
         el('tr', {}, el('th', {}, '#'), el('th', {}, 'Gracz'), el('th', {}, 'Zab.'), el('th', {}, 'Partie'), el('th', {}, 'Najd. fala')),
-        ...(data.players ?? []).map((r, i) => el('tr', {},
+        ...(data.players ?? []).slice(0, limit).map((r, i) => el('tr', { className: r.nick === nick ? 'me' : '' },
           el('td', {}, String(i + 1)),
           el('td', {}, r.nick),
           el('td', {}, String(r.kills)),
           el('td', {}, String(r.games)),
           el('td', {}, String(r.bestWave))))));
+      // Twoje miejsce, gdy nie miescisz sie w limicie.
+      const idx = nick ? (data.players ?? []).findIndex((r) => r.nick === nick) : -1;
+      if (idx >= limit) body.append(el('div', { className: 'muted lb-me' }, `Ty: miejsce ${idx + 1}`));
     }
   };
   for (const [k, label] of [['runs', 'Przebiegi'], ['players', 'Gracze']]) {
@@ -136,12 +164,45 @@ export function roomRowInfo(r) {
   return { joinable: !r.inGame && !full, text: lines.join(' · ') };
 }
 
-// K-02, krok 2: ekran główny. `rooms` = tablica | null (nie wiadomo / tryb LAN); lan = bez listy.
-export function showHome({ nick = '', lan = false, rooms = null, leaderboard = null, message = '' },
-  { onJoin, onNew, onControls, onChangeNick }) {
+// Logotyp na <canvas>; w testach (atrapa bez getContext) zostaje pusty element z tekstem alternatywnym.
+function logoCanvas() {
+  const { w, h } = logoSize();
+  const canvas = el('canvas', { width: w, height: h, className: 'logo' });
+  const ctx = canvas.getContext?.('2d');
+  if (ctx) drawLogo(ctx);
+  else canvas.textContent = 'PIXEL CO-OP';
+  return canvas;
+}
+
+// Karta pokoju: kod, cztery sloty (zajety = sprite gracza w kolorze slotu), opis. Klikalna tylko, gdy da sie wejsc.
+function roomCard(r, sprites, onJoin) {
+  const info = roomRowInfo(r);
+  const slots = el('div', { className: 'slots' }, ...Array.from({ length: r.maxPlayers }, (_, i) => {
+    const taken = i < r.players;
+    const img = taken ? spriteImg(sprites, `player_0@${COLORS[i % COLORS.length]}`, 'slot-img', 2) : null;
+    return el('div', { className: `slot${taken ? ' taken' : ''}`, style: taken ? { borderColor: COLORS[i % COLORS.length] } : {} }, img);
+  }));
+  const row = el('li', { className: `room-row${info.joinable ? '' : ' closed'}` },
+    el('span', { className: 'room-code-s' }, r.code), slots,
+    el('span', { className: 'room-info' }, info.text),
+    r.inGame ? el('span', { className: 'badge' }, 'w toku') : null);
+  if (info.joinable) {
+    row.classList.toggle('join', true);
+    row.addEventListener('click', () => onJoin(r.code));
+  }
+  return row;
+}
+
+// K-02, krok 2 / V3-K-06: ekran główny. `rooms` = tablica | null (nie wiadomo / tryb LAN); lan = bez listy.
+// Opcje poza wymaganymi: color (kolor bohatera), sprites (Map z bakeSprites), version, online {players, rooms},
+// audio {volume, muted}. Callbacki poza wymaganymi sa opcjonalne.
+export function showHome({ nick = '', lan = false, rooms = null, leaderboard = null, message = '', color = COLORS[0], sprites = null, version = null, online = null, audio = null },
+  { onJoin, onNew, onPlay, onControls, onChangeNick, onVolume, onMute, onFullscreen }) {
   const list = el('ul', { className: 'rooms' });
-  const note = el('div', { className: 'muted' }, message);
+  const note = el('div', { className: 'muted note' }, message);
+  let joinable = [];
   const setRooms = (data) => {
+    joinable = Array.isArray(data) ? data.filter((r) => roomRowInfo(r).joinable) : [];
     if (!Array.isArray(data)) {
       list.replaceChildren(el('li', { className: 'muted' }, 'lista pokojów niedostępna'));
       return;
@@ -150,42 +211,99 @@ export function showHome({ nick = '', lan = false, rooms = null, leaderboard = n
       list.replaceChildren(el('li', { className: 'muted' }, 'brak otwartych pokojów — załóż własny'));
       return;
     }
-    list.replaceChildren(...data.map((r) => {
-      const info = roomRowInfo(r);
-      const row = el('li', { className: `room-row${info.joinable ? '' : ' closed'}` },
-        el('span', { className: 'room-code-s' }, r.code), ` ${info.text}`);
-      if (info.joinable) {
-        row.classList.toggle('join', true);
-        row.addEventListener('click', () => onJoin(r.code));
-      }
-      return row;
-    }));
+    list.replaceChildren(...data.map((r) => roomCard(r, sprites, onJoin)));
   };
   if (!lan) setRooms(rooms);
-  const board = leaderboardPanel(leaderboard);
-  show(el('div', { className: `panel${board ? ' wide' : ''}` },
-    el('h1', {}, 'PIXEL CO-OP'),
-    el('div', { className: 'muted' }, `Grasz jako ${nick} · `,
-      el('a', { className: 'link', onclick: onChangeNick }, 'zmień nick')),
+
+  // GRAJ: pierwszy pokoj z miejscem, a gdy go nie ma - nowy. W LAN po prostu dolacza.
+  const play = () => {
+    if (onPlay) onPlay(joinable[0]?.code ?? null);
+    else if (!lan && joinable[0]) onJoin(joinable[0].code);
+    else onNew();
+  };
+
+  // Wizytowka: sprite w kolorze, nick, wyniki z leaderboardu.
+  const mine = (leaderboard?.players ?? []).find((p) => p.nick === nick) ?? null;
+  const stat = (label, v) => el('div', { className: 'stat' }, el('b', {}, v == null ? '–' : String(v)), el('span', { className: 'muted' }, label));
+  const me = el('section', { className: 'card me' },
+    el('div', { className: 'hero' }, spriteImg(sprites, `player_0@${color}`, 'hero-img', 4)),
+    el('div', { className: 'nick', style: { color } }, nick),
+    el('a', { className: 'link', onclick: onChangeNick }, 'zmień nick'),
+    el('div', { className: 'stats' }, stat('najd. fala', mine?.bestWave), stat('zabójstw', mine?.kills), stat('partii', mine?.games)),
+    el('label', { className: 'muted' }, 'Głośność',
+      el('input', {
+        type: 'range', min: '0', max: '100', step: '1', value: String(Math.round((audio?.volume ?? 0.7) * 100)),
+        oninput: (ev) => onVolume?.(Number(ev.target.value) / 100),
+      })),
+    el('label', { className: 'muted' },
+      el('input', { type: 'checkbox', checked: !!audio?.muted, onchange: (ev) => onMute?.(!!ev.target.checked) }),
+      ' Wycisz'),
+    el('button', { className: 'small', onclick: () => onFullscreen?.() }, 'Pełny ekran'));
+
+  const playCol = el('section', { className: 'card play' },
+    el('button', { className: 'big', onclick: play }, 'GRAJ'),
+    el('div', { className: 'row' },
+      lan ? null : el('button', { onclick: onNew }, 'Nowy pokój'),
+      el('button', { onclick: onControls }, 'Sterowanie')),
     lan ? null : el('label', {}, 'Otwarte pokoje'),
     lan ? null : list,
-    note,
-    el('div', {},
-      el('button', { onclick: onNew }, lan ? 'Dołącz' : 'Nowy pokój'),
-      el('button', { onclick: onControls }, 'Sterowanie')),
-    board));
-  return { setRooms, message: (text) => { note.textContent = text ?? ''; } };
+    note);
+
+  const board = leaderboardPanel(leaderboard, { limit: 6, nick });
+  const boardCol = el('section', { className: 'card board' }, board ?? el('div', { className: 'muted' }, 'Leaderboard pojawi się po pierwszej partii.'));
+
+  // Bestiariusz: sprite'y potworow, po najechaniu jedno zdanie.
+  const blurb = el('div', { className: 'muted blurb' }, 'Najedź na potwora.');
+  const beast = el('div', { className: 'bestiary' }, ...BESTIARY.map(([type, name, text]) => {
+    const tile = el('div', { className: 'beast' }, spriteImg(sprites, `${type}_0`, 'beast-img', 2), el('div', { className: 'beast-name' }, name));
+    tile.addEventListener('mouseenter', () => { blurb.textContent = `${name}: ${text}`; });
+    return tile;
+  }));
+
+  // Stopka: porada (rotowana przez main.js przez tick()), puls serwera, wersja, co nowego.
+  let tipIdx = Math.floor(Math.random() * TIPS.length);
+  const tip = el('div', { className: 'tip' }, TIPS[tipIdx]);
+  const pulse = el('span', { className: 'muted' });
+  const setOnline = (o) => {
+    pulse.textContent = o && Number.isFinite(o.players) ? `online: ${o.players} · pokoje: ${o.rooms ?? 0}` : '';
+  };
+  setOnline(online);
+  const news = el('div', { className: 'news', hidden: true }, ...NEWS.map(([v, text]) => el('div', {}, el('b', {}, `v${v}`), ` ${text}`)));
+  const newsLink = el('a', { className: 'link', onclick: () => { news.hidden = !news.hidden; } }, 'co nowego');
+  const foot = el('div', { className: 'home-foot' }, tip, el('div', { className: 'muted' }, pulse, version ? ` · v${version} · ` : ' · ', newsLink), news);
+
+  show(el('div', { className: 'panel home' },
+    logoCanvas(),
+    el('div', { className: 'home-grid' }, me, playCol, boardCol),
+    el('label', {}, 'Bestiariusz'), beast, blurb,
+    foot));
+  return {
+    setRooms,
+    setOnline,
+    message: (text) => { note.textContent = text ?? ''; },
+    tick: () => { tipIdx = (tipIdx + 1) % TIPS.length; tip.textContent = TIPS[tipIdx]; },
+  };
 }
 
-// K-04: obrazek rysowany z kodu na <canvas>.
+// K-04 / V3-K-07: poligon. Panel dokowany po prawej, scena z gry po lewej (rysuje ja main.js na #world).
+// Zwraca setPressed(zbior etykiet), ktore podswietla trzymane klawisze na obrazku.
 export function showControls(onBack) {
   const canvas = el('canvas', { width: CONTROLS_SIZE.w, height: CONTROLS_SIZE.h, className: 'controls-img' });
   const ctx = canvas.getContext?.('2d');
+  let last = '';
+  const setPressed = (pressed) => {
+    const key = [...pressed].sort().join('|');
+    if (key === last || !ctx) return;
+    last = key;
+    drawControls(ctx, pressed);
+  };
   if (ctx) drawControls(ctx);
-  show(el('div', { className: 'panel' },
+  show(el('div', { className: 'panel range' },
     el('h2', {}, 'STEROWANIE'),
+    el('p', { className: 'muted' }, 'Poligon: wypróbuj na żywo. Bohater po lewej reaguje na klawisze, ściana obok jest do podniesienia, ślimak do zestrzelenia.'),
     canvas,
-    el('div', {}, el('button', { onclick: onBack }, 'Wróć'))));
+    el('div', {}, el('button', { onclick: onBack }, 'Wróć'), el('span', { className: 'muted' }, ' albo Esc'))), { side: true });
+  return { setPressed };
 }
 
 export function showNickForm(onSubmit, initial = '') {

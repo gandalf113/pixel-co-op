@@ -15,6 +15,7 @@ import { VIEW_W, VIEW_H, Camera, computeScale, renderWorld } from './render.js';
 import { renderHud } from './hud.js';
 import * as ui from './ui.js';
 import { createSfx } from './sfx.js';
+import { DemoWorld } from './demo.js';
 
 const ENDED_MSG_MS = 2500;
 const PLAYER_KEY = { id: 'id', x: 'x', y: 'y', angle: 'angle' };
@@ -65,6 +66,37 @@ const SFX_KEY = 'pixelcoop.sfx';
 const audio = loadAudioPrefs();
 sfx.setVolume(audio.volume);
 sfx.setMuted(audio.muted);
+ui.setUiSfx((name) => sfx.play(name, { own: true }));
+
+// Swiat demo bez serwera (V3-K-06/07): tlo ekranu nicku i glownego ('attract') oraz poligon ('range').
+// Wlasne Fx i Gore, zeby krew z poligonu nie trafila do prawdziwej partii.
+let demo = null;
+let rangeView = null;
+let rangeBack = null;
+const demoFx = new Fx();
+const demoGore = new Gore(null);
+const pressedHold = new Map(); // etykieta klawisza -> do kiedy swieci (akcje krawedziowe E/R/Q/F/G)
+const PRESS_HOLD_MS = 150;
+const KEY_LABEL = { KeyW: 'W', KeyA: 'A', KeyS: 'S', KeyD: 'D' };
+
+function heroColor() {
+  let h = 0;
+  for (const ch of nick) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return COLORS[h % COLORS.length];
+}
+
+function startDemo(demoMode) {
+  demoFx.reset();
+  demoGore.cfg = balance.gore;
+  demoGore.reset();
+  demo = balance && sprites ? new DemoWorld(balance, { mode: demoMode, seed: (Date.now() % 100000) | 1, color: heroColor(), nick: nick || 'ty' }) : null;
+}
+
+function stopDemo() {
+  demo = null;
+  rangeView = null;
+  rangeBack = null;
+}
 // AudioContext wolno utworzyć dopiero po geście użytkownika (polityka autoplay).
 for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => sfx.unlock(), { capture: true });
 document.addEventListener('visibilitychange', () => {
@@ -133,38 +165,157 @@ async function fetchRooms() {
   }
 }
 
-// Ekran główny. W trybie LAN nie ma listy i nie wołamy /api/rooms w ogóle.
+async function fetchHealth() {
+  try {
+    const res = await fetch('/healthz', { cache: 'no-store' });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+function setAudio({ volume, muted }) {
+  if (volume != null) {
+    audio.volume = volume;
+    sfx.setVolume(volume);
+  }
+  if (muted != null) {
+    audio.muted = muted;
+    sfx.setMuted(muted);
+  }
+  saveAudioPrefs();
+}
+
+const fullscreen = () => document.documentElement.requestFullscreen?.().catch(() => {});
+
+// Ekran główny (V3-K-06). W trybie LAN nie ma listy i nie wołamy /api/rooms w ogóle; /healthz pytamy w obu trybach
+// (puls serwera w stopce), ale tylko poki ten ekran jest otwarty.
 function showHome(message = '') {
   stopHome();
+  mode = 'home';
+  startDemo('attract');
   const lan = serverMode !== 'rooms';
   const gen = homeGen;
-  const view = ui.showHome({ nick, lan, rooms: null, leaderboard, message }, {
+  const view = ui.showHome({ nick, lan, rooms: null, leaderboard, message, color: heroColor(), sprites, version, audio }, {
     onJoin: (code) => join(nick, code),
     onNew: () => join(nick, null),
+    onPlay: (code) => join(nick, lan ? null : code),
     onControls: () => {
       stopHome();
-      ui.showControls(() => showHome());
+      showRange(() => showHome());
     },
     onChangeNick: () => {
       stopHome();
       showNick();
     },
+    onVolume: (v) => setAudio({ volume: v }),
+    onMute: (m) => setAudio({ muted: m }),
+    onFullscreen: fullscreen,
   });
-  if (lan) return;
+  let n = 0;
   const refresh = async () => {
-    const rooms = await fetchRooms();
-    if (gen === homeGen) view.setRooms(rooms);
+    const [rooms, health] = await Promise.all([lan ? null : fetchRooms(), fetchHealth()]);
+    if (gen !== homeGen) return;
+    if (!lan) view.setRooms(rooms);
+    view.setOnline(health);
+    if (health?.version) version = health.version;
+    if (++n % 2 === 0) view.tick();
   };
   refresh();
   homeTimer = setInterval(refresh, ROOMS_REFRESH_MS);
 }
 
 function showNick() {
+  mode = 'nick';
+  startDemo('attract');
   ui.showNickScreen({ nick }, (n) => {
     nick = n;
     saveNick(n);
     enterFlow();
   });
+}
+
+// Poligon sterowania (V3-K-07): scena z gry po lewej, klawiatura po prawej. Esc albo "Wróć" = back().
+function showRange(back) {
+  mode = 'range';
+  startDemo('range');
+  rangeBack = () => {
+    stopDemo();
+    back();
+  };
+  rangeView = ui.showControls(() => rangeBack());
+}
+
+// Przesuniecie kamery, zeby bohater stal na srodku wolnego miejsca obok panelu (w px swiata).
+function rangeShift() {
+  const panel = document.querySelector('#ui .panel.range');
+  return panel ? panel.offsetWidth / (2 * scale) : 0;
+}
+
+function pressedLabels(now) {
+  const out = new Set();
+  for (const code of input.down) if (KEY_LABEL[code]) out.add(KEY_LABEL[code]);
+  if (input.fire) {
+    out.add('SPACJA');
+    out.add('LPM');
+  }
+  for (const [label, until] of pressedHold) {
+    if (now < until) out.add(label);
+    else pressedHold.delete(label);
+  }
+  return out;
+}
+
+// Zdarzenia z poligonu -> dzwiek i efekty (ten sam jezyk co prawdziwe zdarzenia serwera). Tlo (attract) jest nieme.
+function demoEvent(e, now) {
+  const tp = balance.map.tilePx;
+  const loud = mode === 'range';
+  const dist = e.x != null ? Math.hypot(e.x - cam.x, e.y - cam.y) / tp : 0;
+  switch (e.type) {
+    case 'shot':
+      demoFx.shot(now, { id: demo.hero.id, angle: e.angle }, true, e.x, e.y);
+      if (loud) sfx.play('shot', { own: true });
+      break;
+    case 'reload':
+      if (loud) sfx.play('reload', { own: true, dur: e.dur });
+      break;
+    case 'hit':
+      demoGore.addSplat(Math.round(e.x), Math.round(e.y), 0, now);
+      demoFx.mobHit(now, e, demo.hero.id);
+      if (loud) sfx.play('hit', { dist });
+      break;
+    case 'mobDeath':
+      demoGore.addCorpse(e.kind, e.x, e.y, e.a, 0);
+      demoFx.mobDeath(now, e);
+      if (loud) sfx.play('death', { dist });
+      break;
+    case 'pickup': case 'place': case 'drop': case 'deny':
+      if (loud) sfx.play(e.type, { own: true });
+      break;
+    case 'ult':
+      if (loud) sfx.play('ult', { own: true, tier: e.tier });
+      break;
+  }
+}
+
+function renderDemo(now, dt) {
+  const range = mode === 'range';
+  const raw = range ? input.sample() : { mx: 0, my: 0, fire: false };
+  const aim = aimWorld();
+  for (const e of demo.update(now, dt, { ...raw, aim })) demoEvent(e, now);
+  const h = demo.hero;
+  cam.follow(h.x + (range ? rangeShift() : 0), h.y);
+  demoFx.update(now, dt);
+  const view = demo.view(now, { cam, sprites, fx: demoFx, gore: demoGore, pxScale: scale, aim });
+  guardedDraw('demo', () => renderWorld(wctx, view));
+  guardedDraw('hud', () => renderHud(hctx, scale, { version, status, mouse: boardMouse(), showCursor: range, sprites, cam, nowMs: now, fx: demoFx }));
+  if (!range) {
+    // przyciemnienie pod panelem: scena ma byc tlem, nie konkurencja dla tekstu
+    hctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+    hctx.fillRect(0, 0, hudCanvas.width, hudCanvas.height);
+  } else {
+    rangeView?.setPressed(pressedLabels(now));
+  }
 }
 
 // Po nicku: link ?r=KOD wchodzi prosto do pokoju, inaczej ekran główny.
@@ -181,6 +332,8 @@ function showJoin(message = '') {
 
 function join(n, room = null) {
   stopHome();
+  stopDemo();
+  mode = 'nick';
   nick = n;
   ui.showMessage('Łączę…');
   conn.connect(n, serverMode === 'rooms' ? room : null);
@@ -494,6 +647,20 @@ input.onAction((a, down) => {
   }
   if (a === 'tab') {
     tab = down;
+    if (mode === 'range') pressedHold.set('Tab', down ? Infinity : 0);
+    return;
+  }
+  if (mode === 'range' && demo) {
+    if (a === 'esc') {
+      rangeBack?.();
+      return;
+    }
+    const now = performance.now();
+    if (a === 'next' && !input.down.has('KeyD')) pressedHold.set('PPM', now + PRESS_HOLD_MS);
+    const label = { e: 'E', r: 'R', q: 'Q', f: 'F', g: 'G' }[a];
+    if (!label) return;
+    pressedHold.set(label, now + PRESS_HOLD_MS);
+    demo.action(a, aimWorld());
     return;
   }
   if (mode !== 'game') return;
@@ -567,7 +734,7 @@ function pause() {
     },
     onResume: resume,
     onControls: () => ui.showControls(() => pause()),
-    onFullscreen: () => document.documentElement.requestFullscreen?.().catch(() => {}),
+    onFullscreen: fullscreen,
     onLeave: () => {
       conn.leave();
       mode = 'nick';
@@ -669,8 +836,12 @@ function frame(now) {
   if (dt > 0) fpsEma += (1 / dt - fpsEma) * 0.05;
   predictor?.smooth(dt);
   fx.update(now, dt);
-  document.body.classList.toggle('playing', mode === 'game' && !paused);
+  document.body.classList.toggle('playing', (mode === 'game' && !paused) || mode === 'range');
   if (!playing) {
+    if (demo && sprites && balance && (mode === 'home' || mode === 'nick' || mode === 'range')) {
+      renderDemo(now, dt);
+      return;
+    }
     wctx.setTransform(1, 0, 0, 1, 0, 0);
     wctx.fillStyle = '#000';
     wctx.fillRect(0, 0, worldCanvas.width, worldCanvas.height);
@@ -749,12 +920,28 @@ async function refreshLeaderboard() {
   }
 }
 
-async function boot() {
+// Balans do swiata demo pobieramy z pliku statycznego, zanim serwer przysle swoj w `welcome`
+// (ten z `welcome` i tak go nadpisze). Bez niego ekran glowny ma czarne tlo, jak dawniej.
+async function loadDemoBalance() {
   try {
-    const res = await fetch('/healthz', { cache: 'no-store' });
-    if (res.ok) serverMode = (await res.json()).mode ?? 'lan';
-  } catch {}
-  await refreshLeaderboard();
+    const res = await fetch('/balance.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const b = await res.json();
+    if (balance) return;
+    balance = b;
+    gore.cfg = balance.gore;
+    setItemDefs(balance.items);
+    sprites ??= bakeSprites(document, COLORS);
+  } catch { /* demo jest opcjonalne */ }
+}
+
+async function boot() {
+  const health = await fetchHealth();
+  if (health) {
+    serverMode = health.mode ?? 'lan';
+    version = health.version ?? null;
+  }
+  await Promise.all([refreshLeaderboard(), loadDemoBalance()]);
   const url = roomFromUrl();
   if (nick && serverMode !== 'rooms' && stored('token')) join(nick, null);
   else if (nick && serverMode === 'rooms' && url) join(nick, url);
