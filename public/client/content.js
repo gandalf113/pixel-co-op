@@ -20,7 +20,7 @@ export const TIPS = [
   'Spacja z przedmiotem w rękach to rzut. Rzucony power-up aktywuje się tam, gdzie spadnie.',
   'G w przerwie między falami skraca czekanie, gdy wszyscy są gotowi.',
   'Powalonego sojusznika podnosisz stojąc obok. Strzałka pokazuje, ile ma sekund.',
-  'Kropelki ładują wspólny pasek ULTIMATE. Każdy używa swojego, kiedy chce.',
+  'Kropelki ładują wspólny pasek ULTIMATE. F odpala pierwsze, C drugie. Jeden pasek, więc wybierasz w chwili użycia.',
   'Potwory powoli niszczą ściany. Spękana ściana to ostrzeżenie.',
   'Tab przytrzymany pokazuje tablicę wyników w trakcie gry.',
   'Link do pokoju z lobby wrzuć znajomym. Wchodzą prosto do środka.',
@@ -31,6 +31,7 @@ export const TIPS = [
 
 // Co nowego: ostatnie wersje, po jednym-dwa zdania. Najnowsza pierwsza. Aktualizowane razem z tagiem.
 export const NEWS = [
+  ['0.20.0', 'Dwa ultimate na gracza: wybierasz dwa w lobby, F odpala pierwsze, C drugie. Pasek jeden, wspólny.'],
   ['0.19.1', 'Gwoździarka przebija potwory: każdy kolejny na linii dostaje 15% mniej.'],
   ['0.19.0', 'Granaty zostawiają ogień, który gaśnie przez 8 s i pali wszystko na kafelku. Ciemność z pochodnią wokół gracza gotowa pod wydarzenia (F4 = podgląd).'],
   ['0.18.0', 'Dwa nowe dropy na stałe: Serce (+10 max HP) i Buty (+3% prędkości). Działają do końca partii, rzucone można podać koledze.'],

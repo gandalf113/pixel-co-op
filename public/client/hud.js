@@ -59,20 +59,28 @@ function drawUltBar(ctx, state, me, scale, fs, small) {
   const u = state.balance.ultimate;
   const now = state.nowMs;
   const W = ctx.canvas.width;
-  const icon = state.sprites.get(u.kinds[me.ultKind].sprite);
   const iconPx = 16 * scale;
   const x0 = PAD;
   const y0 = PAD;
+  // Dwa sloty (V3-Q-08): ikona 1 z [F], ikona 2 z [C], obie swieca od progu I.
+  const slots = [[me.ultKind, 'F'], [me.ultKind2, 'C']].filter(([k]) => k && u.kinds[k]);
   const tier = Math.min(3, Math.floor(me.ult / u.tierPoints));
   const full = tier === 3;
   if (tierSeen !== null && tier > tierSeen) tierFlashAt = now;
   tierSeen = tier;
   const flashK = (now - tierFlashAt) / TIER_FLASH_MS;
   const pulse = full ? 0.75 + 0.25 * Math.sin(now / 120) : 1;
-  ctx.fillStyle = '#000';
-  ctx.fillRect(x0 - 2, y0 - 2, iconPx + 4, iconPx + 4);
-  if (icon) ctx.drawImage(icon, x0, y0, iconPx, iconPx);
-  const bx = x0 + iconPx + 8;
+  slots.forEach(([kind, key], i) => {
+    const ix = x0 + i * (iconPx + 6);
+    const icon = state.sprites.get(u.kinds[kind].sprite);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(ix - 2, y0 - 2, iconPx + 4, iconPx + 4);
+    ctx.globalAlpha = tier > 0 ? 1 : 0.55;
+    if (icon) ctx.drawImage(icon, ix, y0, iconPx, iconPx);
+    ctx.globalAlpha = 1;
+    text(ctx, key, ix + iconPx - 2, y0 + iconPx - small + 1, { size: small, color: tier > 0 ? '#ffd23a' : '#a39b8c', align: 'right' });
+  });
+  const bx = x0 + slots.length * (iconPx + 6) + 2;
   const barW = Math.max(180, W / 3);
   const h = 12;
   const gap = 6;
@@ -140,7 +148,7 @@ function drawUltBar(ctx, state, me, scale, fs, small) {
   const ty = by + h + small + 4;
   if (full) {
     const blink = Math.floor(now / 300) % 2 === 0;
-    text(ctx, 'ULTI GOTOWE [F]', rx + 12, ty, { size: small, color: blink ? '#ffd23a' : '#ff7a2a' });
+    text(ctx, slots.length > 1 ? 'ULTI GOTOWE [F] / [C]' : 'ULTI GOTOWE [F]', rx + 12, ty, { size: small, color: blink ? '#ffd23a' : '#ff7a2a' });
   } else if (state.deny) {
     text(ctx, 'ZA MAŁO', rx + 12, ty, { size: small, color: '#ff5a4a' });
   }

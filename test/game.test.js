@@ -94,8 +94,8 @@ test('game over when all downed (F7)', () => {
   assert.equal(res.wave, 1);
   assert.ok(near(res.timeS, g.world.time));
   assert.deepEqual(res.players, [
-    { nick: 'Ala', color: 0, kills: 0, downs: 0, ultsUsed: 0, ultKind: null },
-    { nick: 'Bob', color: 1, kills: 0, downs: 0, ultsUsed: 0, ultKind: null },
+    { nick: 'Ala', color: 0, kills: 0, downs: 0, ultsUsed: 0, ultKind2: null, ultKind: null },
+    { nick: 'Bob', color: 1, kills: 0, downs: 0, ultsUsed: 0, ultKind2: null, ultKind: null },
   ]);
   const t = g.world.time;
   g.tick(DT);
@@ -141,7 +141,7 @@ test('snapshot shape', () => {
   assert.equal(s.you.id, 1);
   assert.deepEqual(Object.keys(s.players[0]).sort(), [
     'ammo', 'angle', 'busy', 'color', 'deathLeft', 'frenzyLeft', 'held', 'hp', 'id', 'invuln', 'maxHp', 'nick',
-    'ready', 'reloadLeft', 'reviveProgress', 'speedMult', 'state', 'suspended', 'ult', 'ultKind', 'weaponLv', 'weaponMod', 'x', 'y',
+    'ready', 'reloadLeft', 'reviveProgress', 'speedMult', 'state', 'suspended', 'ult', 'ultKind', 'ultKind2', 'weaponLv', 'weaponMod', 'x', 'y',
   ]);
   assert.ok(s.mobs.length > 0);
   assert.equal(s.mobs[0].length, 12);

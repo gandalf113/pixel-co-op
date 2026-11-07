@@ -117,8 +117,8 @@ export class Game {
       this.#checkReady();
       return;
     }
-    if (action === 'f') {
-      useUltimate(this.world, p);
+    if (action === 'f' || action === 'c') {
+      useUltimate(this.world, p, action === 'c' ? 2 : 1);
       return;
     }
     if (action === 'r' && p.held === null) {
@@ -170,7 +170,7 @@ export class Game {
     return {
       wave: this.world.wave,
       timeS: this.overAt ?? this.world.time,
-      players: this.roster.map((p) => ({ nick: p.nick, color: p.color, kills: p.kills, downs: p.downs ?? 0, ultsUsed: p.ultsUsed ?? 0, ultKind: p.ultKind ?? null })),
+      players: this.roster.map((p) => ({ nick: p.nick, color: p.color, kills: p.kills, downs: p.downs ?? 0, ultsUsed: p.ultsUsed ?? 0, ultKind2: p.ultKind2 ?? null, ultKind: p.ultKind ?? null })),
     };
   }
 
@@ -251,7 +251,7 @@ export class Game {
       you: { id, ackSeq: me?.ackSeq ?? 0 },
       // Pola zmienne gracza jako krotki, kolejnosc = PLAYER_FIELDS z public/shared/delta.js:
       // [id, x, y, angle, hp, maxHp, state, suspended, reviveProgress, deathLeft, invuln, busy, held, ready,
-      //  weaponLv, weaponMod, ammo, reloadLeft, ult, ultKind, frenzyLeft, speedMult]
+      //  weaponLv, weaponMod, ammo, reloadLeft, ult, ultKind, frenzyLeft, speedMult, ultKind2]
       players: rows,
       // Pola stale [id, nick, color]: tylko w pelnym snapshocie i przy graczu, ktorego ten klient jeszcze nie widzial.
       ...(statics.length ? { pstatic: statics } : {}),
@@ -296,7 +296,7 @@ export class Game {
       reviveProgress: r1(p.reviveProgress), deathLeft: r1(p.deathLeft), invuln: r1(p.invuln), busy: r1(p.busy),
       held: items.heldKind(this.world, p), ready: p.ready, weaponLv: p.weaponLv, weaponMod: p.weaponMod,
       ammo: p.ammo, reloadLeft: r1(p.reloadLeft),
-      ult: r1(p.ult), ultKind: p.ultKind, frenzyLeft: r1(p.frenzyLeft), speedMult: speedMultOf(p),
+      ult: r1(p.ult), ultKind: p.ultKind, frenzyLeft: r1(p.frenzyLeft), speedMult: speedMultOf(p), ultKind2: p.ultKind2 ?? null,
     };
   }
 

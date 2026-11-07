@@ -91,6 +91,7 @@ function play(s, { inputs, seconds }) {
   s.connect(c);
   s.message(c, JSON.stringify({ t: 'hello', token: null, nick: 'A' }));
   s.message(c, JSON.stringify({ t: 'ult', kind: 'shockwave' }));
+  s.message(c, JSON.stringify({ t: 'ult', kind: 'heal', slot: 2 }));
   s.message(c, JSON.stringify({ t: 'start' }));
   for (let i = 1; i <= inputs; i++) {
     s.message(c, JSON.stringify({ t: 'input', seq: i, mx: 1, my: 0, aimX: 1, aimY: 1 }));

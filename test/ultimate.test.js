@@ -78,3 +78,26 @@ test('rocket I: 140 dmg in full radius, stuns mobs 0.5 s, no falloff at the edge
   assert.ok(brute.stun > 0 && brute.stun <= 0.5);
   assert.ok(!w.mobs.includes(edge));
 });
+
+// Dwa ultimate na gracza (V3-Q-08): slot 1 = F, slot 2 = C, jeden wspolny pasek.
+test('dwa sloty: C uzywa drugiego ultimate, oba zeruja ten sam pasek', () => {
+  const w = makeWorld({ players: [{ x: c(20), y: c(20), ultKind: 'heal', ultKind2: 'freeze', ult: 200, hp: 10 }] });
+  const p = w.players.get('p1');
+  const m = addMob(w, 'brute', c(25), c(20));
+  useUltimate(w, p, 2);
+  assert.equal(m.frozen, 5, 'slot 2 = zamrozenie');
+  assert.equal(p.ult, 0, 'wspolny pasek wyzerowany');
+  assert.ok(w.events.some((e) => e.type === 'ult' && e.kind === 'freeze' && e.slot === 2));
+  p.ult = 100;
+  useUltimate(w, p, 1);
+  assert.ok(p.hp > 10, 'slot 1 = leczenie');
+  assert.equal(p.ult, 0);
+});
+
+test('pusty slot 2: C nic nie robi i nie zeruje paska', () => {
+  const w = makeWorld({ players: [{ x: c(20), y: c(20), ultKind: 'heal', ult: 150 }] });
+  const p = w.players.get('p1');
+  useUltimate(w, p, 2);
+  assert.equal(p.ult, 150);
+  assert.equal(w.events.length, 0);
+});

@@ -23,6 +23,7 @@ function join(s, nick, isLocal = false) {
   s.connect(c);
   send(s, c, { t: 'hello', token: null, nick });
   send(s, c, { t: 'ult', kind: 'shockwave' });
+  send(s, c, { t: 'ult', kind: 'heal', slot: 2 });
   return c;
 }
 

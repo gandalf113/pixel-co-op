@@ -21,6 +21,7 @@ function join(s, nick, isLocal = false) {
   s.connect(c);
   send(s, c, { t: 'hello', token: null, nick });
   send(s, c, { t: 'ult', kind: 'shockwave' });
+  send(s, c, { t: 'ult', kind: 'heal', slot: 2 });
   return c;
 }
 function run(s, secs, dt = 0.5) {
@@ -184,4 +185,29 @@ test('host and guest timing out together does not crash', () => {
   run(s, 31);
   assert.equal(s.game, null);
   assert.equal(s.players.length, 0);
+});
+
+// Dwa ultimate (V3-Q-08): start wymaga obu slotow, sloty musza byc rozne, null czysci.
+test('lobby: dwa sloty ultimate, rozne, start dopiero z oboma', () => {
+  const s = new Session({ balance, seed: 1, addresses: [] });
+  const c = conn(true);
+  s.connect(c);
+  send(s, c, { t: 'hello', token: null, nick: 'Host' });
+  send(s, c, { t: 'ult', kind: 'shockwave' });
+  send(s, c, { t: 'start' });
+  assert.equal(s.game, null, 'bez drugiego slotu nie startuje');
+  send(s, c, { t: 'ult', kind: 'shockwave', slot: 2 });
+  let lob = last(c, 'lobby');
+  assert.equal(lob.players[0].ultKind2, null, 'ten sam rodzaj w slocie 2 odrzucony');
+  send(s, c, { t: 'ult', kind: 'rocket', slot: 2 });
+  lob = last(c, 'lobby');
+  assert.deepEqual([lob.players[0].ultKind, lob.players[0].ultKind2], ['shockwave', 'rocket']);
+  send(s, c, { t: 'ult', kind: null, slot: 2 });
+  assert.equal(last(c, 'lobby').players[0].ultKind2, null, 'null czysci slot');
+  send(s, c, { t: 'ult', kind: 'heal', slot: 2 });
+  send(s, c, { t: 'start' });
+  assert.ok(s.game, 'z oboma slotami startuje');
+  const me = s.game.world.players.values().next().value;
+  assert.deepEqual([me.ultKind, me.ultKind2], ['shockwave', 'heal']);
+  assert.equal(s.game.snapshot(me.id).players[0].at(-1), 'heal', 'ultKind2 jest ostatnim polem krotki gracza');
 });

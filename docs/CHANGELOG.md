@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.37 - 2026-11-07
+- v0.20.0: **V3-Q-08 dwa ultimate na gracza**. Lobby: dwa sloty (klik w wolny kafelek = pierwszy pusty slot, klik w wybrany = zdjecie, oba pelne = podmiana drugiego; plakietki F / C), start dopiero z oboma, sloty musza byc rozne (`{t: ult, kind, slot}`, `kind: null` czysci). Gra: `F` = slot 1, `C` = slot 2, jeden wspolny pasek, uzycie dowolnego zeruje. HUD: dwie ikony z literami, napis `ULTI GOTOWE [F] / [C]`. `ultKind2` doklejony na koncu krotki gracza (PLAYER_FIELDS) i w wynikach. Poligon i ekran sterowania maja klawisz C. ULT-05, ULT-CTRL-01, ULT-HUD-02, PRD-CTRL-10 zaktualizowane.
+
 ## 0.36 - 2026-11-07
 - v0.19.1: **gwozdziarka przebija potwory** (zgloszenie: "powinna penetrowac, a tego nie robi"). `pierce` 99 i `pierceDecay` 0.15 w `weaponMods.nailgun`: kazdy kolejny potwor na linii dostaje 85% obrazen poprzedniego. Sciana nadal zatrzymuje. Karabin, wachlarz i samonaprowadzanie bez zmian.
 

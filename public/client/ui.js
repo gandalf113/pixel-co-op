@@ -347,7 +347,7 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
     onchange: (e) => onDifficulty(Number(e.target.value)),
   });
   const players = el('ul', {}, ...msg.players.map((p) => el('li', { style: { color: p.color } },
-    `${p.nick}${p.host ? ' (host)' : ''} · ${p.ultKind ? ultimates[p.ultKind].name : 'wybiera ultimate…'}`)));
+    `${p.nick}${p.host ? ' (host)' : ''} · ${[p.ultKind, p.ultKind2].filter(Boolean).map((k) => ultimates[k].name).join(' + ') || 'wybiera ultimate…'}${p.ultKind && !p.ultKind2 ? ' + ?' : ''}`)));
   const link = msg.room ? roomLink(msg.room) : null;
   const copy = link
     ? el('button', {
@@ -364,8 +364,17 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
     : msg.addresses?.length
       ? el('ul', {}, ...msg.addresses.map((a) => el('li', {}, a)))
       : el('div', { className: 'muted' }, 'brak adresów LAN');
-  const allChosen = msg.players.every((p) => p.ultKind);
-  const mine = msg.players.find((p) => p.id === myId)?.ultKind;
+  // Dwa sloty (V3-Q-08): klik w wolny = pierwszy pusty slot; klik w wybrany = zdjecie; oba pelne = podmiana slotu 2.
+  const allChosen = msg.players.every((p) => p.ultKind && p.ultKind2);
+  const meRow = msg.players.find((p) => p.id === myId);
+  const mine = meRow?.ultKind ?? null;
+  const mine2 = meRow?.ultKind2 ?? null;
+  const pick = (kind) => {
+    if (kind === mine) return onUlt(null, 1);
+    if (kind === mine2) return onUlt(null, 2);
+    if (!mine) return onUlt(kind, 1);
+    return onUlt(kind, 2);
+  };
   const detail = el('div', { className: 'ult-detail' });
   const showDetail = (kind) => {
     if (!kind) {
@@ -378,9 +387,10 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
   showDetail(mine);
   const row = el('div', { className: 'ult-row' }, ...Object.entries(ultimates).map(([kind, u]) =>
     el('button', {
-      className: `ult-tile${kind === mine ? ' sel' : ''}`, type: 'button',
-      onclick: () => onUlt(kind), onmouseenter: () => showDetail(kind), onmouseleave: () => showDetail(mine),
+      className: `ult-tile${kind === mine ? ' sel' : ''}${kind === mine2 ? ' sel2' : ''}`, type: 'button',
+      onclick: () => pick(kind), onmouseenter: () => showDetail(kind), onmouseleave: () => showDetail(mine),
     },
+    kind === mine ? el('span', { className: 'slot-badge' }, 'F') : kind === mine2 ? el('span', { className: 'slot-badge two' }, 'C') : null,
     icons[kind] ? el('img', { className: 'ult-icon', src: icons[kind], alt: '' }) : null,
     el('div', { className: 'ult-name' }, u.name),
     el('div', { className: 'ult-blurb' }, u.blurb))));
@@ -389,9 +399,9 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
     el('div', { className: 'lobby-top' },
       el('div', {}, el('label', {}, 'Gracze'), players, el('label', {}, msg.room ? 'Zaproś' : 'Dołącz z sieci LAN'), addresses),
       el('div', {}, el('label', {}, 'Trudność'), slider, name, desc)),
-    el('label', {}, 'Twój ULTIMATE [F]'), row, detail,
+    el('label', {}, 'Twoje DWA ULTIMATE: pierwszy [F], drugi [C] · jeden wspólny pasek'), row, detail,
     msg.youAreHost
-      ? el('button', { onclick: onStart, disabled: !allChosen }, allChosen ? 'Start' : 'Start (czekam na wybór ultimate)')
+      ? el('button', { onclick: onStart, disabled: !allChosen }, allChosen ? 'Start' : 'Start (każdy wybiera dwa ultimate)')
       : el('p', { className: 'muted' }, 'Czekam na hosta…'),
   ));
 }

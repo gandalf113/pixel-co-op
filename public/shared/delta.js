@@ -10,7 +10,7 @@ export function applyItemDelta(dict, snap) {
 
 // Zmienne pola gracza w snapshocie, w kolejnosci krotki (serwer: Game.#playersFor). id jest pierwszy.
 export const PLAYER_FIELDS = ['id', 'x', 'y', 'angle', 'hp', 'maxHp', 'state', 'suspended', 'reviveProgress', 'deathLeft', 'invuln', 'busy',
-  'held', 'ready', 'weaponLv', 'weaponMod', 'ammo', 'reloadLeft', 'ult', 'ultKind', 'frenzyLeft', 'speedMult'];
+  'held', 'ready', 'weaponLv', 'weaponMod', 'ammo', 'reloadLeft', 'ult', 'ultKind', 'frenzyLeft', 'speedMult', 'ultKind2'];
 
 // Odtwarza z krotek tablice graczy w DAWNYM ksztalcie (obiekty z id, nick, color i polami zmiennymi) oraz `snap.seed`.
 // `st` = { statics: Map(id -> {nick, color}), seed } zyje tak dlugo, jak polaczenie; snapshot `full` zaczyna od zera.

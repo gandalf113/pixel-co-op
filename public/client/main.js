@@ -382,7 +382,7 @@ function enterLobbyScreen(msg) {
     ultimates: balance.ultimate.kinds,
     icons: Object.fromEntries(Object.entries(balance.ultimate.kinds).map(([k, u]) => [k, sprites.get(u.sprite)?.toDataURL()])),
     myId,
-    onUlt: (kind) => conn.send({ t: 'ult', kind }),
+    onUlt: (kind, slot = 1) => conn.send({ t: 'ult', kind, slot }),
     onDifficulty: (level) => conn.send({ t: 'difficulty', level }),
     onStart: () => conn.send({ t: 'start' }),
   });
@@ -683,7 +683,7 @@ input.onAction((a, down) => {
     }
     const now = performance.now();
     if (a === 'next' && !input.down.has('KeyD')) pressedHold.set('PPM', now + PRESS_HOLD_MS);
-    const label = { e: 'E', r: 'R', q: 'Q', f: 'F', g: 'G' }[a];
+    const label = { e: 'E', r: 'R', q: 'Q', f: 'F', c: 'C', g: 'G' }[a];
     if (!label) return;
     pressedHold.set(label, now + PRESS_HOLD_MS);
     demo.action(a, aimWorld());

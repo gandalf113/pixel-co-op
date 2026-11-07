@@ -58,8 +58,10 @@ test('http static and websocket flow', async () => {
       await c.wait((m) => m.t === 'lobby');
     }
     a.send({ t: 'ult', kind: 'heal' });
+    a.send({ t: 'ult', kind: 'rocket', slot: 2 });
     b.send({ t: 'ult', kind: 'freeze' });
-    await b.wait((m) => m.t === 'lobby' && m.players.every((p) => p.ultKind));
+    b.send({ t: 'ult', kind: 'wall', slot: 2 });
+    await b.wait((m) => m.t === 'lobby' && m.players.every((p) => p.ultKind && p.ultKind2), 'lobby z dwoma ult');
     a.send({ t: 'start' });
     for (const c of [a, b]) assert.equal((await c.wait((m) => m.t === 'snap')).phase, 'break');
 

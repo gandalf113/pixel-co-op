@@ -170,7 +170,7 @@ export class Session {
       realPlay: real,
       players: res.players.map((p) => ({
         pid: this.players.find((q) => q.nick === p.nick)?.pid ?? null,
-        nick: p.nick, kills: p.kills, downs: p.downs ?? 0, ultsUsed: p.ultsUsed ?? 0, ultKind: p.ultKind ?? null,
+        nick: p.nick, kills: p.kills, downs: p.downs ?? 0, ultsUsed: p.ultsUsed ?? 0, ultKind: p.ultKind ?? null, ultKind2: p.ultKind2 ?? null,
       })),
     });
   }
@@ -237,7 +237,7 @@ export class Session {
   }
 
   #act(p, m) {
-    if (!this.game || !['e', 'r', 'q', 'g', 'f'].includes(m.a)) return;
+    if (!this.game || !['e', 'r', 'q', 'g', 'f', 'c'].includes(m.a)) return;
     this.game.action(p.id, m.a);
   }
 
@@ -247,19 +247,30 @@ export class Session {
     this.#broadcastLobby();
   }
 
+  // Dwa sloty (V3-Q-08): `slot` 1 albo 2 (brak = 1). Oba musza byc rozne; ten sam rodzaj w drugim slocie jest odrzucany.
+  // `kind: null` czysci slot.
   #ult(p, m) {
-    if (this.game || typeof m.kind !== 'string' || !Object.hasOwn(this.balance.ultimate.kinds, m.kind)) return;
-    p.ultKind = m.kind;
+    if (this.game) return;
+    const slot = m.slot === 2 ? 2 : 1;
+    if (m.kind === null) {
+      if (slot === 2) p.ultKind2 = null; else p.ultKind = null;
+      this.#broadcastLobby();
+      return;
+    }
+    if (typeof m.kind !== 'string' || !Object.hasOwn(this.balance.ultimate.kinds, m.kind)) return;
+    const other = slot === 2 ? p.ultKind : p.ultKind2;
+    if (other === m.kind) return;
+    if (slot === 2) p.ultKind2 = m.kind; else p.ultKind = m.kind;
     this.#broadcastLobby();
   }
 
   #start(p) {
     if (this.game || !this.#isHost(p) || this.players.length < 1) return;
-    if (this.players.some((q) => !q.ultKind)) return;
+    if (this.players.some((q) => !q.ultKind || !q.ultKind2)) return;
     this.game = new Game({
       balance: this.balance,
       difficulty: this.difficulty,
-      players: this.players.map((q, i) => ({ id: q.id, nick: q.nick, color: COLORS[i], ultKind: q.ultKind })),
+      players: this.players.map((q, i) => ({ id: q.id, nick: q.nick, color: COLORS[i], ultKind: q.ultKind, ultKind2: q.ultKind2 })),
       seed: this.seed++,
     });
     this.snapAcc = 0;
@@ -270,7 +281,7 @@ export class Session {
     this.#emit('game_start', {
       gameId: this.gameId,
       difficulty: this.difficulty,
-      players: this.players.map((q) => ({ pid: q.pid, nick: q.nick, ultKind: q.ultKind })),
+      players: this.players.map((q) => ({ pid: q.pid, nick: q.nick, ultKind: q.ultKind, ultKind2: q.ultKind2 })),
     });
   }
 
@@ -360,7 +371,7 @@ export class Session {
   }
 
   #broadcastLobby() {
-    const players = this.players.map((p, i) => ({ id: p.id, nick: p.nick, color: COLORS[i], host: this.#isHost(p), ultKind: p.ultKind ?? null }));
+    const players = this.players.map((p, i) => ({ id: p.id, nick: p.nick, color: COLORS[i], host: this.#isHost(p), ultKind: p.ultKind ?? null, ultKind2: p.ultKind2 ?? null }));
     for (const p of this.players) {
       p.conn?.send({
         t: 'lobby', players, difficulty: this.difficulty, addresses: this.addresses,

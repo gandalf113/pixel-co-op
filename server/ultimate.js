@@ -211,18 +211,21 @@ function freeze(world, p, c) {
   }
 }
 
-export function useUltimate(world, p) {
-  if (p.state !== 'alive' || p.suspended || !p.ultKind) return;
+// Dwa ultimate na gracza (V3-Q-08): slot 1 = `F` (ultKind), slot 2 = `C` (ultKind2). Jeden wspolny pasek:
+// uzycie dowolnego zeruje go, wiec to wybor w chwili uzycia, nie podwojna sila.
+export function useUltimate(world, p, slot = 1) {
+  const kind = slot === 2 ? p.ultKind2 : p.ultKind;
+  if (p.state !== 'alive' || p.suspended || !kind) return;
   const tier = ultTier(world, p);
   if (tier === 0) {
     world.events.push({ type: 'ultDeny', id: p.id });
     return;
   }
-  const kindCfg = ult(world).kinds[p.ultKind];
+  const kindCfg = ult(world).kinds[kind];
   const c = kindCfg.tiers[tier - 1];
   p.ult = 0;
   p.ultsUsed = (p.ultsUsed ?? 0) + 1;
-  switch (p.ultKind) {
+  switch (kind) {
     case 'shockwave': shockwave(world, p, c); break;
     case 'wall': for (const w of wallPieces(world, p, c)) spawnUltWall(world, w.tx, w.ty, w.rot, c.hp, c.durationS); break;
     case 'heal': heal(world, p, c); break;
@@ -231,5 +234,5 @@ export function useUltimate(world, p) {
     case 'rocket': rocket(world, p, c, kindCfg); break;
     case 'freeze': freeze(world, p, c); break;
   }
-  world.events.push({ type: 'ult', id: p.id, kind: p.ultKind, tier, x: p.x, y: p.y, angle: p.angle });
+  world.events.push({ type: 'ult', id: p.id, kind, slot, tier, x: p.x, y: p.y, angle: p.angle });
 }

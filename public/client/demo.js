@@ -194,7 +194,7 @@ export class DemoWorld {
       this.shots.reloadLeft = stats.reloadS;
       return true;
     }
-    if (a === 'f') {
+    if (a === 'f' || a === 'c') {
       if (this.ultCd > 0) return false;
       this.ultCd = ULT_COOLDOWN_S;
       this.effects.push({ kind: 'shockwave', tier: 1, x: h.x, y: h.y, start: this.nowMs, durMs: ULT_EFFECT_MS, color: h.color });

@@ -1,6 +1,6 @@
 # 08 - ULTIMATE
 
-Wersja: 0.6 (2026-11-07, bump Rakiety V3-Q-07). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
+Wersja: 0.7 (2026-11-07, dwa ultimate V3-Q-08; bump Rakiety V3-Q-07). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
 
 ## 1. Założenia (zatwierdzone)
 
@@ -10,7 +10,7 @@ Wersja: 0.6 (2026-11-07, bump Rakiety V3-Q-07). **W zakresie MVP** (decyzja wła
 | ULT-02 | Kropelki ładują pasek ULTIMATE. Ładowanie jest **wspólne**: kropelka podniesiona przez dowolnego gracza ładuje pasek **każdemu** graczowi o tę samą wartość. |
 | ULT-03 | Każdy gracz **używa swojego ultimate, kiedy chce**. Użycie zeruje **tylko jego** pasek. |
 | ULT-04 | Pasek jest **trzystopniowy**: progi I / II / III. Użycie jest możliwe od progu I, siła efektu zależy od osiągniętego progu. Pasek zeruje się niezależnie od progu, z którego użyto. |
-| ULT-05 | Ultimate wybiera się **w lobby**, przed startem, na całą sesję. Dwóch graczy może wybrać ten sam. |
+| ULT-05 | **Dwa ultimate na gracza** (V3-Q-08, v0.20.0): w lobby każdy wybiera **dwa różne** z siedmiu, przed startem, na całą sesję; start dopiero, gdy wszyscy mają oba. Slot 1 = `F`, slot 2 = `C`. Pasek jest **jeden, wspólnie ładowany** (ULT-02..04 bez zmian): użycie dowolnego zeruje go, więc to wybór w chwili użycia, nie podwójna siła. Dwóch graczy może wybrać te same. |
 | ULT-06 | Pasek **nie resetuje się** między falami. |
 | ULT-07 | Kropelki są **przyciągane magnesem o bardzo dużym zasięgu** (R44, po teście 2026-11-05): promień magnesu **9 kafelków** (R55, 2026-11-05: 14 ściągało kropelki z drugiego końca ekranu), prędkość przyciągania rośnie, im bliżej gracza: `v(d) = clamp(40 + 380 * (1 - d/R)^2, 40, 420)` px/s, gdzie `d` to odległość do najbliższego żywego gracza, `R` = 9 kafelków (R55). Czyli na skraju zasięgu kropelka pełznie 40 px/s, w połowie drogi ok. 135 px/s, tuż przy graczu 420. Wartość kropelki zostaje 5 punktów: zmienia się zbieranie, nie tempo ładowania paska. Kropelka wybiera najbliższego żywego gracza i zmienia cel, jeśli inny stanie się bliższy. Znika po **30 s**, jeśli nikt jej nie zebrał (praktycznie tylko, gdy wszyscy są dalej niż 14 kafelków). Pochłonięcie w promieniu 6 px od środka gracza. |
 
@@ -31,11 +31,11 @@ Przy standardowej fali na Normalnym: fala 1 to ok. 17 potworów = ok. 85-100 pun
 
 | ID | Wymóg |
 |---|---|
-| ULT-CTRL-01 | `F` - użyj ultimate. Działa od progu I. Poniżej progu I: krótki sygnał "za mało". |
+| ULT-CTRL-01 | `F` - użyj pierwszego ultimate, `C` - drugiego (ULT-05). Działa od progu I. Poniżej progu I: krótki sygnał "za mało". Pusty slot 2: `C` nic nie robi. |
 | ULT-CTRL-02 | Ultimate celowane (Działko szerokie, Rakieta) używają kierunku kursora w momencie naciśnięcia `F`. |
 | ULT-CTRL-03 | Użycie nie przerywa ruchu ani nie wymaga pustych rąk (działa z przedmiotem w rękach). Wyjątek: Szał nie zmienia zasad rzutu. |
 | ULT-HUD-01 | Pasek ULTIMATE **w lewym górnym rogu**, poziomy, w stylu paska super z bijatyk 16-bit (Street Fighter na SNES): 3 segmenty z przerwami, wypełnianie od lewej, połysk na pełnych segmentach, pulsowanie i napis `ULTI GOTOWE [F]` przy pełnym pasku, licznik `I / II / III`. Szczegóły PRD-HUD-10. |
-| ULT-HUD-02 | Ikona wybranego ultimate 32 x 32 po lewej stronie paska. Nad sojusznikiem mała kropka w kolorze progu (szara / I / II / III), żeby wiedzieć, kto ma gotowe. |
+| ULT-HUD-02 | Dwie ikony wybranych ultimate 32 x 32 po lewej stronie paska, z literą klawisza (`F`, `C`), przyciemnione poniżej progu I; przy pełnym pasku napis `ULTI GOTOWE [F] / [C]`. Nad sojusznikiem mała kropka w kolorze progu (szara / I / II / III), żeby wiedzieć, kto ma gotowe. |
 | ULT-HUD-03 | Lobby: 7 kafelków w jednym rzędzie, bez przewijania, każdy z **ikoną 32 x 32 pixel-art** (`ult_*` w `sprites.js`: `ult_shockwave`, `ult_wall`, `ult_heal`, `ult_rage`, `ult_wide_cannon`, `ult_rocket`, `ult_freeze`), nazwą i jednym zdaniem; progi po najechaniu. Układ: PRD-SES-05. |
 
 ## 4. Lista ultimate (7)

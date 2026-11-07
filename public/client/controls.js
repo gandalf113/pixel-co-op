@@ -17,7 +17,7 @@ export const CONTROL_ROWS = [
   ['rot', COL.rot, 'Q / kółko', 'obróć trzymaną ścianę'],
   ['fire', COL.fire, 'Spacja / LPM', 'strzał; z przedmiotem w rękach: rzut'],
   ['spec', COL.misc, 'PPM', 'po śmierci: następny obserwowany gracz'],
-  ['ult', COL.ult, 'F', 'ULTIMATE'],
+  ['ult', COL.ult, 'F / C', 'ULTIMATE 1 / ULTIMATE 2 (wspólny pasek)'],
   ['ready', COL.ready, 'G', 'gotowy (w przerwie między falami)'],
   ['tab', COL.misc, 'Tab', 'tablica wyników (przytrzymaj)'],
   ['esc', COL.misc, 'Esc', 'pauza'],
@@ -88,6 +88,7 @@ export function drawControls(ctx, pressed = new Set()) {
   K(x0 + 12 + 84, 56, k, 'D', COL.move);
   K(x0 + 12 + 126, 56, k, 'F', COL.ult);
   K(x0 + 12 + 168, 56, k, 'G', COL.ready);
+  K(x0 + 12 + 210, 56, k, 'C', COL.ult);
   K(x0 + 56, 100, 168, 'SPACJA', COL.fire);
   K(x0, 100, 48, 'Esc', COL.misc);
   mouse(ctx, 40, 176, pressed);

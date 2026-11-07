@@ -28,7 +28,7 @@ function spawnPos(rules, index) {
   };
 }
 
-export function createPlayer({ id, nick, color, ultKind = null }, rules, index) {
+export function createPlayer({ id, nick, color, ultKind = null, ultKind2 = null }, rules, index) {
   const { x, y } = spawnPos(rules, index);
   const hp = rules.playerMaxHp();
   return {
@@ -37,7 +37,7 @@ export function createPlayer({ id, nick, color, ultKind = null }, rules, index) 
     reviveProgress: 0, deathLeft: 0, invuln: 0, cooldown: 0, busy: 0,
     held: null, ready: false, kills: 0, downs: 0, ultsUsed: 0, weaponLv: 1, weaponMod: null,
     ammo: rules.balance.rifle.magazine, reloadLeft: 0,
-    ult: 0, ultKind, frenzy: null, frenzyLeft: 0, hpBonus: 0, speedBonus: 0,
+    ult: 0, ultKind, ultKind2, frenzy: null, frenzyLeft: 0, hpBonus: 0, speedBonus: 0,
     inputQueue: [],
     input: { seq: 0, mx: 0, my: 0, aimX: x + 1, aimY: y, fire: false },
     ackSeq: 0,

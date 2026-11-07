@@ -1,5 +1,5 @@
 const MOVE = { KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0] };
-const EDGE = { KeyE: 'e', KeyR: 'r', KeyQ: 'q', KeyG: 'g', KeyF: 'f', Escape: 'esc', F3: 'debug', F4: 'dark' };
+const EDGE = { KeyE: 'e', KeyR: 'r', KeyQ: 'q', KeyG: 'g', KeyF: 'f', KeyC: 'c', Escape: 'esc', F3: 'debug', F4: 'dark' };
 
 // Kółko generuje serię zdarzeń przy gładkim scrollu; jedno "kliknięcie" = jeden obrót.
 const WHEEL_THROTTLE_MS = 120;

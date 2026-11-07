@@ -103,6 +103,7 @@ test('delta: po reconnekcie przez Session pierwszy snapshot jest pelny', () => {
   s.connect(c1);
   msg(c1, { t: 'hello', token: null, nick: 'A' });
   msg(c1, { t: 'ult', kind: 'shockwave' });
+  msg(c1, { t: 'ult', kind: 'heal', slot: 2 });
   msg(c1, { t: 'start' });
   const token = c1.sent.find((m) => m.t === 'welcome').token;
   for (let i = 0; i < 12; i++) s.tick(0.05);
@@ -259,6 +260,7 @@ test('/healthz zwraca bajty na sekunde (suma i maksimum na gracza)', async () =>
     await new Promise((r) => ws.on('open', r));
     ws.send(JSON.stringify({ t: 'hello', token: null, nick: 'A' }));
     ws.send(JSON.stringify({ t: 'ult', kind: 'heal' }));
+    ws.send(JSON.stringify({ t: 'ult', kind: 'freeze', slot: 2 }));
     await new Promise((r) => setTimeout(r, 100));
     ws.send(JSON.stringify({ t: 'start' }));
     await new Promise((r) => setTimeout(r, 400));
@@ -379,6 +381,7 @@ function slowSession() {
   s.connect(c);
   s.message(c, JSON.stringify({ t: 'hello', token: null, nick: 'A' }));
   s.message(c, JSON.stringify({ t: 'ult', kind: 'shockwave' }));
+  s.message(c, JSON.stringify({ t: 'ult', kind: 'heal', slot: 2 }));
   s.message(c, JSON.stringify({ t: 'start' }));
   return { s, c };
 }

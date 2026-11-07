@@ -266,3 +266,29 @@ test('pauza ma przycisk Sterowanie, a ekran sterowania wraca przyciskiem', () =>
   flat(root).find((n) => n.tagName === 'BUTTON' && texts(n).includes('Wróć')).listeners.click();
   assert.equal(back, 1);
 });
+
+test('lobby: dwa sloty ultimate - klik w wolny kafelek trafia do pierwszego pustego slotu, klik w wybrany zdejmuje', () => {
+  const calls = [];
+  const ults = { heal: { name: 'Lecz', blurb: 'b', tiers: [{ desc: 'd' }] }, rocket: { name: 'Rakieta', blurb: 'b', tiers: [{ desc: 'd' }] }, wall: { name: 'Mur', blurb: 'b', tiers: [{ desc: 'd' }] } };
+  const base = { room: 'AB3D', difficulty: 2, addresses: [], youAreHost: true };
+  const opts = { difficulties: [{ name: 'x', desc: 'y' }, { name: 'n', desc: 'o' }], ultimates: ults, icons: {}, myId: 'p1', onUlt: (k, s) => calls.push([k, s]), onDifficulty() {}, onStart() {} };
+  ui.showLobby({ ...base, players: [{ id: 'p1', nick: 'A', color: '#fff', host: true, ultKind: 'heal', ultKind2: null }] }, opts);
+  let shown = texts(root).join(' ');
+  assert.match(shown, /Lecz \+ \?/, 'lista graczy pokazuje brakujacy drugi slot');
+  assert.match(shown, /każdy wybiera dwa ultimate/);
+  const tilesOf = () => flat(root).filter((n) => /ult-tile/.test(n.className));
+  const tiles = tilesOf();
+  assert.equal(tiles.length, 3);
+  tiles[1].listeners.click();
+  assert.deepEqual(calls.at(-1), ['rocket', 2], 'wolny kafelek -> slot 2, bo slot 1 zajety');
+  tiles[0].listeners.click();
+  assert.deepEqual(calls.at(-1), [null, 1], 'klik w wybrany zdejmuje slot 1');
+  ui.showLobby({ ...base, players: [{ id: 'p1', nick: 'A', color: '#fff', host: true, ultKind: 'heal', ultKind2: 'rocket' }] }, opts);
+  shown = texts(root).join(' ');
+  assert.match(shown, /Lecz \+ Rakieta/);
+  assert.ok(!/każdy wybiera/.test(shown), 'z oboma slotami Start aktywny');
+  const t2 = tilesOf();
+  assert.match(t2[1].className, /sel2/, 'slot 2 oznaczony');
+  t2[2].listeners.click();
+  assert.deepEqual(calls.at(-1), ['wall', 2], 'oba pelne -> podmiana slotu 2');
+});
