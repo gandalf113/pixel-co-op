@@ -55,7 +55,7 @@ function placeAt(w, p, kind, tx, ty) {
 // ---- opis zachowan w balance.json ----
 
 test('every item declares a known behavior and a drop weight', () => {
-  const known = ['block', 'spikes', 'turret', 'mine', 'platform', 'cage', 'weaponboost'];
+  const known = ['block', 'spikes', 'turret', 'mine', 'platform', 'cage', 'weaponboost', 'permanent'];
   for (const [kind, c] of Object.entries(balance.items)) {
     assert.ok(known.includes(c.behavior), `${kind}: behavior`);
     assert.ok(['hard', 'power'].includes(c.category), `${kind}: category`);
@@ -92,8 +92,8 @@ test('every item can be rolled, picked up and placed with no per-kind code', () 
     aim(p, 42, 30);
     handleAction(w2, p, 'e');
     assert.equal(p.held, null, `${kind}: postawienie`);
-    if (balance.items[kind].behavior === 'weaponboost') {
-      assert.equal(w2.items.has(it.id), false, 'boost znika po uzyciu');
+    if (['weaponboost', 'permanent'].includes(balance.items[kind].behavior)) {
+      assert.equal(w2.items.has(it.id), false, `${kind}: znika po uzyciu`);
       continue;
     }
     assert.ok(['placed', 'active'].includes(it.state), `${kind}: stan ${it.state}`);

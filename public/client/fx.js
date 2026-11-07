@@ -82,6 +82,14 @@ export class Fx {
     this.boosts.push({ text: `BROŃ LV ${e.lv} · ${mods?.[e.mod]?.name ?? ''}`, x: e.x, y: e.y, own: e.id === myId, born: now });
   }
 
+  // Drop staly (V3-Q-01/02): rozbryzg w kolorze przedmiotu + napis z sumą bonusu.
+  permUp(now, e, myId, cfg) {
+    const color = cfg?.glow ?? '#ffffff';
+    this.#burst(now, e.x, e.y, 14, { colors: [color, '#ffffff'], speed: 90, life: 0.45 });
+    const text = e.effect === 'hp' ? `MAX HP +${Math.round(e.total)}` : `SZYBKOŚĆ +${Math.round(e.total * 100)}%`;
+    this.boosts.push({ text, x: e.x, y: e.y, own: e.id === myId, born: now });
+  }
+
   knock(id, now) {
     const k = this.mobKnock.get(id);
     if (!k || now >= k.until) return { x: 0, y: 0 };

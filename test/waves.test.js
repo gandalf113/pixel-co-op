@@ -255,7 +255,7 @@ test('boost broni: waga 4 w kategorii power', () => {
   const power = Object.values(b.items).filter((i) => i.category === 'power');
   const sum = power.reduce((s, i) => s + i.weight, 0);
   assert.equal(b.items.weaponboost.weight, 4);
-  assert.equal(sum, 96);
+  assert.equal(sum, 101); // 96 + Serce 3 + Buty 2 (v0.18.0)
 });
 
 // Roj (`pack: 3`) rozpakowuje sie na trzy potwory z jednego wpisu kolejki. Zanim to policzono w potworach,

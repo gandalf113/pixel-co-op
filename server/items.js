@@ -303,11 +303,38 @@ export function applyWeaponBoost(world, player) {
   world.events.push({ type: 'weaponUp', id: player.id, x: player.x, y: player.y, lv: player.weaponLv, mod: player.weaponMod });
 }
 
+// Drop staly (V3-Q-01/02): podnosi na stale maxHp albo predkosc gracza, do sufitu `cap`.
+// Przy suficie odmowa: przedmiot zostaje w rekach, mozna go odlozyc albo rzucic koledze.
+export function applyPermanent(world, player, cfg) {
+  if (cfg.effect === 'hp') {
+    const room = cfg.cap - (player.hpBonus ?? 0);
+    if (room <= 0) return false;
+    const add = Math.min(cfg.amount, room);
+    player.hpBonus = (player.hpBonus ?? 0) + add;
+    player.maxHp += add;
+    player.hp += add;
+  } else if (cfg.effect === 'speed') {
+    const room = cfg.cap - (player.speedBonus ?? 0);
+    if (room <= 1e-9) return false;
+    player.speedBonus = Math.round(((player.speedBonus ?? 0) + Math.min(cfg.amount, room)) * 1000) / 1000;
+  } else return false;
+  return true;
+}
+
 function usePower(world, player, item) {
-  if (cfgOf(world, item).behavior === 'weaponboost') {
+  const cfg = cfgOf(world, item);
+  if (cfg.behavior === 'weaponboost') {
     player.held = null;
     world.items.delete(item.id);
     return applyWeaponBoost(world, player);
+  }
+  if (cfg.behavior === 'permanent') {
+    if (!applyPermanent(world, player, cfg)) return deny(world, player);
+    player.held = null;
+    world.items.delete(item.id);
+    world.events.push({ type: 'permUp', id: player.id, x: player.x, y: player.y, kind: item.kind, effect: cfg.effect,
+      total: cfg.effect === 'hp' ? player.hpBonus : player.speedBonus });
+    return;
   }
   const { tx, ty, valid } = targetFor(world, player, item, limitReached(world, item.kind));
   if (!valid) return deny(world, player);
@@ -407,8 +434,8 @@ function freeTileNear(world, kind, x, y) {
 
 function land(world, item, x, y, mob = null) {
   const thrower = item.flight.thrower;
-  // Boost broni rzucony nie aktywuje sie (rzut = podanie koledze): zadaje throwDamage i lezy na ziemi.
-  if (isHard(world, item) || cfgOf(world, item).behavior === 'weaponboost' || limitReached(world, item.kind)) return toGround(world, item, x, y);
+  // Boost broni i dropy stale rzucone nie aktywuja sie (rzut = podanie koledze): zadaja throwDamage i leza na ziemi.
+  if (isHard(world, item) || ['weaponboost', 'permanent'].includes(cfgOf(world, item).behavior) || limitReached(world, item.kind)) return toGround(world, item, x, y);
   // Pulapka na podlodze (klatka) laduje pod trafionym potworem, zeby go zlapac, a nie obok niego.
   const onMob = mob && !blocksBodies(item.kind);
   const tile = freeTileNear(world, item.kind, onMob ? mob.x : x, onMob ? mob.y : y);

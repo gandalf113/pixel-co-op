@@ -494,7 +494,7 @@ function onEvent(e) {
     case 'ult':
       playSfx('ult', e, tp, { tier: e.tier });
       break;
-    case 'weaponUp':
+    case 'weaponUp': case 'permUp':
       playSfx('weaponUp', e, tp, { own: e.id === myId });
       break;
   }
@@ -540,6 +540,9 @@ function onEvent(e) {
     case 'weaponUp':
       fx.weaponUp(now, e, myId, balance.weaponMods);
       flash = { color: '#ffd23a', start: now, strong: e.id === myId };
+      break;
+    case 'permUp':
+      fx.permUp(now, e, myId, balance.items[e.kind]);
       break;
     case 'ultDeny':
       if (e.id === myId) denyUntil = now + 800;

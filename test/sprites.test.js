@@ -43,7 +43,7 @@ test('every item in balance.json has all the sprites its behavior needs', async 
     const need = [`item_${kind}`];
     if (c.behavior === 'block') need.push(c.sprite, ...[1, 2, 3].map((n) => `${c.sprite}_dmg_${n}`));
     else if (c.behavior === 'spikes') need.push(c.sprite);
-    else if (c.behavior === 'weaponboost') need.push(`item_${kind}`); // brak postawionego stanu, tylko ikona
+    else if (['weaponboost', 'permanent'].includes(c.behavior)) need.push(`item_${kind}`); // brak postawionego stanu, tylko ikona
     else need.push(`${c.sprite}_0`, `${c.sprite}_1`);
     if (c.wreck) need.push(c.wreck);
     for (const name of need) assert.ok(SPRITES[name], `${kind}: brak sprite'a ${name}`);

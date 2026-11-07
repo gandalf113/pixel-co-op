@@ -497,7 +497,32 @@
       "name": "Boost broni",
       "throwDamage": 5,
       "weight": 4,
-      "sprite": "weaponboost"
+      "sprite": "weaponboost",
+      "glow": "#ffd23a"
+    },
+    "hpboost": {
+      "category": "power",
+      "behavior": "permanent",
+      "effect": "hp",
+      "name": "Serce",
+      "amount": 10,
+      "cap": 100,
+      "throwDamage": 5,
+      "weight": 3,
+      "sprite": "hpboost",
+      "glow": "#ff5a5a"
+    },
+    "speedboost": {
+      "category": "power",
+      "behavior": "permanent",
+      "effect": "speed",
+      "name": "Buty",
+      "amount": 0.03,
+      "cap": 0.3,
+      "throwDamage": 5,
+      "weight": 2,
+      "sprite": "speedboost",
+      "glow": "#6fe0ff"
     },
     "cage": {
       "category": "power",

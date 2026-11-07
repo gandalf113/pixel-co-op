@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.34 - 2026-11-07
+- v0.18.0: **V3-Q-01 Serce i V3-Q-02 Buty** - dropy stale (nowe `behavior: permanent` w `balance.json`, pola `effect`, `amount`, `cap`). Serce +10 maxHp (sufit +100), Buty +3% predkosci (sufit +30%); przy suficie `E` odmawia i przedmiot zostaje w rekach, rzut = podanie jak boost broni. Bonus predkosci wchodzi w `speedMultOf` (szal razy buty), wiec snapshot i predykcja klienta sa spojne. Poswiata na ziemi z pola `glow` (boost broni zloty, Serce czerwone, Buty niebieskie), zdarzenie `permUp` z rozbryzgiem i napisem. ITM-P-10, ITM-P-11 w `02-ITEMS.md`.
+
 ## 0.33 - 2026-11-07
 - v0.17.1: **V3-Q-07 bump Rakiety** (zgloszenie: za slaba). Tier I 80/2 -> 140/2.5, tier II 150/3 + 3 s po 10 -> 260/3.5 + 4 s po 15, tier III 3 x 150 -> 3 x 260 z podpaleniem 6 s; zasieg 10 -> 14 kafelkow, predkosc 320 -> 420 px/s. Nowy mechanizm: wybuch **ogluszuje na 0.5 s** (`stunS`) wszystko w promieniu; obrazenia byly juz pelne w calym promieniu. Sekcja Q backlogu (zgloszenia 2026-11-07) dopisana: dropy stale, Kamikaze, plomien, ciemnosc, system eventow z 4 wydarzeniami, dwa ultimate, Zbrojmistrz.
 

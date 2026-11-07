@@ -25,10 +25,12 @@ export const TIPS = [
   'Tab przytrzymany pokazuje tablicę wyników w trakcie gry.',
   'Link do pokoju z lobby wrzuć znajomym. Wchodzą prosto do środka.',
   'Trudność wybiera host w lobby i nie zmienia się do końca partii.',
+  'Serce i Buty zostają na stałe. Rzuć je koledze, który ma mniej HP.',
 ];
 
 // Co nowego: ostatnie wersje, po jednym-dwa zdania. Najnowsza pierwsza. Aktualizowane razem z tagiem.
 export const NEWS = [
+  ['0.18.0', 'Dwa nowe dropy na stałe: Serce (+10 max HP) i Buty (+3% prędkości). Działają do końca partii, rzucone można podać koledze.'],
   ['0.17.1', 'Rakieta mocniejsza: większe obrażenia i promień, dalszy lot, wybuch ogłusza potwory na pół sekundy.'],
   ['0.17.0', 'Pokoje jako osobna sekcja: złota ramka, licznik, siatka kart z wiekiem pokoju. Ustawienia schowane pod przyciskiem.'],
   ['0.16.0', 'Nowy ekran główny: arena w tle, logo, wizytówka, karty pokojów, bestiariusz. Sterowanie jako poligon na żywo.'],

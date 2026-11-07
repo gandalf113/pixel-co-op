@@ -4,8 +4,11 @@ const EPS = 1e-9;
 let dropHeld = () => {};
 let padReviveS = () => null;
 
+// Mnoznik predkosci: szal (ultimate) razy staly bonus z Butow (V3-Q-02); trafia do snapshotu jako speedMult,
+// wiec predykcja klienta liczy to samo, co serwer.
 export function speedMultOf(p) {
-  return p.frenzyLeft > 0 ? p.frenzy?.speedMult ?? 1 : 1;
+  const frenzy = p.frenzyLeft > 0 ? p.frenzy?.speedMult ?? 1 : 1;
+  return frenzy * (1 + (p.speedBonus ?? 0));
 }
 
 export function setDropHeld(fn) {
@@ -34,7 +37,7 @@ export function createPlayer({ id, nick, color, ultKind = null }, rules, index) 
     reviveProgress: 0, deathLeft: 0, invuln: 0, cooldown: 0, busy: 0,
     held: null, ready: false, kills: 0, downs: 0, ultsUsed: 0, weaponLv: 1, weaponMod: null,
     ammo: rules.balance.rifle.magazine, reloadLeft: 0,
-    ult: 0, ultKind, frenzy: null, frenzyLeft: 0,
+    ult: 0, ultKind, frenzy: null, frenzyLeft: 0, hpBonus: 0, speedBonus: 0,
     inputQueue: [],
     input: { seq: 0, mx: 0, my: 0, aimX: x + 1, aimY: y, fire: false },
     ackSeq: 0,
