@@ -223,6 +223,29 @@ test('ekran główny: wizytówka z wynikami gracza, miejsce poza top 6, puls ser
   assert.doesNotMatch(shown, /\bg7\b/);
 });
 
+// V3-K-08 (B2): POKOJE jako osobna sekcja z licznikiem, karty z wiekiem i Wejdz, ustawienia pod przyciskiem.
+test('ekran główny B2: sekcja POKOJE z licznikiem, karty z wiekiem, ustawienia rozwijane', () => {
+  const view = ui.showHome({ nick: 'O', rooms: [
+    { code: 'AAAA', players: 2, maxPlayers: 4, inGame: false, wave: 0, ageS: 40 },
+    { code: 'BBBB', players: 3, maxPlayers: 4, inGame: true, wave: 7, ageS: 360 },
+  ] }, { onJoin() {}, onNew() {}, onControls() {}, onChangeNick() {} });
+  let shown = texts(root).join(' ');
+  assert.match(shown, /POKOJE/);
+  assert.match(shown, /2 otwartych · 1 z miejscem/);
+  assert.match(shown, /2 \/ 4 graczy · lobby · 40 s temu/);
+  assert.match(shown, /mecz w toku · fala 7 · 6 min temu/);
+  assert.match(shown, /Wejdź/);
+  assert.match(shown, /\+ Nowy pokój/);
+  const settings = flat(root).find((n) => n.className === 'settings');
+  assert.equal(settings.hidden, true);
+  flat(root).find((n) => n.tagName === 'BUTTON' && texts(n).includes('Ustawienia')).listeners.click();
+  assert.equal(settings.hidden, false);
+  view.setRooms([{ code: 'CCCC', players: 1, maxPlayers: 4, inGame: false, wave: 0, ageS: 1 }]);
+  shown = texts(root).join(' ');
+  assert.match(shown, /1 otwarty · 1 z miejscem/);
+  assert.equal(ui.formatAge(NaN), '');
+});
+
 test('poligon: panel dokowany z boku, setPressed nie wywala sie bez kontekstu 2D', () => {
   const view = ui.showControls(() => {});
   assert.equal(root.classes.get('side'), true);

@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.32 - 2026-11-07
+- v0.17.0: **V3-K-08 ekran glowny B2** (wybrany z 4 makiet offline): lewa kolumna logo, wizytowka, GRAJ, Sterowanie / Ustawienia (glosnosc, wyciszenie, pelny ekran schowane pod przyciskiem), leaderboard, stopka; prawa kolumna **POKOJE jako osobna sekcja w zlotej ramce** (naglowek z licznikiem otwartych i z miejscem, "+ Nowy pokoj" w naglowku, siatka 2 x 2 kart dwuwierszowych z wiekiem pokoju i przyciskiem Wejdz) oraz bestiariusz pod nia.
+
 ## 0.31 - 2026-11-07
 - v0.16.1: dzwieki interfejsu (uiHover, uiClick) sciszone trzykrotnie po ograniu.
 - v0.16.0: **V3-K-06 ekran glowny v2** i **V3-K-07 sterowanie jako poligon** (zgloszenie: "ekran po nicku to dramat"). Nowe moduly klienta: `demo.js` (swiat bez serwera, tryby attract/range, czysta logika), `logo.js` (logotyp pixel-art z glifow 5x7), `content.js` (bestiariusz, porady, co nowego). Ekran glowny: arena demo w tle, wizytowka, GRAJ, karty pokojow ze slotami, leaderboard top 6, bestiariusz, puls serwera, dzwieki interfejsu. Poligon: scena z gry po lewej reagujaca na prawdziwe klawisze, trzymany klawisz swieci na obrazku. PRD-SES-08 i PRD-CTRL-11 uzupelnione. Wchodza tez poprawki sendow hali z 0.30.

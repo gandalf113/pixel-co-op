@@ -174,6 +174,12 @@ function logoCanvas() {
   return canvas;
 }
 
+export function formatAge(s) {
+  if (!Number.isFinite(s)) return '';
+  if (s < 60) return `${Math.max(0, Math.round(s))} s temu`;
+  return `${Math.floor(s / 60)} min temu`;
+}
+
 // Karta pokoju: kod, cztery sloty (zajety = sprite gracza w kolorze slotu), opis. Klikalna tylko, gdy da sie wejsc.
 function roomCard(r, sprites, onJoin) {
   const info = roomRowInfo(r);
@@ -182,10 +188,12 @@ function roomCard(r, sprites, onJoin) {
     const img = taken ? spriteImg(sprites, `player_0@${COLORS[i % COLORS.length]}`, 'slot-img', 2) : null;
     return el('div', { className: `slot${taken ? ' taken' : ''}`, style: taken ? { borderColor: COLORS[i % COLORS.length] } : {} }, img);
   }));
+  // B2 (V3-K-08): karta dwuwierszowa - kod, sloty, Wejdz / plakietka; pod spodem opis i wiek pokoju.
+  const tag = info.joinable ? el('span', { className: 'enter' }, 'Wejdź')
+    : el('span', { className: 'badge' }, r.inGame ? 'w toku' : 'pełny');
   const row = el('li', { className: `room-row${info.joinable ? '' : ' closed'}` },
-    el('span', { className: 'room-code-s' }, r.code), slots,
-    el('span', { className: 'room-info' }, info.text),
-    r.inGame ? el('span', { className: 'badge' }, 'w toku') : null);
+    el('div', { className: 'room-top' }, el('span', { className: 'room-code-s' }, r.code), slots, el('span', { className: 'spacer' }), tag),
+    el('span', { className: 'room-info' }, `${info.text}${r.inGame ? '' : ' · lobby'} · ${formatAge(r.ageS)}`));
   if (info.joinable) {
     row.classList.toggle('join', true);
     row.addEventListener('click', () => onJoin(r.code));
@@ -200,9 +208,11 @@ export function showHome({ nick = '', lan = false, rooms = null, leaderboard = n
   { onJoin, onNew, onPlay, onControls, onChangeNick, onVolume, onMute, onFullscreen }) {
   const list = el('ul', { className: 'rooms' });
   const note = el('div', { className: 'muted note' }, message);
+  const count = el('span', { className: 'muted count' });
   let joinable = [];
   const setRooms = (data) => {
     joinable = Array.isArray(data) ? data.filter((r) => roomRowInfo(r).joinable) : [];
+    count.textContent = Array.isArray(data) ? `${data.length} ${data.length === 1 ? 'otwarty' : 'otwartych'} · ${joinable.length} z miejscem` : '';
     if (!Array.isArray(data)) {
       list.replaceChildren(el('li', { className: 'muted' }, 'lista pokojów niedostępna'));
       return;
@@ -225,11 +235,8 @@ export function showHome({ nick = '', lan = false, rooms = null, leaderboard = n
   // Wizytowka: sprite w kolorze, nick, wyniki z leaderboardu.
   const mine = (leaderboard?.players ?? []).find((p) => p.nick === nick) ?? null;
   const stat = (label, v) => el('div', { className: 'stat' }, el('b', {}, v == null ? '–' : String(v)), el('span', { className: 'muted' }, label));
-  const me = el('section', { className: 'card me' },
-    el('div', { className: 'hero' }, spriteImg(sprites, `player_0@${color}`, 'hero-img', 4)),
-    el('div', { className: 'nick', style: { color } }, nick),
-    el('a', { className: 'link', onclick: onChangeNick }, 'zmień nick'),
-    el('div', { className: 'stats' }, stat('najd. fala', mine?.bestWave), stat('zabójstw', mine?.kills), stat('partii', mine?.games)),
+  // Ustawienia (glosnosc, wyciszenie, pelny ekran) chowaja sie pod przyciskiem, zeby nie rozpychac wizytowki.
+  const settings = el('div', { className: 'settings', hidden: true },
     el('label', { className: 'muted' }, 'Głośność',
       el('input', {
         type: 'range', min: '0', max: '100', step: '1', value: String(Math.round((audio?.volume ?? 0.7) * 100)),
@@ -239,18 +246,30 @@ export function showHome({ nick = '', lan = false, rooms = null, leaderboard = n
       el('input', { type: 'checkbox', checked: !!audio?.muted, onchange: (ev) => onMute?.(!!ev.target.checked) }),
       ' Wycisz'),
     el('button', { className: 'small', onclick: () => onFullscreen?.() }, 'Pełny ekran'));
+  const me = el('section', { className: 'card me' },
+    el('div', { className: 'hero' }, spriteImg(sprites, `player_0@${color}`, 'hero-img', 4)),
+    el('div', { className: 'nick', style: { color } }, nick),
+    el('a', { className: 'link', onclick: onChangeNick }, 'zmień nick'),
+    el('div', { className: 'stats' }, stat('najd. fala', mine?.bestWave), stat('zabójstw', mine?.kills), stat('partii', mine?.games)));
 
-  const playCol = el('section', { className: 'card play' },
+  const playBlock = el('div', { className: 'play' },
     el('button', { className: 'big', onclick: play }, 'GRAJ'),
+    el('div', { className: 'muted small center' }, lan ? 'dołącza do gry na tym serwerze' : 'pierwszy pokój z miejscem albo nowy'),
     el('div', { className: 'row' },
-      lan ? null : el('button', { onclick: onNew }, 'Nowy pokój'),
-      el('button', { onclick: onControls }, 'Sterowanie')),
-    lan ? null : el('label', {}, 'Otwarte pokoje'),
-    lan ? null : list,
+      el('button', { onclick: onControls }, 'Sterowanie'),
+      el('button', { onclick: () => { settings.hidden = !settings.hidden; } }, 'Ustawienia')),
+    settings,
     note);
 
   const board = leaderboardPanel(leaderboard, { limit: 6, nick });
   const boardCol = el('section', { className: 'card board' }, board ?? el('div', { className: 'muted' }, 'Leaderboard pojawi się po pierwszej partii.'));
+
+  // B2 (V3-K-08): POKOJE jako osobna sekcja w zlotej ramce: naglowek z licznikiem i "Nowy pokoj", siatka kart.
+  const roomsSection = lan ? null : el('section', { className: 'card rooms-section' },
+    el('div', { className: 'section-head' },
+      el('span', { className: 'title' }, 'POKOJE'), el('span', { className: 'rule' }), count,
+      el('button', { className: 'small', onclick: onNew }, '+ Nowy pokój')),
+    list);
 
   // Bestiariusz: sprite'y potworow, po najechaniu jedno zdanie.
   const blurb = el('div', { className: 'muted blurb' }, 'Najedź na potwora.');
@@ -272,11 +291,10 @@ export function showHome({ nick = '', lan = false, rooms = null, leaderboard = n
   const newsLink = el('a', { className: 'link', onclick: () => { news.hidden = !news.hidden; } }, 'co nowego');
   const foot = el('div', { className: 'home-foot' }, tip, el('div', { className: 'muted' }, pulse, version ? ` · v${version} · ` : ' · ', newsLink), news);
 
+  const beastCard = el('section', { className: 'card beast-card' }, el('label', {}, 'Bestiariusz'), beast, blurb);
   show(el('div', { className: 'panel home' },
-    logoCanvas(),
-    el('div', { className: 'home-grid' }, me, playCol, boardCol),
-    el('label', {}, 'Bestiariusz'), beast, blurb,
-    foot));
+    el('div', { className: 'home-left' }, logoCanvas(), me, playBlock, boardCol, foot),
+    el('div', { className: 'home-right' }, roomsSection, beastCard)));
   return {
     setRooms,
     setOnline,
