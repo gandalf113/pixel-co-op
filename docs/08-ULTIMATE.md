@@ -1,6 +1,6 @@
 # 08 - ULTIMATE
 
-Wersja: 0.5 (2026-11-05). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
+Wersja: 0.6 (2026-11-07, bump Rakiety V3-Q-07). **W zakresie MVP** (decyzja właścicieli R17). Założenia w sekcji 1 są zatwierdzone. Liczby w sekcjach 2-4 to wartości startowe do balansu.
 
 ## 1. Założenia (zatwierdzone)
 
@@ -49,13 +49,14 @@ Zasady wspólne: ultimate **nie rani sojuszników** (brak friendly fire), **nisz
 | U-03 | **Uzdrowienie** | wsparcie | +40 HP graczom w promieniu 6 kafelków | +80 HP, podnosi powalonych w zasięgu | Pełne HP wszystkim na mapie, podnosi powalonych, 3 s nietykalności |
 | U-04 | **Szał** | buff własny | 8 s: obrażenia x2, cooldown x0.5 | 12 s: jak I + pociski przebijają | 15 s: jak II + potrójny strzał + prędkość x1.3 |
 | U-05 | **Działko szerokie** (celowane) | stożek w kierunku kursora | Stożek 30 stopni, zasięg 8 kafelków, 60 obr. każdemu w stożku, 1 strzał | Stożek 45 stopni, zasięg 10, 100 obr. | Stożek 60 stopni, zasięg 12, 180 obr., przebija hard objecty potworów (nie graczy) |
-| U-06 | **Rakieta** (celowana) | pocisk AoE w kierunku kursora | Leci 10 kafelków lub do trafienia, wybuch promień 2 kafelki, 80 obr. | Promień 3, 150 obr., podpalenie 3 s (10 obr./s) | 3 rakiety w wachlarzu, promień 3, 150 obr. każda, podpalenie 5 s |
+| U-06 | **Rakieta** (celowana) | pocisk AoE w kierunku kursora | Leci 14 kafelków lub do trafienia, wybuch promień 2.5 kafelka, 140 obr., ogłuszenie 0.5 s | Promień 3.5, 260 obr., podpalenie 4 s (15 obr./s) | 3 rakiety w wachlarzu, promień 3.5, 260 obr. każda, podpalenie 6 s |
 | U-07 | **Zamrożenie** | kontrola obszarowa | Wszystkie potwory w promieniu 6 kafelków stoją 3 s | Promień 10, 5 s, zamrożeni przyjmują 150% obrażeń | Wszystkie potwory na mapie, 6 s, 150% obrażeń, po odmrożeniu spowolnienie 50% na 5 s |
 
 Zasady szczegółowe:
 
 - Ściany z Muru awaryjnego to zwykłe hard objecty (potwory je atakują), ale **nie da się ich podnieść ani przestawić** - znikają po swoim czasie albo padają pod ciosami (R53 uchyla R27).
 - Rakieta nie niszczy fortyfikacji graczy. Zatwierdzone (R28).
+- Rakieta (V3-Q-07, v0.17.1): obrażenia **pełne w całym promieniu** (bez spadku na krawędzi) i **ogłuszenie 0.5 s** (`stunS`) wszystkiego w promieniu wybuchu, żeby stado nie dobiegało w trakcie podpalenia. Prędkość 420 px/s.
 - Zamrożony potwór nie atakuje, nie rusza się, nie wzywa posiłków (boss).
 - Działko szerokie i Rakieta: celowanie w kierunku kursora w chwili `F`, bez dodatkowego potwierdzania.
 

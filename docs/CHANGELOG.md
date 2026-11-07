@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.33 - 2026-11-07
+- v0.17.1: **V3-Q-07 bump Rakiety** (zgloszenie: za slaba). Tier I 80/2 -> 140/2.5, tier II 150/3 + 3 s po 10 -> 260/3.5 + 4 s po 15, tier III 3 x 150 -> 3 x 260 z podpaleniem 6 s; zasieg 10 -> 14 kafelkow, predkosc 320 -> 420 px/s. Nowy mechanizm: wybuch **ogluszuje na 0.5 s** (`stunS`) wszystko w promieniu; obrazenia byly juz pelne w calym promieniu. Sekcja Q backlogu (zgloszenia 2026-11-07) dopisana: dropy stale, Kamikaze, plomien, ciemnosc, system eventow z 4 wydarzeniami, dwa ultimate, Zbrojmistrz.
+
 ## 0.32 - 2026-11-07
 - v0.17.0: **V3-K-08 ekran glowny B2** (wybrany z 4 makiet offline): lewa kolumna logo, wizytowka, GRAJ, Sterowanie / Ustawienia (glosnosc, wyciszenie, pelny ekran schowane pod przyciskiem), leaderboard, stopka; prawa kolumna **POKOJE jako osobna sekcja w zlotej ramce** (naglowek z licznikiem otwartych i z miejscem, "+ Nowy pokoj" w naglowku, siatka 2 x 2 kart dwuwierszowych z wiekiem pokoju i przyciskiem Wejdz) oraz bestiariusz pod nia.
 

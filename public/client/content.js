@@ -29,6 +29,7 @@ export const TIPS = [
 
 // Co nowego: ostatnie wersje, po jednym-dwa zdania. Najnowsza pierwsza. Aktualizowane razem z tagiem.
 export const NEWS = [
+  ['0.17.1', 'Rakieta mocniejsza: większe obrażenia i promień, dalszy lot, wybuch ogłusza potwory na pół sekundy.'],
   ['0.17.0', 'Pokoje jako osobna sekcja: złota ramka, licznik, siatka kart z wiekiem pokoju. Ustawienia schowane pod przyciskiem.'],
   ['0.16.0', 'Nowy ekran główny: arena w tle, logo, wizytówka, karty pokojów, bestiariusz. Sterowanie jako poligon na żywo.'],
   ['0.15.0', 'Nowy dźwięk karabinu i działka z pogłosem otwartej przestrzeni. Boss zawsze dropuje boost broni.'],

@@ -733,31 +733,32 @@
         "tiers": [
           {
             "count": 1,
-            "radiusTiles": 2,
-            "damage": 80,
+            "radiusTiles": 2.5,
+            "damage": 140,
             "burnS": 0,
             "burnDps": 0,
-            "desc": "wybuch promień 2, 80 obr."
+            "desc": "wybuch promień 2.5, 140 obr., ogłuszenie"
           },
           {
             "count": 1,
-            "radiusTiles": 3,
-            "damage": 150,
-            "burnS": 3,
-            "burnDps": 10,
-            "desc": "promień 3, 150 obr., podpalenie 3 s"
+            "radiusTiles": 3.5,
+            "damage": 260,
+            "burnS": 4,
+            "burnDps": 15,
+            "desc": "promień 3.5, 260 obr., podpalenie 4 s"
           },
           {
             "count": 3,
-            "radiusTiles": 3,
-            "damage": 150,
-            "burnS": 5,
-            "burnDps": 10,
-            "desc": "3 rakiety w wachlarzu, podpalenie 5 s"
+            "radiusTiles": 3.5,
+            "damage": 260,
+            "burnS": 6,
+            "burnDps": 15,
+            "desc": "3 rakiety w wachlarzu, podpalenie 6 s"
           }
         ],
-        "speedPx": 320,
-        "rangeTiles": 10,
+        "stunS": 0.5,
+        "speedPx": 420,
+        "rangeTiles": 14,
         "fanDeg": 15
       },
       "freeze": {

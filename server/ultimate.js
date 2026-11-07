@@ -61,11 +61,15 @@ function updateDroplets(world, dt) {
   });
 }
 
+// Wybuch rakiety (V3-Q-07): pelne obrazenia w calym promieniu (bez spadku na krawedzi) i ogluszenie
+// `stunS` wszystkiego w promieniu, zeby stado nie dobiegalo w trakcie podpalenia.
 function explode(world, r) {
   const { tilePx } = world.rules;
   const radius = r.cfg.radiusTiles * tilePx;
+  const stunS = ult(world).kinds.rocket.stunS ?? 0;
   for (const m of [...world.mobs]) {
     if (Math.hypot(m.x - r.x, m.y - r.y) > radius) continue;
+    if (stunS > 0) m.stun = Math.max(m.stun ?? 0, stunS);
     if (r.cfg.burnS > 0) {
       m.burnLeft = r.cfg.burnS;
       m.burnDps = r.cfg.burnDps;

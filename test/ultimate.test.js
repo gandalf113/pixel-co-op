@@ -66,3 +66,15 @@ test('magnet pulls droplet from 8 tiles, ignores it at 10 (UL2)', () => {
   assert.deepEqual(w.droplets.map((d) => d.id), [2]);
   assert.equal(w.droplets[0].x, c(30));
 });
+
+test('rocket I: 140 dmg in full radius, stuns mobs 0.5 s, no falloff at the edge (V3-Q-07)', () => {
+  const w = makeWorld({ players: [{ x: c(20), y: c(20), ultKind: 'rocket', ult: 100, angle: 0 }] });
+  const brute = addMob(w, 'brute', c(26), c(20));
+  const edge = addMob(w, 'slime', c(26), c(22));
+  useUltimate(w, w.players.get('p1'));
+  run(w, 1);
+  assert.equal(w.rockets.length, 0);
+  assert.equal(brute.hp, 10);
+  assert.ok(brute.stun > 0 && brute.stun <= 0.5);
+  assert.ok(!w.mobs.includes(edge));
+});
