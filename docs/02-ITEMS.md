@@ -111,7 +111,7 @@ Zasady:
 |---|---|
 | ITM-DROP-01 | Każdy zabity potwór ma szansę na drop (per typ i trudność, `03-WAVES-DIFFICULTY.md`). Jeden przedmiot na drop. |
 | ITM-DROP-02 | Najpierw losowana kategoria: hard object 55% / power-up 45%. Potem przedmiot w kategorii wg wag z tabel powyżej. |
-| ITM-DROP-03 | Boss dropuje zawsze 3 przedmioty, w tym gwarantowany jeden power-up 60 s lub 90 s. Szansa na boost broni z bossa: 25%. |
+| ITM-DROP-03 | Boss dropuje zawsze 3 przedmioty. **Jeden z nich to zawsze boost broni** (R64, v0.15.0, `guaranteedDrops` w balansie); pozostale dwa losowane jak zwykly drop z gwarancja wypadniecia. |
 | ITM-DROP-04 | Drop pojawia się w miejscu śmierci potwora z małym odbiciem (żeby nie leżał w jednym punkcie przy wielu zabójstwach). |
 | ITM-DROP-05 | Dropy są wspólne. Kto pierwszy podniesie, ten ma. |
 | ITM-DROP-06 | Fala 1 gwarantuje min. 1 hard object w dropie (jeśli losowanie nie dało, ostatni potwór fali dropuje kawałek ściany). |

@@ -275,6 +275,7 @@
       "immuneCage": true,
       "dropCount": 3,
       "dropGuaranteed": true,
+      "guaranteedDrops": ["weaponboost"],
       "aoe": {
         "radiusTiles": 2
       },

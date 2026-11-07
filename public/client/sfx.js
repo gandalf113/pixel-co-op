@@ -10,14 +10,19 @@ const FLOOR = 0.0001; // exponentialRamp nie znosi zera
 export const OWN_BOOST = 1.6; // własne przeładowanie: informacja taktyczna, ma przebić walkę
 export const RELOAD_FALLBACK_S = 1.5;
 // Długości ogonów pogłosu (s): "klaps pomieszczenia", osobna szyna karabinu (V3-C-13) i wybuch w hali.
-export const REVERB_S = { room: 0.25, gun: 1.2, hall: 1.3 };
+export const REVERB_S = { room: 0.25, gun: 1.3, hall: 1.3 };
 // Pre-delay przed konwolwerem (s): bez niego ogon zlewa się z transjentem (V3-C-09).
-// Szyna karabinu: 65 ms (V3-C-14) — na otwartej przestrzeni nie ma blisko czego odbic, wiec ogon
+// Szyna karabinu: 60 ms (V3-C-15) - na otwartej przestrzeni nie ma blisko czego odbic, wiec ogon
 // startuje wyraznie po transjencie (dopiero od ok. 35 ms ucho slyszy odbicie jako osobne zdarzenie).
-export const PREDELAY_S = { room: 0.012, gun: 0.065, hall: 0.035 };
-// IR szyny karabinu (V3-C-14): otwarta przestrzen, nie kibel. Gorna przepustowosc, jasny dlugi ogon,
-// cisza na poczatku (brak wczesnych odbic), dwa dekorelowane kanaly.
-export const GUN_IR = { hpHz: 400, lpHz: 8000, quietS: 0.05, quietLevel: 0.03, riseS: 0.015 };
+export const PREDELAY_S = { room: 0.012, gun: 0.06, hall: 0.035 };
+// IR szyny karabinu "st-max" (V3-C-15): 4 pasma ogona [dolna, gorna krawedz (Hz), pan -1..1] + slapbacki
+// [czas s, poziom, lowpass Hz, zanik s, pan]. Ogon 1.2 s (-60 dB), gora kazdego pasma gasnie do `absorb` swojej
+// wartosci (absorpcja), autopan przeciwfazowy L/R. IR znormalizowana do IR_PEAK; send w RECIPES.
+export const GUN_IR = {
+  rt60: 1.2, startS: 0.03, buildS: 0.08, tailLevel: 0.25, absorb: 1000 / 3500, wobbleHz: 0.9, wobbleDepth: 0.35,
+  bands: [[300, 600, -0.9], [600, 1200, 0.6], [1200, 2200, -0.5], [2200, 3500, 0.9]],
+  slaps: [[0, 1.0, 2500, 0.006, 0], [0.13, 0.45, 1600, 0.014, -0.8], [0.31, 0.3, 1000, 0.025, 0.8], [0.52, 0.15, 800, 0.035, -0.6]],
+};
 export const IR_PEAK = 0.4; // normalize=false: skalę IR ustalamy sami
 export const WET_MAKEUP = 1; // szyna wet ma wlasny, lagodny limiter — nie ten od dzwiekow suchych
 export const PAN_MAX = 0.85;
@@ -73,21 +78,24 @@ export function ultRecipe(tier) {
 const RECIPES = {
   // rev/wet: do której szyny pogłosu i ile sygnału tam wysłać (ułamek głośności dźwięku)
   // Karabin (V3-C-10): transjent / body / dół / mechanika / własny ogon.
+  // Karabin gracza "mech" (V3-C-15, odsluch 2026-11-07): transjent / body / dol / klik zamka 18 ms po strzale / ogon.
+  // Send 0.035 = 0.028 z renderu offline (IR o szczycie 0.5) przeliczone na IR_PEAK 0.4.
   shot: Object.assign([
-    // V3-C-13: poziomy -30% (suma 2.33 -> 1.631), osobna szyna `gun`.
-    // V3-C-14: wet 0.5 -> 0.34. Ogon 1.2 s niesie ~2.2x energii dawnego 0.55 s (+3,4 dB) i jest jasny,
-    // a seria co 0.14 s naklada ~8-9 ogonow; mniejszy send trzyma szyne wet pod limiterem.
-    { n: 'white', dur: 0.008, hp: 3000, level: 0.63 },
-    { n: 'white', dur: 0.035, bp: 1200, q: 1.5, lp: 4000, lpTo: 900, level: 0.42 },
-    { t: 'sine', f0: 160, f1: 45, dur: 0.06, level: 0.35 },
-    { t: 'square', f0: 2500, dur: 0.003, level: 0.105 },
-    { n: 'white', dur: 0.18, lp: 1200, level: 0.126, at: 0.025 },
-  ], { rev: 'gun', wet: 0.34 }),
+    { n: 'white', dur: 0.007, hp: 3000, level: 0.6 },
+    { n: 'white', dur: 0.03, bp: 1500, q: 1.4, lp: 3500, lpTo: 800, level: 0.4 },
+    { t: 'sine', f0: 150, f1: 48, dur: 0.07, level: 0.38 },
+    { n: 'white', dur: 0.006, bp: 4200, q: 6, level: 0.3, at: 0.018 },
+    { t: 'square', f0: 1900, dur: 0.004, level: 0.1, at: 0.019 },
+    { n: 'white', dur: 0.16, lp: 1000, level: 0.1, at: 0.03 },
+  ], { rev: 'gun', wet: 0.035 }),
+  // Dzialko "heavy" (V3-C-15): ciezszy strzal, wiecej dolu i brazowego szumu; ta sama szyna poglosu co gracz.
   cannon: Object.assign([
-    { n: 'white', dur: 0.02, lp: 1800, level: 0.55 },
-    { t: 'square', f0: 150, f1: 40, dur: 0.06, level: 0.28, lp: 1800 },
-    { n: 'white', dur: 0.16, lp: 900, level: 0.16, at: 0.03 },
-  ], { rev: 'room', wet: 0.4 }),
+    { n: 'white', dur: 0.006, hp: 2500, level: 0.55 },
+    { n: 'white', dur: 0.05, bp: 700, q: 1.2, lp: 3000, lpTo: 500, level: 0.5 },
+    { t: 'sine', f0: 120, f1: 38, dur: 0.11, level: 0.5 },
+    { n: 'brown', dur: 0.12, lp: 400, level: 0.45, at: 0.004 },
+    { n: 'white', dur: 0.22, lp: 900, level: 0.1, at: 0.03 },
+  ], { rev: 'gun', wet: 0.035 }),
   hit: [
     { n: 'white', dur: 0.024, bp: 900, level: 0.7 },
     { t: 'sine', f0: 180, f1: 90, dur: 0.06, level: 0.35 },
@@ -252,7 +260,7 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
   // Odpowiedź impulsowa: szum z wykładniczym zanikiem (-60 dB po `secs`), z ciemnieniem ogona.
   // Liczona raz przy starcie — żadnych plików IR (PRD-CON-01).
   function makeIR(secs, open = false) {
-    if (open) return makeOpenIR(secs);
+    if (open) return makeGunIR(secs);
     const len = Math.max(1, Math.floor(ctx.sampleRate * secs));
     const buf = ctx.createBuffer(1, len, ctx.sampleRate);
     const d = buf.getChannelData(0);
@@ -270,39 +278,65 @@ export function createSfx({ now = defaultNow, ctxFactory = defaultCtxFactory, ra
     return buf;
   }
 
-  // IR otwartej przestrzeni (V3-C-14), stereo: osobny szum na kanał, wspólna obwiednia.
-  // Pasmo: górnoprzepustowy ~400 Hz (2 bieguny, wycina dolne środki) + łagodny dolnoprzepust ~8 kHz.
-  // Obwiednia: prawie cisza przez `quietS` (brak wczesnych odbić), narastanie `riseS`, potem zanik -60 dB w `secs`.
-  function makeOpenIR(secs) {
+  // IR szyny karabinu "st-max" (V3-C-15, wybrana odsluchem 2026-11-07): ogon dyfuzyjny 1.2 s pociety na
+  // 4 pasma rozlozone w panoramie (osobny szum na kanal, autopan przeciwfazowy) + 4 slapbacki ping-pong.
+  // Ciemna (300 Hz - 3.5 kHz), krotka i cicha - jasne, dlugie i glosne warianty odpadly w odsluchu.
+  function makeGunIR(secs) {
     const sr = ctx.sampleRate;
     const len = Math.max(1, Math.floor(sr * secs));
     const buf = ctx.createBuffer(2, len, sr);
     const g = GUN_IR;
-    const hpA = Math.exp(-2 * Math.PI * g.hpHz / sr); // 1-biegunowy HP: y = a*(y + x - xPrev)
-    const lpA = 1 - Math.exp(-2 * Math.PI * g.lpHz / sr);
-    const quiet = g.quietS * sr;
-    const rise = Math.max(1, g.riseS * sr);
-    const decayLen = Math.max(1, len - quiet);
-    let peak = 0;
-    for (let ch = 0; ch < 2; ch++) {
-      const d = buf.getChannelData(ch);
-      let x1 = 0, y1 = 0, x2 = 0, y2 = 0, lp = 0;
-      for (let i = 0; i < len; i++) {
-        const x = random() * 2 - 1;
-        y1 = hpA * (y1 + x - x1); x1 = x; // dwa kaskadowe HP
-        y2 = hpA * (y2 + y1 - x2); x2 = y1;
-        lp += lpA * (y2 - lp);
-        let env;
-        if (i < quiet) env = g.quietLevel;
-        else {
-          const u = Math.min(1, (i - quiet) / rise);
-          env = (g.quietLevel + (1 - g.quietLevel) * u * u * (3 - 2 * u)) * Math.exp(-6.9 * (i - quiet) / decayLen);
+    const chans = [buf.getChannelData(0), buf.getChannelData(1)];
+    // biquad RBJ (lowpass/highpass), liczony na probkach - tylko tu, przy starcie
+    const biquad = (type, f, q = 0.7071) => {
+      const s = { x1: 0, x2: 0, y1: 0, y2: 0 };
+      const set = (fr) => {
+        fr = Math.min(sr * 0.45, Math.max(10, fr));
+        const w = 2 * Math.PI * fr / sr, c = Math.cos(w), a = Math.sin(w) / (2 * q);
+        const b0 = type === 'lp' ? (1 - c) / 2 : (1 + c) / 2, b1 = type === 'lp' ? 1 - c : -(1 + c), a0 = 1 + a;
+        s.b0 = b0 / a0; s.b1 = b1 / a0; s.b2 = b0 / a0; s.a1 = -2 * c / a0; s.a2 = (1 - a) / a0;
+      };
+      set(f);
+      const run = (x) => {
+        const y = s.b0 * x + s.b1 * s.x1 + s.b2 * s.x2 - s.a1 * s.y1 - s.a2 * s.y2;
+        s.x2 = s.x1; s.x1 = x; s.y2 = s.y1; s.y1 = y;
+        return y;
+      };
+      return { set, run };
+    };
+    const s0 = Math.floor(g.startS * sr), build = Math.max(1, Math.floor(g.buildS * sr));
+    for (const [lo, hi, pan] of g.bands) {
+      const gL = Math.cos((pan + 1) * Math.PI / 4), gR = Math.sin((pan + 1) * Math.PI / 4);
+      const ph = random() * 2 * Math.PI;
+      for (let ch = 0; ch < 2; ch++) {
+        const d = chans[ch], gain = ch === 0 ? gL : gR, sign = ch === 0 ? 1 : -1;
+        const hp = biquad('hp', lo), lp = biquad('lp', hi);
+        for (let i = s0; i < len; i++) {
+          const t = (i - s0) / sr;
+          if ((i & 63) === 0) lp.set(hi * Math.pow(g.absorb, Math.min(1, t / g.rt60)));
+          const u = Math.min(1, (i - s0) / build);
+          const env = (u * u * (3 - 2 * u)) * Math.pow(10, -3 * t / g.rt60); // -60 dB po rt60
+          const w = 1 + sign * g.wobbleDepth * Math.sin(2 * Math.PI * g.wobbleHz * i / sr + ph);
+          d[i] += lp.run(hp.run(random() * 2 - 1)) * env * g.tailLevel * gain * w;
         }
-        d[i] = lp * env;
-        peak = Math.max(peak, Math.abs(d[i]));
       }
     }
-    if (peak > 0) for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] *= IR_PEAK / peak; }
+    for (const [atS, level, lpHz, spreadS, pan] of g.slaps) {
+      const gL = Math.cos((pan + 1) * Math.PI / 4), gR = Math.sin((pan + 1) * Math.PI / 4);
+      const itd = Math.round(pan * 0.0007 * sr);
+      const i0 = Math.floor(atS * sr), n = Math.max(1, Math.floor(spreadS * sr));
+      for (let ch = 0; ch < 2; ch++) {
+        const d = chans[ch], lp = biquad('lp', lpHz), gain = ch === 0 ? gL : gR, off = ch === 0 ? Math.max(0, itd) : Math.max(0, -itd);
+        for (let i = 0; i < n * 4; i++) {
+          const idx = i0 + off + i;
+          if (idx >= len) break;
+          d[idx] += lp.run(random() * 2 - 1) * Math.exp(-i / n) * level * gain;
+        }
+      }
+    }
+    let peak = 0;
+    for (const d of chans) for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(d[i]));
+    if (peak > 0) for (const d of chans) for (let i = 0; i < len; i++) d[i] *= IR_PEAK / peak;
     return buf;
   }
 

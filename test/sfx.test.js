@@ -222,23 +222,23 @@ test('przeładowanie: cztery zdarzenia rozłożone w podanym czasie, wbicie najg
   }
 });
 
-test('pogłos: normalize=false, pre-delay 12/65/35 ms, IR skalowane do szczytu', () => {
+test('pogłos: normalize=false, pre-delay 12/60/35 ms, IR skalowane do szczytu', () => {
   const { ctx, sfx } = setup();
   sfx.unlock();
   const conv = ctx.created.filter((n) => n.kind === 'convolver');
   assert.ok(conv.every((c) => c.normalize === false));
   const delays = ctx.created.filter((n) => n.kind === 'delay');
-  assert.deepEqual(delays.map((d) => d.delayTime.value), [0.012, 0.065, 0.035]);
+  assert.deepEqual(delays.map((d) => d.delayTime.value), [0.012, 0.06, 0.035]);
   assert.ok(delays.every((d, i) => d.to.includes(conv[i])));
 });
 
-test('karabin: pięć warstw i ogon wyraźnie dłuższy niż 40 ms', () => {
+test('karabin: sześć warstw (V3-C-15, klik zamka) i ogon wyraźnie dłuższy niż 40 ms', () => {
   const { ctx, sfx } = setup();
   sfx.unlock();
   const from = ctx.created.length;
   assert.equal(sfx.play('shot'), true);
   const src = ctx.created.slice(from).filter((n) => n.kind === 'osc' || n.kind === 'src');
-  assert.equal(src.length, 5);
+  assert.equal(src.length, 6);
   const end = Math.max(...src.flatMap((n) => n.stops)) - 0.02;
   assert.ok(end > 0.15, `trwa ${end}`);
 });
@@ -350,7 +350,7 @@ test('karabin: osobna szyna, IR dłuższy niż pokój, pre-delay 60-70 ms', asyn
   assert.ok(delays.find((d) => d.to.includes(gun)) && send.to.includes(delays.find((d) => d.to.includes(gun))), 'strzał -> szyna gun');
 });
 
-test('karabin: suma poziomów warstw wyraźnie niższa niż przed V3-C-13 (2.33)', () => {
+test('karabin: suma poziomów warstw niższa niż przed V3-C-13 (2.33); cisza siedzi w sendzie, nie w warstwach', () => {
   const { ctx, clock, sfx } = setup();
   sfx.unlock();
   clock.t += 1000;
@@ -363,9 +363,9 @@ test('karabin: suma poziomów warstw wyraźnie niższa niż przed V3-C-13 (2.33)
     return n;
   };
   assert.equal(sfx.play('shot'), true);
-  assert.equal(levels.length, 5, 'pięć warstw');
+  assert.equal(levels.length, 6, 'sześć warstw');
   const sum = levels.reduce((a, b) => a + b, 0);
-  assert.ok(sum <= 2.33 * 0.72, `suma ${sum} musi być <= 1.68 (>= 28% ciszej niż 2.33)`);
+  assert.ok(sum <= 2.33 * 0.85, `suma ${sum} musi być <= 1.98 (>= 15% ciszej niż 2.33)`);
   assert.ok(sum >= 1.0, 'ale nie wyzerowana');
 });
 
@@ -383,8 +383,8 @@ test('nowe recepty swiata istnieja i graja; dwa w odstepie < MIN_GAP_MS to jeden
   }
 });
 
-// V3-C-14: pogłos karabinu jak otwarta przestrzeń. Mierzymy faktyczne próbki IR przy 44.1 kHz.
-test('karabin IR: 1.0-1.8 s, stereo, dekorelowane, ciche początki, jasne pasmo', () => {
+// V3-C-15: pogłos karabinu "st-max" wybrany odsłuchem. Mierzymy faktyczne próbki IR przy 44.1 kHz.
+test('karabin IR: 1.0-1.8 s, stereo, dekorelowane, slapback na starcie, ciemne pasmo', () => {
   const { ctx, sfx } = setup(44100);
   sfx.unlock();
   const gun = ctx.created.filter((n) => n.kind === 'convolver')[1].buffer;
@@ -398,18 +398,20 @@ test('karabin IR: 1.0-1.8 s, stereo, dekorelowane, ciche początki, jasne pasmo'
   assert.ok(Math.abs(lr / Math.sqrt(ll * rr)) < 0.2, 'kanały dekorelowane');
   const energy = (d, a, b) => { let e = 0; for (let i = Math.floor(a * sr); i < Math.floor(b * sr); i++) e += d[i] * d[i]; return e / ((b - a) * sr); };
   for (const d of [L, R]) {
-    assert.ok(energy(d, 0, 0.05) < energy(d, 0.1, 0.3) * 0.02, 'pierwsze 50 ms prawie ciche');
-    // różniczkowanie podbija wysokie: energia różnicy nie niższa niż energia sygnału (przy dolnym paśmie byłoby << 1)
+    // pierwszy slapback (0-6 ms) jest najgłośniejszym zdarzeniem, ogon dyfuzyjny po nim wyraźnie cichszy
+    assert.ok(energy(d, 0, 0.006) > energy(d, 0.1, 0.3) * 5, 'slapback na starcie głośniejszy niż ogon');
+    // ogon żyje po 0.5 s i gaśnie: energia 0.5-0.7 s mniejsza niż 0.1-0.3 s, ale nie zerowa
+    assert.ok(energy(d, 0.5, 0.7) < energy(d, 0.1, 0.3) && energy(d, 0.5, 0.7) > 0, 'ogon gaśnie, ale trwa');
+    // pasmo ciemne (300 Hz - 3.5 kHz): różniczkowanie podbija wysokie, więc energia różnicy musi być wyraźnie niższa
     const dd = d.map((v, i) => (i ? v - d[i - 1] : 0));
     let e = 0, ed = 0;
     for (let i = Math.floor(0.1 * sr); i < gun.len; i++) { e += d[i] * d[i]; ed += dd[i] * dd[i]; }
-    assert.ok(ed >= e, `wysokie >= niskie (${(ed / e).toFixed(2)})`);
+    assert.ok(ed < e * 0.5, `ciemne pasmo (${(ed / e).toFixed(2)})`);
     let peak = 0;
     for (let i = 0; i < gun.len; i++) peak = Math.max(peak, Math.abs(d[i]));
     assert.ok(peak <= 0.4 + 1e-6, 'szczyt IR <= IR_PEAK');
   }
 });
-
 test('karabin: pre-delay szyny w oknie 60-70 ms, wybuchy bez zmian (hala 1.3 s)', async () => {
   const { PREDELAY_S, REVERB_S } = await import('../public/client/sfx.js');
   assert.ok(PREDELAY_S.gun >= 0.06 && PREDELAY_S.gun <= 0.07);

@@ -1,5 +1,13 @@
 # Changelog dokumentacji
 
+## 0.30 - 2026-11-07
+- v0.15.0: **V3-C-15 zaimplementowane** w `public/client/sfx.js` - karabin "mech" (6 warstw, klik zamka), dzialko "heavy" zamiast `cannon`, wspolna IR "st-max" (`GUN_IR`: 4 pasma w panoramie + 4 slapbacki ping-pong), pre-delay 60 ms, send 0.035. Testy dzwieku przepisane pod nowy projekt (ciemne pasmo, slapback na starcie).
+- R64, ITM-DROP-03 zmienione: **boss zawsze zostawia boost broni** jako jeden z 3 dropow (`guaranteedDrops` w balansie, `server/items.js`). Powod: zgloszenie z gry - 10 fal bez ani jednego boostu z losowania (szansa ~17% na fale przy wadze 4/76 w puli power 45%).
+
+## 0.29 - 2026-11-07
+- V3-C-15 (nowe), R63: **dzwiek karabinu i dzialka wybrany z odsluchu**, zastepuje V3-C-10/13/14. Gracz: suchy strzal "mech" (klik zamka 18 ms po strzale). Dzialko: suchy strzal "heavy" (zamiast dzisiejszej recepty `cannon`). Wspolna szyna poglosu "st-max": ogon 1.2 s w pasmie 300 Hz - 3.5 kHz pociety na 4 pasma rozlozone w panoramie, 4 slapbacki ping-pong, pre-delay 60 ms, send 0.028. Pelne liczby w wierszu V3-C-15, wzorce WAV w `tools/sfx-lab/chosen/`, renderer `tools/sfx-lab/render-rifle.mjs`.
+- Wnioski z ok. 100 odsluchanych wariantow, zeby nikt tego nie cofal: ogon ma byc **ciemny** (jasne warianty odpadly, wbrew hipotezie z V3-C-14), **krotki** (1.2 s; dluzszy brzmi "za glosno" niezaleznie od sendu) i **bardzo cichy** (send 0.028 wobec 0.34 dzis w grze); szerokosc stereo bierze sie z rozlozenia pasm i odbic po bokach, nie z podbijania side.
+
 ## 0.28 - 2026-11-06
 - V3-E-02 i V3-E-03 zrobione w v0.14.0: **Roj** (trojkami, od fali 8) i **Boss** (co 5 fal, cios obszarowy, wzywa slimaki, pasek HP na gorze, drop x3, odporny na klatke, nigdy nie obciety przez AoI).
 - R60 (nowe), przepisane 03 sekcje 2.2 i 2.3: fala to **ciag grup** jednego typu wychodzacych **z jednego kierunku**, a od fali 3 **jeden typ wypada z fali**, wazony `weight` (zmierzone na fali 12: slimak 32%, tank 3,7%). Powod: zgloszenie z gry, ze kazda fala wyglada tak samo i zawsze zaczyna sie od biegaczy.

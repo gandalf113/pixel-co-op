@@ -213,3 +213,24 @@ test('fala z bossem ma mniejszy sklad zwyklych potworow', () => {
   const ratio = boss / normal;
   assert.ok(ratio > 0.5 && ratio < 0.75, `fala z bossem ma ${(100 * ratio).toFixed(0)}% skladu sasiednich fal`);
 });
+
+// R64: boss zawsze zostawia boost broni (gracz doszedl do fali 10 bez ani jednego z losowania).
+test('boss: wsrod 3 dropow zawsze jest boost broni, niezaleznie od seeda', () => {
+  assert.deepEqual(balance.mobs.boss.guaranteedDrops, ['weaponboost']);
+  for (let seed = 1; seed <= 40; seed++) {
+    const w = makeWorld({ players: [P(0, 0)] });
+    w.rng = makeRng(seed);
+    w.wave = 5;
+    const boss = addMob(w, 'boss', 300, 300);
+    onMobKilled(w, boss, 'p1');
+    const kinds = [...w.items.values()].map((i) => i.kind);
+    assert.equal(kinds.length, 3, `seed ${seed}: trzy dropy`);
+    assert.ok(kinds.includes('weaponboost'), `seed ${seed}: brak boostu w ${kinds}`);
+    assert.equal(kinds.filter((k) => k === 'weaponboost').length >= 1, true);
+  }
+  // zwykly potwor nie dostaje gwarancji
+  const w = makeWorld({ players: [P(0, 0)] });
+  w.rng = () => 0.999; // drop nie wypada
+  onMobKilled(w, addMob(w, 'slime', 300, 300), 'p1');
+  assert.equal(w.items.size, 0);
+});

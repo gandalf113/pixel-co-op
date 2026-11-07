@@ -71,8 +71,10 @@ export function onMobKilled(world, mob, killerId) {
     // wiele / gwarantowane przedmioty (boss): rozrzucone po okregu wokol ciala
     const n = cfg.dropCount ?? 1;
     const a0 = world.rng() * Math.PI * 2;
+    // R64: boss zawsze zostawia boost broni - `guaranteedDrops` z balansu zajmuja pierwsze sloty, reszta losowana
+    const fixed = cfg.guaranteedDrops ?? [];
     for (let k = 0; k < n; k++) {
-      const kind = rollDrop(world, mob.type, !!cfg.dropGuaranteed);
+      const kind = k < fixed.length ? fixed[k] : rollDrop(world, mob.type, !!cfg.dropGuaranteed);
       if (kind === null) continue;
       if (world.rules.balance.items[kind].category === 'hard') world.waveHardDrops = (world.waveHardDrops ?? 0) + 1;
       const a = a0 + (k * Math.PI * 2) / n;
