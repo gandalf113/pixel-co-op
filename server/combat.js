@@ -8,12 +8,14 @@ import { rifleStats, modConfig } from '../public/shared/weapon.js';
 
 const EPS = 1e-9;
 
-export function spawnBullet(world, { owner, fromTurret, x, y, angle, damage, speedPx, rangePx, pierce = 0, homing = null, lenPx = 0 }) {
+export function spawnBullet(world, { owner, fromTurret, x, y, angle, damage, speedPx, rangePx, pierce = 0, pierceDecay = 0, homing = null, lenPx = 0 }) {
   const bullet = {
     id: world.nextId(), owner, fromTurret, x, y,
     vx: Math.cos(angle) * speedPx, vy: Math.sin(angle) * speedPx,
     travelLeft: rangePx, damage, pierce, passed: null,
   };
+  // Gwozdziarka: po kazdym przebitym potworze obrazenia spadaja o pierceDecay (15%).
+  if (pierceDecay > 0) bullet.pierceDecay = pierceDecay;
   // Samonaprowadzanie (V3-I-03): { coneRad, turnRad } - krok sterowania w stepBullet. lenPx > 0 = gwozdz (kreska).
   if (homing) bullet.homing = homing;
   if (lenPx > 0) bullet.lenPx = lenPx;
@@ -57,6 +59,8 @@ export function fireWeapons(world, dt) {
     let speedPx = rifle.speedPx;
     let homing = null;
     let lenPx = 0;
+    let pierce = fz?.pierce ?? 0;
+    let pierceDecay = 0;
     let interval = rifle.fireIntervalS;
     if (p.weaponMod === 'fan' && mod) {
       const span = rad(mod.spreadDeg);
@@ -69,12 +73,15 @@ export function fireWeapons(world, dt) {
       dmgMult *= mod.damageMult;
       lenPx = mod.lenPx;
       interval = mod.fireIntervalS;
+      // gwozdz przebija potwory (zgloszenie 2026-11-07), obrazenia spadaja o 15% na kazdym kolejnym
+      pierce = Math.max(pierce, mod.pierce ?? 0);
+      pierceDecay = mod.pierceDecay ?? 0;
     }
     for (const off of fan) {
       spawnBullet(world, {
         owner: p.id, fromTurret: false, x, y, angle: angle + off,
         damage: stats.damage * dmgMult, speedPx, rangePx: rifle.rangeTiles * tilePx,
-        pierce: fz?.pierce ?? 0, homing, lenPx,
+        pierce, pierceDecay, homing, lenPx,
       });
     }
     p.cooldown += interval * (fz?.fireMult ?? 1);
@@ -186,6 +193,7 @@ function applyHit(world, b, hit, hooks) {
     damageMob(world, hit.mob, b.damage, b.owner);
     if (b.pierce > 0) {
       b.pierce--;
+      if (b.pierceDecay > 0) b.damage *= 1 - b.pierceDecay;
       (b.passed ??= new Set()).add(hit.mob.id);
       return true;
     }

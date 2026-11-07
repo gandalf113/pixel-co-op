@@ -342,3 +342,29 @@ test('snapshot niesie modyfikator gracza, a gwozdz ma kat i dlugosc', () => {
   assert.deepEqual(s.bullets.find((b) => b[0] === 900), [900, p1.x + 10, p1.y, 0, 5].map((v, i) => (i === 1 || i === 2 ? Math.round(v * 10) / 10 : v)));
   assert.equal(s.bullets.find((b) => b[0] === 901).length, 3);
 });
+
+// Zgloszenie 2026-11-07: gwozdz ma przebijac potwory, kazdy kolejny dostaje 15% mniej.
+test('gwozdziarka przebija potwory w linii, obrazenia spadaja o 15% na kazdym kolejnym', () => {
+  const { w, p } = oneWorld({ weaponMod: 'nailgun' });
+  w.rng = () => 0.5; // bez rozrzutu
+  const mobs = [1, 2, 3].map((i) => addMob(w, 'tank', p.x + i * 24, p.y));
+  const hp0 = mobs[0].hp;
+  const [b] = shootOnce(w, p);
+  assert.ok(b.pierce >= 3 && b.pierceDecay === 0.15);
+  const d0 = b.damage;
+  for (let i = 0; i < 20; i++) updateBullets(w, DT, noHooks);
+  const lost = mobs.map((m) => hp0 - m.hp);
+  assert.ok(Math.abs(lost[0] - d0) < 1e-6, `pierwszy pelne: ${lost[0]} vs ${d0}`);
+  assert.ok(Math.abs(lost[1] - d0 * 0.85) < 1e-6, `drugi 85%: ${lost[1]}`);
+  assert.ok(Math.abs(lost[2] - d0 * 0.85 * 0.85) < 1e-6, `trzeci 72%: ${lost[2]}`);
+  assert.equal(w.bullets.length, 0, 'poza zasiegiem znika');
+});
+
+test('zwykly karabin i wachlarz nie przebijaja (gwozdz to wyjatek)', () => {
+  for (const mod of [null, 'fan', 'homing']) {
+    const { w, p } = oneWorld({ weaponMod: mod });
+    const [b] = shootOnce(w, p);
+    assert.equal(b.pierce, 0, String(mod));
+    assert.equal(b.pierceDecay, undefined, String(mod));
+  }
+});

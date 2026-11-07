@@ -31,6 +31,7 @@ export const TIPS = [
 
 // Co nowego: ostatnie wersje, po jednym-dwa zdania. Najnowsza pierwsza. Aktualizowane razem z tagiem.
 export const NEWS = [
+  ['0.19.1', 'Gwoździarka przebija potwory: każdy kolejny na linii dostaje 15% mniej.'],
   ['0.19.0', 'Granaty zostawiają ogień, który gaśnie przez 8 s i pali wszystko na kafelku. Ciemność z pochodnią wokół gracza gotowa pod wydarzenia (F4 = podgląd).'],
   ['0.18.0', 'Dwa nowe dropy na stałe: Serce (+10 max HP) i Buty (+3% prędkości). Działają do końca partii, rzucone można podać koledze.'],
   ['0.17.1', 'Rakieta mocniejsza: większe obrażenia i promień, dalszy lot, wybuch ogłusza potwory na pół sekundy.'],

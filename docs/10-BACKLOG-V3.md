@@ -251,7 +251,7 @@ Stan: serwer autorytatywny 30 Hz, snapshoty 20 Hz **pełne, w JSON**, predykcja 
 | V3-I-01 | Podniesienie boostu (ITM-P-09, `R` na sobie) **zawsze podnosi poziom broni** (+1, max 5: obrażenia +30%, magazynek +10, przeładunek -0.2 s - jak dziś w `rifleStats`) **i jednocześnie losuje jeden z trzech modyfikatorów**. Modyfikator zastępuje poprzedni (nie kumulują się). |
 | V3-I-02 | **Wachlarz**: 3 pociski naraz, rozrzut ok. 12 stopni, obrażenia pojedynczego pocisku x0.6. |
 | V3-I-03 | **Samonaprowadzanie**: pojedynczy pocisk jak dziś, ale w locie zakręca do najbliższego potwora w stożku 25 stopni przed sobą, maks. ok. 180 stopni/s. Pocisk ma dziś prostą trajektorię z raycastem - dochodzi krok sterowania przed sprawdzeniem trafienia. |
-| V3-I-04 | **Gwoździarka**: ekstremalnie szybki pocisk (ok. 900 px/s), rysowany jako cienka kreska 4-6 px, bardzo krótki odstęp między strzałami (ok. 0.05 s), obrażenia pojedynczego pocisku mocno w dół, większy rozrzut. |
+| V3-I-04 | **Gwoździarka**: ekstremalnie szybki pocisk (ok. 900 px/s), rysowany jako cienka kreska 4-6 px, bardzo krótki odstęp między strzałami (ok. 0.05 s), obrażenia pojedynczego pocisku mocno w dół, większy rozrzut. **Od v0.19.1 przebija potwory** (`pierce` 99, `pierceDecay` 0.15: każdy kolejny trafiony dostaje 85% poprzedniego), zgłoszenie właściciela 2026-11-07: "powinna penetrować, a tego nie robi". Ściana nadal zatrzymuje gwóźdź. |
 | V3-I-05 | Modyfikator widoczny w HUD obok `BROŃ LV n` (ikona + nazwa) i w snapshocie, żeby sojusznicy widzieli, kto czym strzela. Przy podniesieniu: wyraźny błysk, napis i dźwięk (C). |
 | V3-I-06 | **Uchyla PRD-PLR-04** w części "na poziomie 3+ pocisk przebija 1 cel, na 5 strzał potrójny" - to jest teraz domena modyfikatorów, nie poziomu. | 
 

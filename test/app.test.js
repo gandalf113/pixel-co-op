@@ -16,9 +16,12 @@ function client(port) {
   return {
     ws, msgs, opened,
     send: (o) => ws.send(JSON.stringify(o)),
-    wait: (pred) => new Promise((res) => {
+    // Limit czasu: bez niego brak wiadomosci wieszal cala suite (zauwazone 2026-11-07 przy rownoleglym biegu plikow).
+    wait: (pred, label = pred.toString()) => new Promise((res, rej) => {
       const hit = msgs.find(pred);
-      if (hit) res(hit); else waiters.push({ pred, res });
+      if (hit) return res(hit);
+      const t = setTimeout(() => rej(new Error(`brak wiadomosci: ${label}; odebrane: ${msgs.map((m) => m.t).join(',')}`)), 15000);
+      waiters.push({ pred, res: (m) => { clearTimeout(t); res(m); } });
     }),
   };
 }

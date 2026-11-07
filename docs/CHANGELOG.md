@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.36 - 2026-11-07
+- v0.19.1: **gwozdziarka przebija potwory** (zgloszenie: "powinna penetrowac, a tego nie robi"). `pierce` 99 i `pierceDecay` 0.15 w `weaponMods.nailgun`: kazdy kolejny potwor na linii dostaje 85% obrazen poprzedniego. Sciana nadal zatrzymuje. Karabin, wachlarz i samonaprowadzanie bez zmian.
+
 ## 0.35 - 2026-11-07
 - v0.19.0: **V3-Q-04 Plomien** i **V3-Q-05 ciemnosc**. Nowy modul `server/flames.js`: plomien na kafelku, sila 1 -> 0 przez 8 s, 12 obr./s razy sila co 0.5 s dla graczy, potworow i hard objectow na kafelku, limit 60, ten sam kafelek = max sily. Granat Granatnika zapala kafelek trafienia i czterech sasiadow (polowa). Snapshot `flames` (AOI) i `dark`. Klient: sprite ognia w dwoch klatkach skalowany sila, poswiata, zar przy zapaleniu, trzask `flame`; ciemnosc jako maska na osobnym plotnie z kolami swiatla wokol zywych graczy (migotanie) i plomieni, przejscie 1 s, **F4 = lokalny podglad**. Zrodla ognia wylacznie wrogie (decyzja wlasciciela). Sekcja 6 w `03-WAVES-DIFFICULTY.md`.
 
