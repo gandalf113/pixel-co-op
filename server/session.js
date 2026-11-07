@@ -266,7 +266,9 @@ export class Session {
 
   #start(p) {
     if (this.game || !this.#isHost(p) || this.players.length < 1) return;
-    if (this.players.some((q) => !q.ultKind || !q.ultKind2)) return;
+    // Serwer wymaga tylko slotu 1 (zgodnosc z klientami i skryptami sprzed v0.20.0: hello -> ult -> start).
+    // Dwa ultimate wymusza interfejs lobby (przycisk Start nieaktywny, dopoki wszyscy nie maja obu).
+    if (this.players.some((q) => !q.ultKind)) return;
     this.game = new Game({
       balance: this.balance,
       difficulty: this.difficulty,

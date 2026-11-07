@@ -188,14 +188,12 @@ test('host and guest timing out together does not crash', () => {
 });
 
 // Dwa ultimate (V3-Q-08): start wymaga obu slotow, sloty musza byc rozne, null czysci.
-test('lobby: dwa sloty ultimate, rozne, start dopiero z oboma', () => {
+test('lobby: dwa sloty ultimate, rozne; serwer startuje z jednym (zgodnosc wstecz), UI wymaga obu', () => {
   const s = new Session({ balance, seed: 1, addresses: [] });
   const c = conn(true);
   s.connect(c);
   send(s, c, { t: 'hello', token: null, nick: 'Host' });
   send(s, c, { t: 'ult', kind: 'shockwave' });
-  send(s, c, { t: 'start' });
-  assert.equal(s.game, null, 'bez drugiego slotu nie startuje');
   send(s, c, { t: 'ult', kind: 'shockwave', slot: 2 });
   let lob = last(c, 'lobby');
   assert.equal(lob.players[0].ultKind2, null, 'ten sam rodzaj w slocie 2 odrzucony');
@@ -210,4 +208,20 @@ test('lobby: dwa sloty ultimate, rozne, start dopiero z oboma', () => {
   const me = s.game.world.players.values().next().value;
   assert.deepEqual([me.ultKind, me.ultKind2], ['shockwave', 'heal']);
   assert.equal(s.game.snapshot(me.id).players[0].at(-1), 'heal', 'ultKind2 jest ostatnim polem krotki gracza');
+});
+
+test('zgodnosc wstecz (hotfix v0.23.1): hello -> ult -> start bez slotu 2 startuje gre i daje snapshot', () => {
+  const s = new Session({ balance, seed: 1, addresses: [] });
+  const c = conn(true);
+  s.connect(c);
+  send(s, c, { t: 'hello', token: null, nick: 'Smoke' });
+  send(s, c, { t: 'ult', kind: 'heal' });
+  send(s, c, { t: 'start' });
+  assert.ok(s.game, 'start z jednym ultimate');
+  run(s, 1);
+  assert.ok(last(c, 'snap'), 'snapshot dotarl');
+  const me = s.game.world.players.values().next().value;
+  assert.equal(me.ultKind2, null);
+  s.game.action(me.id, 'c');
+  assert.equal(me.ult, 0, 'C z pustym slotem nic nie robi');
 });

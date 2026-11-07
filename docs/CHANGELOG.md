@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.41 - 2026-11-07
+- v0.23.1 (hotfix): **start gry wymaga na serwerze tylko pierwszego ultimate**. Od v0.20.0 serwer odrzucal `start`, dopoki kazdy gracz nie mial dwoch, co lamalo klientow i skrypty sprzed tej wersji (hello -> ult -> start -> snap); deploy od v0.20.0 nie przechodzil smoke testow na hostingu. Dwa ultimate wymusza nadal interfejs lobby (Start nieaktywny, dopoki wszyscy nie maja obu); z pustym slotem 2 klawisz `C` nic nie robi. ULT-05 doprecyzowane.
+
 ## 0.40 - 2026-11-07
 - v0.23.0: **V3-Q-06-01 Trzesienie ziemi** (`quake` w `server/events.js`): wstrzas 1.2 s, sciaganie graczy do wspolnego punktu (moveCircle, slizg po scianach), 8 zapadni 3 x 3 w odleglosci 4 kafelkow (przedmioty na nich spadaja: zdarzenie `fall`, gracze nie wchodza: `world.pitTiles` w `updatePlayers`), extra fala o budzecie `waveBudget(n)` z zapadni naraz (limit zywych szanowany), `world.eventCombat` = w przerwie da sie powalic, po wybiciu zapadnie znikaja i wszyscy wstaja (`startBreakFor`). Snapshot `pits`, klient rysuje zapadnie, wstrzas kamery (`quake`, `pitsOpen`), pomruk `quake`. Pole `event.lock` w snapshocie liczone z `world.lock` (w fazie walki sterowanie wraca). Import cykliczny events/items rozwiazany bezposrednim importem `rebuildGrid`.
 
