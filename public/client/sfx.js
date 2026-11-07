@@ -167,10 +167,10 @@ const RECIPES = {
   ],
   drop: [{ t: 'sine', f0: 150, f1: 90, dur: 0.09, level: 0.3 }],
   // Interfejs (V3-K-06): blip przy najechaniu i klik przy wyborze - krotkie, ciche, bez poglosu.
-  uiHover: [{ t: 'triangle', f0: 900, f1: 1100, dur: 0.03, level: 0.08 }],
+  uiHover: [{ t: 'triangle', f0: 900, f1: 1100, dur: 0.03, level: 0.027 }],
   uiClick: [
-    { t: 'square', f0: 520, f1: 780, dur: 0.05, level: 0.14 },
-    { n: 'white', dur: 0.006, hp: 2500, level: 0.12 },
+    { t: 'square', f0: 520, f1: 780, dur: 0.05, level: 0.047 },
+    { n: 'white', dur: 0.006, hp: 2500, level: 0.04 },
   ],
   deny: [
     { t: 'square', f0: 160, dur: 0.04, level: 0.2 },
