@@ -632,9 +632,10 @@
         "shakeS": 1.2,
         "pullTiles": 6,
         "pullMaxS": 4,
-        "pitDist": 4,
+        "pitDistX": 15,
+        "pitDistY": 8,
         "pitSize": 3,
-        "budgetMul": 1.0,
+        "budgetMul": 0.75,
         "fightMaxS": 120
       },
       "flyby": {

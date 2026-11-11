@@ -1,5 +1,8 @@
 # Changelog dokumentacji
 
+## 0.44 - 2026-11-11
+- v0.25.1: **Trzesienie ziemi - zapadnie przy krawedzi ekranu, mniejsza extra fala** (zgloszenie: "zapadnie sa za blisko, mobow z nich mniej"). `openPits` liczy srodki na elipsie `pitDistX` 15 x `pitDistY` 8 kafelkow zamiast kola `pitDist` 4 - elipsa, bo ekran ma 35 x 20 kafelkow (VIEW_W/VIEW_H), wiec kolo wypchneloby zapadnie z gory i z dolu poza ekran. Liczba zapadni bez zmian (8): zapadnia przy brzegu mapy jest **dosuwana** do srodka zamiast pomijanej, a gdy po dosunieciu nachodzi na inna (rog mapy), odsuwa sie styczna do kierunku, nigdy w strone graczy. `budgetMul` 1.0 -> **0.75**. Testy: balans sprawdza, ze zapadnie siedza przy krawedzi ekranu i ze budzet jest mniejszy niz pelna fala; nowy test rogow mapy pilnuje osmiu zapadni, ktore sie nie nakladaja i nie wychodza poza mape.
+
 ## 0.43 - 2026-11-07
 - v0.25.0: **V3-Q-09 Zbrojmistrz** (ITM-P-12): trzeci drop staly (`effect: power`, +25% na sztuke, sufit +100%). `powerOf(world, ownerId)` zapisuje `item.power` przy stawianiu (`activate`, `placeHardItem`); dzialko mnozy obrazenia, mina obrazenia i promien (`radiusPerPower` 0.6 -> +15% promienia na sztuke), kolce obrazenia, rzut obrazenia z rzutu. Przedmioty z wydarzen maja 1. Snapshot: `power` w przedmiocie (i w odcisku delty), `powerBonus` na koncu krotki gracza. Klient: zloty znacznik w rogu wzmocnionego przedmiotu, `+N%` przy trzymanym ofensywnym w HUD, napis `ZBROJMISTRZ +N%`.
 

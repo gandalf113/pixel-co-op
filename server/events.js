@@ -229,7 +229,7 @@ registerEvent('builders', {
 
 // ---------------------------------------------------------------------------------------------------------------
 // Trzesienie ziemi (V3-Q-06-01): (1) wstrzas, (2) gracze traca sterowanie i sa sciagani do wspolnego punktu,
-// (3) wokol otwiera sie 8 zapadni 3 x 3 (przedmioty na nich spadaja i znikaja, gracze nie moga tam wejsc),
+// (3) przy krawedzi ekranu otwiera sie 8 zapadni 3 x 3 (przedmioty na nich spadaja i znikaja, gracze nie moga tam wejsc),
 // (4) z zapadni naraz wychodzi extra fala o budzecie waveBudget(n) * budgetMul, (5) po wybiciu zapadnie znikaja,
 // wszyscy wstaja (jak na poczatku przerwy) i przerwa biegnie dalej. W walce przerwa nie chroni przed powaleniem
 // (world.eventCombat).
@@ -255,6 +255,10 @@ function pitTilesOf(pit, size) {
   return out;
 }
 
+// Zapadnie otwieraja sie przy KRAWEDZI EKRANU, nie pod nogami: ekran ma stale 560 x 315 px (render.js), czyli
+// 35 x 20 kafelkow, a w tej fazie wszyscy stoja w punkcie spotkania, wiec kamera kazdego gracza patrzy na to samo.
+// Dlatego elipsa `pitDistX` x `pitDistY`, nie kolo - przy kole zapadnie z gory i z dolu wyjechalyby poza ekran.
+// Zapadnia przy brzegu mapy jest DOSUWANA do srodka, nie pomijana: osiem zapadni ma byc zawsze.
 function openPits(world, ev, kc) {
   const { tilePx } = world.rules;
   const { tilesW, tilesH } = world.rules.balance.map;
@@ -263,13 +267,27 @@ function openPits(world, ev, kc) {
   const mtx = tileOf(ev.meet.x, tilePx);
   const mty = tileOf(ev.meet.y, tilePx);
   const dirs = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  const rx = kc.pitDistX ?? 15;
+  const ry = kc.pitDistY ?? 8;
+  const clamp = (v, max) => Math.max(h, Math.min(max - 1 - h, v));
   const pits = [];
   const tiles = new Set();
+  const overlaps = (tx, ty) => pitTilesOf({ tx, ty }, size).some(([x, y]) => tiles.has(`${x},${y}`));
   for (const [dx, dy] of dirs) {
-    const d = kc.pitDist ?? 4;
-    const tx = Math.round(mtx + dx * d);
-    const ty = Math.round(mty + dy * d);
-    if (tx - h < 0 || ty - h < 0 || tx + h >= tilesW || ty + h >= tilesH) continue;
+    const bx = Math.round(mtx + dx * rx);
+    const by = Math.round(mty + dy * ry);
+    const cx = clamp(bx, tilesW);
+    const cy = clamp(by, tilesH);
+    let tx = cx;
+    let ty = cy;
+    // W rogu mapy dosuniecie potrafi nalozyc dwie zapadnie na siebie: odsuwamy styczna do kierunku
+    // (czyli wzdluz krawedzi ekranu), nigdy w strone graczy. Liczymy od pozycji JUZ dosunietej - liczone
+    // od surowej, zapadnia z rogu mapy wpadalaby po dosunieciu wciaz w to samo miejsce.
+    for (let k = 1; k <= 4 && overlaps(tx, ty); k++) {
+      const off = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * size;
+      tx = clamp(cx - dy * off, tilesW);
+      ty = clamp(cy + dx * off, tilesH);
+    }
     pits.push({ tx, ty });
     for (const [x, y] of pitTilesOf({ tx, ty }, size)) tiles.add(`${x},${y}`);
   }
