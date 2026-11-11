@@ -47,6 +47,11 @@ test('http static and websocket flow', async () => {
     assert.equal((await fetch(`${base}/balance.json`)).status, 200);
     assert.equal((await fetch(`${base}/../package.json`)).status, 404);
     assert.equal((await fetch(`${base}/%2e%2e/server.js`)).status, 404);
+    // Protocol-relative: `//xmlrpc.php?rsd` ma pathname `/`, wiec bez jawnego
+    // odrzucenia serwer oddawal index.html z kodem 200 na sonde skanera.
+    assert.equal((await fetch(`${base}//xmlrpc.php?rsd`)).status, 404);
+    assert.equal((await fetch(`${base}//evil.example.com`)).status, 404);
+    assert.equal((await fetch(`${base}///x`)).status, 404);
 
     const a = client(srv.port);
     const b = client(srv.port);

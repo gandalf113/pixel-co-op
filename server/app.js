@@ -72,6 +72,12 @@ async function serveStatic(req, res) {
     res.end('Not found');
   };
   if (req.method !== 'GET') return fail();
+  // Cel zadania musi byc sciezka absolutna z JEDNYM wiodacym ukosnikiem.
+  // `new URL('//xmlrpc.php?rsd', 'http://x')` czyta `//...` jako protocol-relative,
+  // czyli `xmlrpc.php` laduje w hoscie, a pathname zostaje `/` — serwer oddawal
+  // wtedy index.html z kodem 200 na sonde WordPressa i zapalal w attack-monitorze
+  // kafelek "Probes that SUCCEEDED", ktory ma zawsze pokazywac 0.
+  if (!req.url.startsWith('/') || req.url.startsWith('//')) return fail();
   let rel;
   try {
     rel = decodeURIComponent(new URL(req.url, 'http://x').pathname);
