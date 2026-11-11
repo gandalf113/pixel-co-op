@@ -995,8 +995,16 @@ function drawRenderFault(ctx, pxScale) {
   ctx.fillText(`BLAD RENDERU - ${renderFault}`, 4 * pxScale, 11 * pxScale);
 }
 
-function frame(now) {
+// JEDEN zegar na kliencie - i to `performance.now()`, nie stempel z requestAnimationFrame.
+// Stempel rAF to czas VSYNCA klatki, a nie moment wywolania callbacka: gdy watek jest zajety,
+// potrafi byc o kilka ms starszy od `performance.now()`. Zdarzenia z sieci (`onEvent`), snapshoty
+// i RTT stempluje `performance.now()`, wiec efekt zrodzony w tym okienku mial `born` PO czasie
+// najblizszej klatki - jego wiek wychodzil ujemny. Zawalenie sciany liczylo z tego klatke -1,
+// siegalo po nieistniejacy sprite i wywracalo render bledem "not of type CSSImageValue".
+// Trafialo losowo, raz na kilkanascie minut, bo wymagalo zdarzenia dokladnie w tym okienku.
+function frame() {
   requestAnimationFrame(frame);
+  const now = performance.now();
   const playing = (mode === 'game' || mode === 'results') && latest && sprites;
   const dt = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
   lastFrameMs = now;

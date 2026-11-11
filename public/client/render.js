@@ -256,10 +256,14 @@ export function fxSprites(sprites) {
       }
       for (const [x, y] of footprint(kind, tx, ty, rot)) blit(ctx, sprites.get(`rubble_${tileHash(x, y) % 2}`), x * tp + ox, y * tp + oy);
     },
+    // `k` to wiek zawalenia w ulamku, ale moze przyjsc UJEMNE: efekt rodzi sie w `onEvent`,
+    // a klatka dostaje stempel vsynca, ktory bywa o kilka ms starszy. Bez zaciskania do [0,2]
+    // wychodzil klucz `wall_collapse_-1`, czyli `undefined` prosto w `drawImage` - i cala klatka
+    // leciala wyjatkiem "not of type CSSImageValue". Zegar jest juz jeden (main.js), to druga warstwa.
     collapse(ctx, c, k, ox, oy, tp) {
-      const frame = Math.min(2, Math.floor(k * 3));
+      const frame = Math.max(0, Math.min(2, Math.floor(k * 3)));
       const img = sprites.get(itemDef(c.kind)?.wreck ?? `wall_collapse_${frame}`);
-      for (const [x, y] of c.tiles) ctx.drawImage(img, x * tp + ox, y * tp + oy);
+      for (const [x, y] of c.tiles) blit(ctx, img, x * tp + ox, y * tp + oy);
     },
     muzzle(ctx, x, y, a, frame) {
       drawCentered(ctx, muzzleSprite(frame), x, y, a);
@@ -525,6 +529,7 @@ function drawPlayers(ctx, view, ox, oy) {
     }
     if (p.held) {
       const img = sprites.get(`item_${p.held}`);
+      if (!img) continue;
       ctx.save();
       ctx.translate(Math.round(p.x + ox), Math.round(p.y + oy - balance.map.tilePx * 0.75));
       ctx.scale(0.75, 0.75);

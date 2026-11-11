@@ -141,3 +141,56 @@ test('klatka z plomieniami i ciemnoscia renderuje sie bez wyjatku', () => {
   renderWorld(ctx, makeView({ flames: [], dark: { alpha: 0.4, tint: '#000000', radiusTiles: 6, flicker: false } }));
   renderWorld(ctx, makeView({ flames: undefined, dark: null }));
 });
+
+// --- Zawalenie sciany z UJEMNYM wiekiem (v0.26.1) --------------------------------------------
+//
+// Produkcyjny blad: po kilkunastu minutach gry klatka wywalala sie z
+// "The provided value is not of type 'CSSImageValue'" i gracz zostawal z czerwonym paskiem
+// BLAD RENDERU do konca partii. Powod: efekt zawalenia stemplowal `performance.now()` w `onEvent`,
+// a petla renderu brala stempel z requestAnimationFrame - czyli czas VSYNCA, ktory przy zajetym
+// watku bywa o kilka ms STARSZY. Zdarzenie, ktore trafilo w to okienko, mialo `born` w przyszlosci,
+// wiek wychodzil ujemny, `Math.floor(k * 3)` dawalo -1 i `wall_collapse_-1` nie istnialo.
+// Zegar jest juz jeden, ale render musi to przezyc niezaleznie od tego.
+const { fxSprites } = await import('../public/client/render.js');
+const { setItemDefs } = await import('../public/shared/world.js');
+setItemDefs(balance.items);
+
+const WRECK_KINDS = Object.keys(balance.items).filter((k) => balance.items[k].wreck);
+
+for (const k of [-5, -1, -0.5, -0.01, 0, 0.33, 0.66, 0.999, 1, 2]) {
+  test(`zawalenie w wieku k=${k} nie wywala klatki`, () => {
+    const fxs = fxSprites(sprites);
+    assert.doesNotThrow(() => fxs.collapse(ctx, { kind: 'wall', tiles: [[18, 18], [19, 18]] }, k, 0, 0, 16));
+    for (const kind of WRECK_KINDS) {
+      assert.doesNotThrow(() => fxs.collapse(ctx, { kind, tiles: [[18, 18]] }, k, 0, 0, 16));
+    }
+  });
+}
+
+test('zawalenie przedmiotu, ktorego nie ma w balansie, nie wywala klatki', () => {
+  const fxs = fxSprites(sprites);
+  assert.doesNotThrow(() => fxs.collapse(ctx, { kind: 'nie-ma-takiego', tiles: [[18, 18]] }, 0.5, 0, 0, 16));
+});
+
+test('cala klatka ze zdarzeniem zrodzonym PO czasie klatki nie rzuca', async () => {
+  const { Fx } = await import('../public/client/fx.js');
+  const fx = new Fx();
+  // born 10 ms PO nowMs widoku - dokladnie ten wyscig, ktory wywracal gre
+  fx.destroyed(5010, { id: 1, kind: 'wall', tx: 18, ty: 18, rot: 0 }, [[18, 18], [19, 18]], 16);
+  fx.destroyed(5010, { id: 2, kind: 'turret30', tx: 20, ty: 18, rot: 0 }, [[20, 18]], 16);
+  assert.doesNotThrow(() => renderWorld(ctx, makeView({ items: [], mobs: [], fx, nowMs: 5000 })));
+});
+
+test('gracz trzymajacy przedmiot bez sprite\'a nie wywala klatki', () => {
+  const view = makeView({ items: [], mobs: [] });
+  view.players[0].held = 'przedmiot-ktorego-nie-ma';
+  assert.doesNotThrow(() => renderWorld(ctx, view));
+});
+
+// Warstwa pierwsza: petla renderu NIE MOZE wrocic do stempla z requestAnimationFrame,
+// bo to on rozjezdzal sie z zegarem zdarzen sieciowych.
+test('petla renderu bierze czas z performance.now(), nie ze stempla rAF', () => {
+  const src = readFileSync(new URL('../public/client/main.js', import.meta.url), 'utf8');
+  assert.match(src, /function frame\(\)\s*\{\s*\n\s*requestAnimationFrame\(frame\);\s*\n\s*const now = performance\.now\(\);/);
+  assert.doesNotMatch(src, /function frame\(\s*\w/);
+});

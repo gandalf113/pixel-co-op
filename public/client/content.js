@@ -64,6 +64,7 @@ const TIPS_EN = [
 
 // Co nowego: ostatnie wersje, po jednym-dwa zdania. Najnowsza pierwsza. Aktualizowane razem z tagiem.
 const NEWS_PL = [
+  ['0.26.1', 'Koniec losowego BŁĘDU RENDERU po kilkunastu minutach gry — klient miał dwa zegary i zawalenie ściany potrafiło sięgnąć po nieistniejącą klatkę animacji.'],
   ['0.26.0', 'Czat w pokoju i w grze, wejście do trwającej partii jako widz (widz pisze — gracze to widzą na ekranie), przełącznik POLSKI / ANGIELSKI przy podawaniu nicku i przycisk Opuść pokój.'],
   ['0.25.1', 'Trzęsienie ziemi: zapadnie otwierają się przy krawędzi ekranu, a nie pod nogami, i wychodzi z nich o ćwierć mniej potworów.'],
   ['0.25.0', 'Nowy drop na stałe: Zbrojmistrz. Kto go podniesie, stawia mocniejsze działka, miny i kolce (+25% na sztukę).'],
@@ -84,6 +85,7 @@ const NEWS_PL = [
 ];
 
 const NEWS_EN = [
+  ['0.26.1', 'No more random RENDER ERROR after a dozen minutes of play — the client ran on two clocks and a collapsing wall could reach for an animation frame that does not exist.'],
   ['0.26.0', 'Chat in the room and in game, joining a match in progress as a spectator (spectators type — players see it on screen), a POLISH / ENGLISH switch on the nickname screen, and a Leave room button.'],
   ['0.25.1', 'Earthquake: the pits now open at the edge of the screen instead of under your feet, and a quarter fewer monsters come out of them.'],
   ['0.25.0', 'A new permanent drop: the Armorer. Whoever picks it up places stronger turrets, mines and spikes (+25% each).'],

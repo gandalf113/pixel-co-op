@@ -1,5 +1,27 @@
 # Changelog dokumentacji
 
+## 0.46 - 2026-11-11
+- v0.26.1: **koniec losowego "BLAD RENDERU" po kilkunastu minutach gry** (zgloszenie: `The provided value
+  is not of type 'CSSImageValue'` z `drawImage`, w losowym momencie po kilku-kilkunastu minutach).
+  - **Przyczyna: dwa zegary na kliencie.** Petla renderu brala czas ze stempla `requestAnimationFrame`,
+    czyli czas VSYNCA klatki, a `onEvent`, bufor snapshotow i RTT stempluja `performance.now()`. Stempel rAF
+    przy zajetym watku bywa o kilka ms **starszy** od `performance.now()`, wiec zdarzenie z sieci, ktore trafilo
+    w to okienko, rodzilo efekt z `born` **po** czasie najblizszej klatki. Wiek efektu wychodzil ujemny.
+  - **Skutek:** `fxSprites.collapse` liczy klatke animacji zawalenia jako `Math.floor(k * 3)`; dla ujemnego `k`
+    wychodzilo **-1**, `sprites.get('wall_collapse_-1')` dawalo `undefined`, a `ctx.drawImage(undefined, ...)`
+    rzucalo TypeError. `guardedDraw` lapal wyjatek, ale `renderFault` nigdy sie nie czysci - gracz zostawal
+    z czerwonym paskiem BLAD RENDERU do konca partii. Trafialo losowo, bo wymagalo zniszczenia sciany lub
+    dzialka **dokladnie** w tym kilkumilisekundowym okienku.
+  - **Naprawa, dwie warstwy.** (1) `frame()` bierze `performance.now()` i ignoruje stempel rAF - jeden zegar
+    na calym kliencie, wiec zadne zdarzenie nie moze miec stempla z przyszlosci wzgledem klatki; przy okazji
+    przestaje sie rozjezdzac interpolacja z bufora snapshotow. (2) `collapse` zaciska klatke do `[0,2]` i rysuje
+    przez `blit`, wiec brak sprite'a pomija rysowanie zamiast wywracac render. Dodatkowo `if (!img) continue`
+    przy przedmiocie trzymanym przez gracza - jedyne pozostale `drawImage` bez oslony.
+  - Testy (`test/renderframe.test.js`, +14): zawalenie dla `k` od -5 do 2 i dla kazdego przedmiotu z `wreck`,
+    cala klatka ze zdarzeniem zrodzonym **po** czasie klatki, gracz z nieistniejacym przedmiotem w rekach oraz
+    straznik zrodla, ze petla renderu nie wroci do stempla rAF. Bez poprawki padaja 4 z nich - lacznie z `k=-0.01`,
+    czyli realna skala rozjazdu.
+
 ## 0.45 - 2026-11-11
 - v0.26.0: **język PL / EN, czat w pokoju, widzowie i dwie poprawki interfejsu** (zgłoszenia właściciela).
   - **Przełącznik POLSKI / ANGIELSKI na ekranie podawania nicku** (`public/client/i18n.js`): dwa słowniki
