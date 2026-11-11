@@ -48,12 +48,15 @@ test('/api/rooms: kształt, nagłówki, brak nicków', async () => {
     assert.ok(!text.includes('SekretnyNick'));
     const { rooms } = JSON.parse(text);
     assert.equal(rooms.length, 1);
-    assert.deepEqual(Object.keys(rooms[0]).sort(), ['ageS', 'code', 'inGame', 'maxPlayers', 'players', 'wave']);
+    // `spectators` doszlo z trybem widza. Lista nadal nie niesie NICZEGO, co identyfikuje gracza - to jest
+    // sedno tego testu, wiec zbior pol trzymamy na sztywno, zeby nikt nie dolozyl tu nicku przez przypadek.
+    assert.deepEqual(Object.keys(rooms[0]).sort(), ['ageS', 'code', 'inGame', 'maxPlayers', 'players', 'spectators', 'wave']);
     assert.equal(rooms[0].code, w.room);
     assert.equal(rooms[0].players, 1);
     assert.equal(rooms[0].maxPlayers, 4);
     assert.equal(rooms[0].inGame, false);
     assert.equal(rooms[0].wave, 0);
+    assert.equal(rooms[0].spectators, 0);
     assert.ok(rooms[0].ageS >= 0);
     a.ws.close();
   } finally {

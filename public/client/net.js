@@ -1,3 +1,6 @@
+import { t } from './i18n.js';
+import { sanitizeChat } from '../shared/protocol.js';
+
 const DEFAULT_GRACE_S = 30;
 const DEFAULT_TIMEOUT_S = 6;
 const PID_KEY = 'pixelcoop.pid';
@@ -49,6 +52,8 @@ export class Connection {
     this.token = stored('token');
     this.wanted = false;
     this.inGame = false;
+    this.spectate = false;
+    this.spectator = false;
     this.graceS = DEFAULT_GRACE_S;
     this.timeoutS = DEFAULT_TIMEOUT_S;
     this.lostAt = null;
@@ -60,8 +65,11 @@ export class Connection {
 
   // room === null → serwer zakłada nowy pokój (tryb hostowany).
   // W trybie LAN pole jest ignorowane, bo sesja jest jedna.
-  connect(nick, room = null) {
+  // `spectate` = wchodzimy do TRWAJACEJ gry (albo pelnego pokoju) jako widz. Serwer honoruje to tylko
+  // wtedy, gdy miejsca faktycznie nie ma; w przeciwnym razie wpuszcza normalnie, jako gracza.
+  connect(nick, room = null, spectate = false) {
     this.nick = nick;
+    this.spectate = !!spectate;
     store('nick', nick);
     if (room !== this.room) {
       this.token = null;
@@ -76,6 +84,14 @@ export class Connection {
 
   send(obj) {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(obj));
+  }
+
+  // Czat: klient przycina do tego samego limitu co serwer, zeby nie wysylac czegos, co i tak zostanie obciete.
+  chat(text) {
+    const clean = sanitizeChat(text);
+    if (clean === null) return false;
+    this.send({ t: 'chat', text: clean });
+    return true;
   }
 
   leave() {
@@ -104,7 +120,7 @@ export class Connection {
     ws.onopen = () => {
       if (ws !== this.ws) return;
       this.lastMsg = Date.now();
-      ws.send(JSON.stringify({ t: 'hello', nick: this.nick, token: this.token, room: this.room, pid: playerId() }));
+      ws.send(JSON.stringify({ t: 'hello', nick: this.nick, token: this.token, room: this.room, pid: playerId(), spectate: this.spectate }));
     };
     ws.onmessage = (e) => {
       if (ws !== this.ws) return;
@@ -123,6 +139,10 @@ export class Connection {
           this.room = msg.room;
           store('room', msg.room);
         }
+        this.spectator = !!msg.spectator;
+        // Po awansie z widza na gracza serwer przysyla drugie `welcome` - od tej chwili wracamy
+        // normalnie, a nie jako widz.
+        this.spectate = this.spectator;
         this.graceS = msg.balance?.session?.reconnectGraceS ?? DEFAULT_GRACE_S;
         this.timeoutS = msg.balance?.session?.timeoutS ?? DEFAULT_TIMEOUT_S;
         this.lostAt = null;
@@ -142,7 +162,7 @@ export class Connection {
       this.lostAt ??= Date.now();
       if (Date.now() - this.lostAt > this.graceS * 1000) {
         this.#stop();
-        this.onStatus('rejected', 'Utracono połączenie');
+        this.onStatus('rejected', t('net.lost'));
         return;
       }
       this.onStatus('lost');

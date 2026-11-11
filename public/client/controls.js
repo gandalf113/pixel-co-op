@@ -2,6 +2,8 @@
 // Zero assetów z sieci (PRD-CON-01/05), zero dostępu do `document` — da się testować atrapą kontekstu.
 // Opisy akcji pochodzą z kodu: input.js (mapowanie), session.js #act, items.js handleAction, game.js action.
 
+import { t } from './i18n.js';
+
 export const CONTROLS_SIZE = { w: 620, h: 316 };
 
 const COL = {
@@ -10,18 +12,25 @@ const COL = {
 };
 
 // [id, kolor, klawisze/przyciski na obrazku, tekst akcji]
-export const CONTROL_ROWS = [
-  ['move', COL.move, 'W A S D', 'ruch (po śmierci A / D: kolejny obserwowany gracz)'],
-  ['use', COL.use, 'E', 'podnieś przedmiot; trzymany: postaw lub użyj'],
-  ['drop', COL.drop, 'R', 'odłóż trzymany; puste ręce: przeładuj'],
-  ['rot', COL.rot, 'Q / kółko', 'obróć trzymaną ścianę'],
-  ['fire', COL.fire, 'Spacja / LPM', 'strzał; z przedmiotem w rękach: rzut'],
-  ['spec', COL.misc, 'PPM', 'po śmierci: następny obserwowany gracz'],
-  ['ult', COL.ult, 'F / C', 'ULTIMATE 1 / ULTIMATE 2 (wspólny pasek)'],
-  ['ready', COL.ready, 'G', 'gotowy (w przerwie między falami)'],
-  ['tab', COL.misc, 'Tab', 'tablica wyników (przytrzymaj)'],
-  ['esc', COL.misc, 'Esc', 'pauza'],
-];
+// Teksty i dwie etykiety klawiszy sa tlumaczone, wiec to funkcja, nie stala: ekran sterowania
+// rysuje sie od nowa po zmianie jezyka.
+export function controlRows() {
+  return [
+    ['move', COL.move, 'W A S D', t('ctrl.move')],
+    ['use', COL.use, 'E', t('ctrl.use')],
+    ['drop', COL.drop, 'R', t('ctrl.drop')],
+    ['rot', COL.rot, t('ctrl.rotKeys'), t('ctrl.rot')],
+    ['fire', COL.fire, t('ctrl.fireKeys'), t('ctrl.fire')],
+    ['spec', COL.misc, 'PPM', t('ctrl.spec')],
+    ['ult', COL.ult, 'F / C', t('ctrl.ult')],
+    ['ready', COL.ready, 'G', t('ctrl.ready')],
+    ['tab', COL.misc, 'Tab', t('ctrl.tab')],
+    ['esc', COL.misc, 'Esc', t('ctrl.esc')],
+  ];
+}
+
+// Zgodnosc wstecz: stala w jezyku ustawionym w chwili zaladowania modulu.
+export const CONTROL_ROWS = controlRows();
 
 // `hot` = klawisz trzymany w tej chwili (poligon, V3-K-07): wcisniety w dol i rozjasniony.
 function key(ctx, x, y, w, h, label, color, hot = false) {
@@ -96,13 +105,13 @@ export function drawControls(ctx, pressed = new Set()) {
   ctx.font = '12px monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('LPM = Spacja · kółko = Q', 120, 204);
-  ctx.fillText('PPM: obserwowanie', 120, 224);
+  ctx.fillText(t('ctrl.mouseLegend'), 120, 204);
+  ctx.fillText(t('ctrl.mouseSpec'), 120, 224);
 
   // Legenda: kolor klawisza -> akcja.
   const lx = 276;
   let y = 14;
-  for (const [, color, keys, text] of CONTROL_ROWS) {
+  for (const [, color, keys, text] of controlRows()) {
     ctx.fillStyle = color;
     ctx.fillRect(lx, y, 10, 10);
     ctx.fillStyle = '#e8e2d4';

@@ -4,6 +4,8 @@ import { rifleStats } from '../shared/weapon.js';
 import { LOW_HP } from './fx.js';
 import { MV } from '../shared/mobview.js';
 import { footprint, itemDef, setItemDefs } from '../shared/world.js';
+import { t, bn } from './i18n.js';
+import { CHAT } from '../shared/protocol.js';
 
 const PAD = 12;
 const BAR_COLORS = { turret: '#d9b53a', platform: '#8ea845', cage: '#6fc7c9' };
@@ -150,7 +152,7 @@ function drawUltBar(ctx, state, me, scale, fs, small) {
     const blink = Math.floor(now / 300) % 2 === 0;
     text(ctx, slots.length > 1 ? 'ULTI GOTOWE [F] / [C]' : 'ULTI GOTOWE [F]', rx + 12, ty, { size: small, color: blink ? '#ffd23a' : '#ff7a2a' });
   } else if (state.deny) {
-    text(ctx, 'ZA MAŁO', rx + 12, ty, { size: small, color: '#ff5a4a' });
+    text(ctx, t('hud.tooLittle'), rx + 12, ty, { size: small, color: '#ff5a4a' });
   }
 }
 
@@ -184,6 +186,36 @@ export function drawBossBar(ctx, state, scale, top, fs, small) {
 }
 
 // Canvas HUD ma ten sam rozmiar i pozycje co plansza; `mouse` jest juz we wspolrzednych planszy (main.js).
+// Czat w TRAKCIE gry (zgloszenie: wiadomosci widza maja byc widoczne dla grajacych).
+// Rysujemy na canvasie HUD-u, a nie w DOM, bo HUD i tak jest nad scena i skaluje sie razem z nia.
+// Wiadomosci gasna po CHAT.liveMs; ostatnie `liveMax` naraz. Widz dostaje wlasny kolor nicku,
+// zeby grajacy od razu widzial, ze to podpowiedz z boku, a nie wspolgracz.
+function drawChat(ctx, state, scale, fs) {
+  const live = state.chat ?? [];
+  if (!live.length) return;
+  const H = ctx.canvas.height;
+  const lineH = fs + 6 * scale;
+  const x = PAD;
+  let y = H - 64 * scale - (live.length - 1) * lineH;
+  for (const m of live) {
+    const age = state.nowMs - m.at;
+    const left = CHAT.liveMs - age;
+    // ostatnia sekunda zycia: plynne zanikanie, zeby wiadomosc nie znikala skokiem
+    ctx.globalAlpha = Math.max(0, Math.min(1, left / 1000));
+    if (m.system) {
+      text(ctx, t(m.system, m.vars ?? {}), x, y, { size: fs, color: '#7d766b' });
+    } else {
+      const spectator = m.role === 'spectator';
+      const from = `${spectator ? `[${t('chat.spectatorTag')}] ` : ''}${m.from}: `;
+      text(ctx, from, x, y, { size: fs, color: spectator ? '#6fe0ff' : '#d9b53a' });
+      ctx.font = `bold ${fs}px monospace`;
+      text(ctx, m.text, x + ctx.measureText(from).width, y, { size: fs, color: '#e8e2d4' });
+    }
+    ctx.globalAlpha = 1;
+    y += lineH;
+  }
+}
+
 export function renderHud(ctx, scale, state) {
   const { snap, balance, sprites, cam, me } = state;
   const W = ctx.canvas.width;
@@ -299,8 +331,8 @@ export function renderHud(ctx, scale, state) {
 
     if (me && me.state === 'dead') {
       const who = state.spectating;
-      text(ctx, who ? `OBSERWUJESZ: ${who.nick}` : 'NIKT NIE ŻYJE', W / 2, PAD + fs * 4 + 12 + bossH, { size: fs, align: 'center', color: who?.color ?? '#ff5a4a' });
-      text(ctx, 'wracasz w przerwie · klik / A / D: zmień', W / 2, PAD + fs * 5 + 16 + bossH, { size: small, align: 'center' });
+      text(ctx, who ? `OBSERWUJESZ: ${who.nick}` : t('hud.nobodyAlive'), W / 2, PAD + fs * 4 + 12 + bossH, { size: fs, align: 'center', color: who?.color ?? '#ff5a4a' });
+      text(ctx, t('hud.spectateHint'), W / 2, PAD + fs * 5 + 16 + bossH, { size: small, align: 'center' });
       if (me.ultKind && balance.ultimate) drawUltBar(ctx, state, me, scale, fs, small);
     } else if (me) {
       const bw = 60 * scale;
@@ -314,7 +346,8 @@ export function renderHud(ctx, scale, state) {
       }
       text(ctx, String(Math.floor(me.hp)), PAD + bw / 2, H - PAD - 3 * scale, { size: small, align: 'center', base: 'middle' });
       const mod = balance.weaponMods?.[me.weaponMod];
-      const lvStr = `BROŃ LV ${me.weaponLv}${mod ? ` ${mod.icon} ${mod.name}` : ''}`;
+      const modName = mod ? ` ${mod.icon} ${bn('weaponMods', me.weaponMod, 'name', mod.name)}` : '';
+      const lvStr = `${t('hud.weaponLv', { lv: me.weaponLv })}${modName}`;
       text(ctx, lvStr, PAD + bw + 10, H - PAD - 3 * scale, { size: fs, base: 'middle' });
       const gun = rifleStats(balance, me.weaponLv);
       const low = me.ammo <= 5 && Math.floor(state.nowMs / 250) % 2 === 0;
@@ -323,7 +356,7 @@ export function renderHud(ctx, scale, state) {
         { size: fs, base: 'middle', color: low ? '#ff5a4a' : '#e8e2d4' });
 
       if (me.ultKind && balance.ultimate) drawUltBar(ctx, state, me, scale, fs, small);
-      if (me.frenzyLeft > 0) text(ctx, `SZAŁ ${Math.ceil(me.frenzyLeft)} s`, W / 2, H - PAD - 40 * scale, { size: fs, align: 'center', color: '#ff5a4a' });
+      if (me.frenzyLeft > 0) text(ctx, t('hud.frenzy', { s: Math.ceil(me.frenzyLeft) }), W / 2, H - PAD - 40 * scale, { size: fs, align: 'center', color: '#ff5a4a' });
 
       const held = me.held;
       const offensive = held && ['turret', 'mine', 'spikes'].includes(balance.items[held].behavior);
@@ -338,7 +371,7 @@ export function renderHud(ctx, scale, state) {
 
     state.fx?.drawHud(ctx, state.nowMs, toScreen, scale, text, small, me);
 
-    if (state.hint) text(ctx, `[E] podnieś: ${state.hint}`, W / 2, H - PAD - 24 * scale, { size: fs, align: 'center' });
+    if (state.hint) text(ctx, t('hud.pickup', { what: state.hint }), W / 2, H - PAD - 24 * scale, { size: fs, align: 'center' });
 
     if (state.tab) {
       const rowH = fs + 8;
@@ -353,14 +386,16 @@ export function renderHud(ctx, scale, state) {
         text(ctx, p.nick, tx + 12, y, { color: p.color, size: fs });
         const pm = balance.weaponMods?.[p.weaponMod];
         text(ctx, `LV ${p.weaponLv}${pm ? ` ${pm.icon} ${pm.name}` : ''}`, tx + 120, y, { size: fs, color: pm ? '#ffd23a' : '#e8e2d4' });
-        const status = p.state === 'alive' ? `${Math.floor(p.hp)} HP` : p.state === 'downed' ? 'powalony' : 'martwy';
+        const status = p.state === 'alive' ? `${Math.floor(p.hp)} HP` : t(p.state === 'downed' ? 'hud.downed' : 'hud.dead');
         text(ctx, status, tx + tw - 12, y, { size: fs, align: 'right' });
       });
     }
   }
 
+  drawChat(ctx, state, scale, fs);
+
   if (state.status === 'lost' || state.status === 'connecting') {
-    text(ctx, 'Utracono połączenie — łączę ponownie…', W / 2, H / 2, { color: '#ff5a4a', size: fs, align: 'center' });
+    text(ctx, t('hud.reconnect'), W / 2, H / 2, { color: '#ff5a4a', size: fs, align: 'center' });
   }
 
   if (state.flash) {

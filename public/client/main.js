@@ -16,6 +16,8 @@ import { renderHud } from './hud.js';
 import * as ui from './ui.js';
 import { createSfx } from './sfx.js';
 import { DemoWorld } from './demo.js';
+import { t, loadLang, onLangChange, getLang } from './i18n.js';
+import { CHAT } from '../shared/protocol.js';
 
 const ENDED_MSG_MS = 2500;
 const PLAYER_KEY = { id: 'id', x: 'x', y: 'y', angle: 'angle' };
@@ -213,6 +215,7 @@ function showHome(message = '') {
   const gen = homeGen;
   const view = ui.showHome({ nick, lan, rooms: null, leaderboard, message, color: heroColor(), sprites, version, audio }, {
     onJoin: (code) => join(nick, code),
+    onWatch: (code) => join(nick, code, true),
     onNew: () => join(nick, null),
     onPlay: (code) => join(nick, lan ? null : code),
     onControls: () => {
@@ -238,6 +241,87 @@ function showHome(message = '') {
   };
   refresh();
   homeTimer = setInterval(refresh, ROOMS_REFRESH_MS);
+}
+
+// Jezyk wczytujemy ZANIM pojawi sie pierwszy panel - inaczej ekran nicku mignalby po polsku
+// i dopiero przerysowal sie na angielski.
+loadLang();
+
+// Zmiana jezyka przerysowuje ekran, na ktorym stoimy. Przerysowujemy tylko ekrany menu:
+// w trakcie gry panel i tak nie jest widoczny, a HUD czyta `t()` przy kazdej klatce.
+onLangChange(() => {
+  updateSpectBanner();
+  if (gchatInput) gchatInput.placeholder = t('chat.placeholder');
+  if (mode === 'nick') showNick();
+  else if (mode === 'home') showHome();
+});
+
+// --- Czat i tryb widza --------------------------------------------------------------------------
+// `chatLog` to pelna historia (panel w pokoju), `chatLive` to ostatnie wiadomosci rysowane NA EKRANIE
+// w trakcie gry - stad widz moze cos podpowiedziec grajacym.
+let chatLog = [];
+let chatLive = [];
+let spectator = false;
+let lobbyChat = null;
+const gchatBox = document.getElementById('gchat');
+const gchatInput = gchatBox?.querySelector('input');
+const spectBox = document.getElementById('spect');
+
+function pushChat(entry) {
+  chatLog.push(entry);
+  if (chatLog.length > CHAT.historyMax) chatLog.shift();
+  chatLive.push({ ...entry, at: performance.now() });
+  if (chatLive.length > CHAT.liveMax) chatLive.shift();
+  lobbyChat?.push(entry);
+}
+
+function sendChat(text) {
+  return conn.chat(text);
+}
+
+const gameChatOpen = () => !!gchatBox?.classList.contains('on');
+
+function openGameChat() {
+  if (!gchatBox || !gchatInput || gameChatOpen()) return;
+  gchatBox.classList.add('on');
+  gchatInput.value = '';
+  gchatInput.placeholder = t('chat.placeholder');
+  gchatInput.focus();
+}
+
+function closeGameChat() {
+  if (!gchatBox) return;
+  gchatBox.classList.remove('on');
+  gchatInput?.blur();
+}
+
+// Enter otwiera pole czatu w grze, Enter w polu wysyla, Esc zamyka. Gdy pole ma focus, InputState
+// i tak ignoruje klawisze (sprawdza `e.target instanceof HTMLInputElement`), wiec pisanie nie rusza postacia.
+addEventListener('keydown', (e) => {
+  if (mode !== 'game') return;
+  if (e.target === gchatInput) {
+    if (e.key === 'Escape') { e.preventDefault(); closeGameChat(); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      const text = gchatInput.value;
+      if (text.trim()) sendChat(text);
+      closeGameChat();
+    }
+    return;
+  }
+  if (e.key === 'Enter' && !paused) { e.preventDefault(); openGameChat(); }
+});
+
+// Pasek "OGLADASZ" u gory ekranu: widz ma od razu wiedziec, ze nie gra.
+function updateSpectBanner() {
+  if (!spectBox) return;
+  const on = spectator && (mode === 'game' || mode === 'results');
+  spectBox.classList.toggle('on', on);
+  if (!on) return;
+  const bar = spectBox.querySelector('.bar');
+  const sub = spectBox.querySelector('.sub');
+  if (bar) bar.textContent = t('spectate.banner');
+  if (sub) sub.textContent = `${t('spectate.afterGame')}  ·  ${t('chat.openHint')}`;
 }
 
 function showNick() {
@@ -346,13 +430,17 @@ function showJoin(message = '') {
   else enterFlow(message);
 }
 
-function join(n, room = null) {
+function join(n, room = null, spectate = false) {
   stopHome();
   stopDemo();
   mode = 'nick';
   nick = n;
-  ui.showMessage('Łączę…');
-  conn.connect(n, serverMode === 'rooms' ? room : null);
+  spectator = false;
+  chatLog = [];
+  chatLive = [];
+  lobbyChat = null;
+  ui.showMessage(t('net.connecting'));
+  conn.connect(n, serverMode === 'rooms' ? room : null, spectate);
 }
 
 function resetGame() {
@@ -374,10 +462,27 @@ function resetGame() {
   conn.inGame = false;
 }
 
+// Wyjscie z pokoju: ta sama sciezka, co "Wyjdz" z pauzy - zwalnia token i wraca na ekran glowny.
+function leaveRoom() {
+  conn.leave();
+  mode = 'nick';
+  status = 'idle';
+  spectator = false;
+  lobbyChat = null;
+  chatLog = [];
+  chatLive = [];
+  resetGame();
+  closeGameChat();
+  updateSpectBanner();
+  setUrlRoom(null);
+  showJoin();
+}
+
 function enterLobbyScreen(msg) {
   mode = 'lobby';
   resetGame();
-  ui.showLobby(msg, {
+  closeGameChat();
+  lobbyChat = ui.showLobby(msg, {
     difficulties: balance.difficulty,
     ultimates: balance.ultimate.kinds,
     icons: Object.fromEntries(Object.entries(balance.ultimate.kinds).map(([k, u]) => [k, sprites.get(u.sprite)?.toDataURL()])),
@@ -385,7 +490,12 @@ function enterLobbyScreen(msg) {
     onUlt: (kind, slot = 1) => conn.send({ t: 'ult', kind, slot }),
     onDifficulty: (level) => conn.send({ t: 'difficulty', level }),
     onStart: () => conn.send({ t: 'start' }),
+    onChat: sendChat,
+    onLeave: leaveRoom,
+    chatLog,
+    spectator,
   });
+  updateSpectBanner();
 }
 
 function onMessage(msg) {
@@ -393,8 +503,25 @@ function onMessage(msg) {
     case 'host':
       isHost = msg.youAreHost;
       break;
+    case 'chat':
+      pushChat(msg);
+      break;
+    case 'chatLog':
+      chatLog = [...msg.list];
+      lobbyChat?.setLog(chatLog);
+      break;
     case 'welcome':
       myId = msg.id;
+      spectator = !!msg.spectator;
+      // Widz nie dostanie `lobby`, dopoki trwa partia - wchodzimy prosto w widok gry.
+      if (spectator) {
+        stopHome();
+        stopDemo();
+        mode = 'game';
+        conn.inGame = true;
+        ui.hideAll();
+      }
+      updateSpectBanner();
       if (msg.room) setUrlRoom(msg.room);
       balance = msg.balance;
       gore.cfg = balance.gore;
@@ -427,6 +554,8 @@ function onMessage(msg) {
     case 'results':
       mode = 'results';
       paused = false;
+      closeGameChat();
+      updateSpectBanner();
       ui.showResults(msg, isHost, () => conn.send({ t: 'toLobby' }), leaderboard);
       void refreshLeaderboard();
       break;
@@ -618,7 +747,7 @@ function onStatus(s, reason) {
   resetGame();
   setUrlRoom(null);
   if (!nick) showNick();
-  else showHome(reason ?? 'Odrzucono');
+  else showHome(reason ?? t('net.rejected'));
 }
 
 function moveCtx(me) {
@@ -665,7 +794,7 @@ function aimWorld() {
 }
 
 function tick() {
-  if (mode !== 'game' || !latest) return;
+  if (mode !== 'game' || !latest || spectator) return;
   const me = myView(latest);
   if (!me) return;
   const raw = paused || me.state === 'dead' ? { mx: 0, my: 0, fire: false } : input.sample();
@@ -780,14 +909,7 @@ function pause() {
     onResume: resume,
     onControls: () => ui.showControls(() => pause()),
     onFullscreen: fullscreen,
-    onLeave: () => {
-      conn.leave();
-      mode = 'nick';
-      status = 'idle';
-      resetGame();
-      setUrlRoom(null);
-      showJoin();
-    },
+    onLeave: leaveRoom,
   });
 }
 
@@ -916,8 +1038,17 @@ function frame(now) {
     updateSpectate(snapMe);
     const watched = specId ? players.find((p) => p.id === specId) : null;
     focusCamera(now, watched ?? me, watched ? specId : myId);
+  } else if (spectator) {
+    // Widz nie ma swojej postaci: kamera trzyma sie wybranego gracza, a gdy ten zginie - najblizszego zywego.
+    const alive = players.filter((p) => p.state !== 'dead' && !p.suspended);
+    if (alive.length) {
+      if (!alive.some((p) => p.id === specId)) specId = alive[0].id;
+      const watched = players.find((p) => p.id === specId);
+      if (watched) focusCamera(now, watched, specId);
+    }
   }
   effects = effects.filter((e) => now - e.start < e.durMs);
+  chatLive = chatLive.filter((m) => now - m.at < CHAT.liveMs);
   const pickTarget = me && mode === 'game' ? pickupTarget(me, latest.items) : null;
   shots?.step(dt, grid);
   const view = {
@@ -948,7 +1079,8 @@ function frame(now) {
     version, snap: latest, balance, sprites, cam, me, players, status, tab, nowMs: now,
     hint: pickTarget ? balance.items[pickTarget.kind].name : null, fx,
     spectating: specId ? players.find((p) => p.id === specId) ?? null : null,
-    mouse: boardMouse(), showCursor: mode === 'game' && !paused,
+    chat: chatLive,
+    mouse: boardMouse(), showCursor: mode === 'game' && !paused && !spectator,
     deny: now < denyUntil,
     flash: flash && now - flash.start < FLASH_MS ? { ...flash, k: (now - flash.start) / FLASH_MS } : null,
   }));

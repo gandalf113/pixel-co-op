@@ -1,4 +1,5 @@
 import { itemDef } from '../shared/world.js';
+import { t, bn } from './i18n.js';
 
 const MAX_PARTICLES = 500;
 const MAX_CHIPS = 400;
@@ -79,14 +80,15 @@ export class Fx {
   weaponUp(now, e, myId, mods) {
     this.#burst(now, e.x, e.y, 18, { colors: SPARK, speed: 110, life: 0.5 });
     this.#burst(now, e.x, e.y, 8, { colors: ['#ffffff'], speed: 40, life: 0.3 });
-    this.boosts.push({ text: `BROŃ LV ${e.lv} · ${mods?.[e.mod]?.name ?? ''}`, x: e.x, y: e.y, own: e.id === myId, born: now });
+    const modName = mods?.[e.mod] ? bn('weaponMods', e.mod, 'name', mods[e.mod].name) : '';
+    this.boosts.push({ text: t('fx.weaponBoost', { lv: e.lv, mod: modName }), x: e.x, y: e.y, own: e.id === myId, born: now });
   }
 
   // Drop staly (V3-Q-01/02): rozbryzg w kolorze przedmiotu + napis z sumą bonusu.
   permUp(now, e, myId, cfg) {
     const color = cfg?.glow ?? '#ffffff';
     this.#burst(now, e.x, e.y, 14, { colors: [color, '#ffffff'], speed: 90, life: 0.45 });
-    const text = e.effect === 'hp' ? `MAX HP +${Math.round(e.total)}` : e.effect === 'speed' ? `SZYBKOŚĆ +${Math.round(e.total * 100)}%` : `ZBROJMISTRZ +${Math.round(e.total * 100)}%`;
+    const text = e.effect === 'hp' ? `MAX HP +${Math.round(e.total)}` : e.effect === 'speed' ? t('fx.speed', { pct: Math.round(e.total * 100) }) : `ZBROJMISTRZ +${Math.round(e.total * 100)}%`;
     this.boosts.push({ text, x: e.x, y: e.y, own: e.id === myId, born: now });
   }
 
@@ -189,7 +191,7 @@ export class Fx {
   // Sam komunikat "kto trafił"; błysk i winieta przychodzą ze zdarzenia hurt (bez podwójnego efektu).
   ff(now, e, myId, nickOf) {
     if (e.id !== myId) return;
-    this.message = { text: `${nickOf(e.by)} trafił cię`, until: now + 1000 };
+    this.message = { text: t('fx.hitBy', { nick: nickOf(e.by) }), until: now + 1000 };
   }
 
   update(now, dt) {

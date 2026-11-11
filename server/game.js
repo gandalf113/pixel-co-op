@@ -164,6 +164,12 @@ export class Game {
     this.#checkReady();
   }
 
+  // Widz (spectator) ma wlasny widok AoI pod swoim id, ale nie ma gracza w swiecie.
+  // Bez tego kazdy odlaczony widz zostawialby po sobie wpis w `views` do konca partii.
+  dropView(id) {
+    this.views.delete(id);
+  }
+
   remove(id) {
     const p = this.world.players.get(id);
     if (!p) return;

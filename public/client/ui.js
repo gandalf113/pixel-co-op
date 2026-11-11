@@ -1,7 +1,8 @@
 import { drawControls, CONTROLS_SIZE } from './controls.js';
 import { drawLogo, logoSize } from './logo.js';
-import { COLORS } from '../shared/protocol.js';
-import { BESTIARY, TIPS, NEWS } from './content.js';
+import { COLORS, CHAT } from '../shared/protocol.js';
+import { bestiary, tips, news } from './content.js';
+import { t, bn, ultTier, LANGS, LANG_LABEL, getLang, setLang } from './i18n.js';
 
 const root = () => document.getElementById('ui');
 
@@ -56,7 +57,9 @@ export function showMessage(text) {
   show(el('div', { className: 'panel msg' }, text));
 }
 
+// Nazwy trudnosci w leaderboardzie: angielskie z i18n, polskie zrodlowe tutaj.
 const DIFF_NAMES = ['łatwy', 'normalny', 'trudny', 'koszmar'];
+const diffName = (lv) => bn('difficulty', lv, 'name', DIFF_NAMES[lv - 1] ?? '?');
 
 // Leaderboard przychodzi z serwera statystyk (wyniki liczy symulacja serwerowa,
 // klient nie ma jak ich podrobić). Brak danych = panel się nie pokazuje.
@@ -68,17 +71,17 @@ export function leaderboardPanel(data, { limit = Infinity, nick = null } = {}) {
     for (const b of tabs.children) b.classList.toggle('sel', b.dataset.k === which);
     if (which === 'runs') {
       body.replaceChildren(el('table', { className: 'lb' },
-        el('tr', {}, el('th', {}, '#'), el('th', {}, 'Fala'), el('th', {}, 'Czas'), el('th', {}, 'Zab.'), el('th', {}, 'Poziom'), el('th', {}, 'Gracze')),
+        el('tr', {}, el('th', {}, '#'), el('th', {}, t('lb.wave')), el('th', {}, t('lb.time')), el('th', {}, t('lb.kills')), el('th', {}, t('lb.level')), el('th', {}, t('lb.players'))),
         ...data.runs.slice(0, limit).map((r, i) => el('tr', { className: nick && (r.players ?? []).includes(nick) ? 'me' : '' },
           el('td', {}, String(i + 1)),
           el('td', {}, String(r.wave)),
           el('td', {}, formatTime(r.timeS)),
           el('td', {}, String(r.kills)),
-          el('td', { className: 'muted' }, DIFF_NAMES[r.difficulty - 1] ?? '?'),
+          el('td', { className: 'muted' }, diffName(r.difficulty)),
           el('td', {}, (r.players ?? []).join(', '))))));
     } else {
       body.replaceChildren(el('table', { className: 'lb' },
-        el('tr', {}, el('th', {}, '#'), el('th', {}, 'Gracz'), el('th', {}, 'Zab.'), el('th', {}, 'Partie'), el('th', {}, 'Najd. fala')),
+        el('tr', {}, el('th', {}, '#'), el('th', {}, t('lb.player')), el('th', {}, t('lb.kills')), el('th', {}, t('lb.games')), el('th', {}, t('lb.bestWave'))),
         ...(data.players ?? []).slice(0, limit).map((r, i) => el('tr', { className: r.nick === nick ? 'me' : '' },
           el('td', {}, String(i + 1)),
           el('td', {}, r.nick),
@@ -87,16 +90,16 @@ export function leaderboardPanel(data, { limit = Infinity, nick = null } = {}) {
           el('td', {}, String(r.bestWave))))));
       // Twoje miejsce, gdy nie miescisz sie w limicie.
       const idx = nick ? (data.players ?? []).findIndex((r) => r.nick === nick) : -1;
-      if (idx >= limit) body.append(el('div', { className: 'muted lb-me' }, `Ty: miejsce ${idx + 1}`));
+      if (idx >= limit) body.append(el('div', { className: 'muted lb-me' }, t('lb.yourPlace', { n: idx + 1 })));
     }
   };
-  for (const [k, label] of [['runs', 'Przebiegi'], ['players', 'Gracze']]) {
+  for (const [k, label] of [['runs', t('lb.tabRuns')], ['players', t('lb.tabPlayers')]]) {
     const btn = el('button', { type: 'button', className: 'lb-tab', onclick: () => render(k) }, label);
     btn.dataset.k = k;
     tabs.append(btn);
   }
   render('runs');
-  return el('div', { className: 'lb-wrap' }, el('label', {}, 'Leaderboard'), tabs, body);
+  return el('div', { className: 'lb-wrap' }, el('label', {}, t('lb.title')), tabs, body);
 }
 
 export function roomLink(code) {
@@ -109,8 +112,8 @@ export function roomLink(code) {
 // Tryb LAN: samo pole nicku (jedna sesja na serwer).
 // Tryb hostowany: nick + kod pokoju; puste pole = nowy pokój.
 export function showJoinForm({ nick = '', room = '', rooms = false, leaderboard = null }, onSubmit) {
-  const nickInput = el('input', { type: 'text', maxLength: 12, value: nick, placeholder: 'nick', autofocus: true });
-  const codeInput = el('input', { type: 'text', maxLength: 8, value: room, placeholder: 'puste = nowy pokój', className: 'code' });
+  const nickInput = el('input', { type: 'text', maxLength: 12, value: nick, placeholder: t('nick.placeholder'), autofocus: true });
+  const codeInput = el('input', { type: 'text', maxLength: 8, value: room, placeholder: t('join.roomPlaceholder'), className: 'code' });
   const error = el('div', { className: 'muted' });
   const submit = (code) => {
     const n = nickInput.value.trim();
@@ -123,11 +126,11 @@ export function showJoinForm({ nick = '', room = '', rooms = false, leaderboard 
       submit(rooms ? codeInput.value.trim().toUpperCase() || null : null);
     },
   },
-  el('h1', {}, 'PIXEL CO-OP'),
-  el('label', {}, 'Twój nick'), nickInput,
-  rooms ? el('label', {}, 'Kod pokoju') : null,
+  el('h1', {}, t('app.title')),
+  el('label', {}, t('nick.label')), nickInput,
+  rooms ? el('label', {}, t('join.roomCode')) : null,
   rooms ? codeInput : null,
-  el('button', { type: 'submit' }, rooms ? 'Dołącz / nowy pokój' : 'Dołącz'),
+  el('button', { type: 'submit' }, rooms ? t('join.submitRooms') : t('join.submit')),
   error);
   const board = leaderboardPanel(leaderboard);
   show(el('div', { className: `panel${board ? ' wide' : ''}` }, form, board));
@@ -135,9 +138,25 @@ export function showJoinForm({ nick = '', room = '', rooms = false, leaderboard 
   return { error: (text) => { error.textContent = text ?? ''; } };
 }
 
+// Przelacznik jezyka (PL / EN). Stoi na ekranie podawania nicku - to pierwszy ekran gry, wiec wybor
+// zapada przed cala reszta interfejsu. Zmiana jezyka przerysowuje biezacy ekran przez `onLangChange`
+// w main.js; tutaj tylko ustawiamy jezyk.
+export function langSwitch() {
+  const row = el('div', { className: 'lang-row' }, el('span', { className: 'muted lang-label' }, t('lang.label')));
+  for (const code of LANGS) {
+    const b = el('button', {
+      type: 'button',
+      className: `lang-btn${getLang() === code ? ' sel' : ''}`,
+      onclick: () => setLang(code),
+    }, LANG_LABEL[code]);
+    row.append(b);
+  }
+  return row;
+}
+
 // K-02, krok 1: sam nick.
 export function showNickScreen({ nick = '' } = {}, onSubmit) {
-  const input = el('input', { type: 'text', maxLength: 12, value: nick, placeholder: 'nick', autofocus: true });
+  const input = el('input', { type: 'text', maxLength: 12, value: nick, placeholder: t('nick.placeholder'), autofocus: true });
   const error = el('div', { className: 'muted' });
   show(el('div', { className: 'panel' },
     el('form', {
@@ -147,9 +166,10 @@ export function showNickScreen({ nick = '' } = {}, onSubmit) {
         if (n) onSubmit(n);
       },
     },
-    el('h1', {}, 'PIXEL CO-OP'),
-    el('label', {}, 'Twój nick'), input,
-    el('button', { type: 'submit' }, 'Dalej'),
+    el('h1', {}, t('app.title')),
+    langSwitch(),
+    el('label', {}, t('nick.label')), input,
+    el('button', { type: 'submit' }, t('nick.next')),
     error)));
   input.focus();
   return { error: (text) => { error.textContent = text ?? ''; } };
@@ -158,9 +178,10 @@ export function showNickScreen({ nick = '' } = {}, onSubmit) {
 // Jeden wiersz listy pokoi. Wiersz jest klikalny tylko wtedy, gdy da się wejść.
 export function roomRowInfo(r) {
   const full = r.players >= r.maxPlayers;
-  const lines = [`${r.players} / ${r.maxPlayers} graczy`];
-  if (r.inGame) lines.push(`mecz w toku · fala ${r.wave}`);
-  else if (full) lines.push('pełny');
+  const lines = [t('room.players', { n: r.players, max: r.maxPlayers })];
+  if (r.inGame) lines.push(t('room.inGame', { wave: r.wave }));
+  else if (full) lines.push(t('room.full'));
+  if (r.spectators > 0) lines.push(t('room.watchers', { n: r.spectators }));
   return { joinable: !r.inGame && !full, text: lines.join(' · ') };
 }
 
@@ -176,27 +197,34 @@ function logoCanvas() {
 
 export function formatAge(s) {
   if (!Number.isFinite(s)) return '';
-  if (s < 60) return `${Math.max(0, Math.round(s))} s temu`;
-  return `${Math.floor(s / 60)} min temu`;
+  if (s < 60) return t('room.agoSec', { n: Math.max(0, Math.round(s)) });
+  return t('room.agoMin', { n: Math.floor(s / 60) });
 }
 
 // Karta pokoju: kod, cztery sloty (zajety = sprite gracza w kolorze slotu), opis. Klikalna tylko, gdy da sie wejsc.
-function roomCard(r, sprites, onJoin) {
+function roomCard(r, sprites, onJoin, onWatch) {
   const info = roomRowInfo(r);
+  // Trwajaca gra nie jest juz slepym zaulkiem: da sie wejsc jako widz i pisac na czacie.
+  const watchable = !!onWatch && r.inGame;
   const slots = el('div', { className: 'slots' }, ...Array.from({ length: r.maxPlayers }, (_, i) => {
     const taken = i < r.players;
     const img = taken ? spriteImg(sprites, `player_0@${COLORS[i % COLORS.length]}`, 'slot-img', 2) : null;
     return el('div', { className: `slot${taken ? ' taken' : ''}`, style: taken ? { borderColor: COLORS[i % COLORS.length] } : {} }, img);
   }));
   // B2 (V3-K-08): karta dwuwierszowa - kod, sloty, Wejdz / plakietka; pod spodem opis i wiek pokoju.
-  const tag = info.joinable ? el('span', { className: 'enter' }, 'Wejdź')
-    : el('span', { className: 'badge' }, r.inGame ? 'w toku' : 'pełny');
+  const tag = info.joinable ? el('span', { className: 'enter' }, t('room.enter'))
+    : watchable ? el('span', { className: 'enter watch' }, t('spectate.watch'))
+      : el('span', { className: 'badge' }, r.inGame ? t('room.badgeInGame') : t('room.badgeFull'));
   const row = el('li', { className: `room-row${info.joinable ? '' : ' closed'}` },
     el('div', { className: 'room-top' }, el('span', { className: 'room-code-s' }, r.code), slots, el('span', { className: 'spacer' }), tag),
-    el('span', { className: 'room-info' }, `${info.text}${r.inGame ? '' : ' · lobby'} · ${formatAge(r.ageS)}`));
+    el('span', { className: 'room-info' }, `${info.text}${r.inGame ? '' : t('room.lobbyTag')} · ${formatAge(r.ageS)}`));
   if (info.joinable) {
     row.classList.toggle('join', true);
     row.addEventListener('click', () => onJoin(r.code));
+  } else if (watchable) {
+    row.classList.toggle('join', true);
+    row.classList.toggle('watch', true);
+    row.addEventListener('click', () => onWatch(r.code));
   }
   return row;
 }
@@ -205,23 +233,25 @@ function roomCard(r, sprites, onJoin) {
 // Opcje poza wymaganymi: color (kolor bohatera), sprites (Map z bakeSprites), version, online {players, rooms},
 // audio {volume, muted}. Callbacki poza wymaganymi sa opcjonalne.
 export function showHome({ nick = '', lan = false, rooms = null, leaderboard = null, message = '', color = COLORS[0], sprites = null, version = null, online = null, audio = null },
-  { onJoin, onNew, onPlay, onControls, onChangeNick, onVolume, onMute, onFullscreen }) {
+  { onJoin, onNew, onPlay, onControls, onChangeNick, onVolume, onMute, onFullscreen, onWatch = null }) {
   const list = el('ul', { className: 'rooms' });
   const note = el('div', { className: 'muted note' }, message);
   const count = el('span', { className: 'muted count' });
   let joinable = [];
   const setRooms = (data) => {
     joinable = Array.isArray(data) ? data.filter((r) => roomRowInfo(r).joinable) : [];
-    count.textContent = Array.isArray(data) ? `${data.length} ${data.length === 1 ? 'otwarty' : 'otwartych'} · ${joinable.length} z miejscem` : '';
+    count.textContent = Array.isArray(data)
+      ? t('home.roomsCount', { n: data.length, word: t(data.length === 1 ? 'home.roomsOpenOne' : 'home.roomsOpenMany'), free: joinable.length })
+      : '';
     if (!Array.isArray(data)) {
-      list.replaceChildren(el('li', { className: 'muted' }, 'lista pokojów niedostępna'));
+      list.replaceChildren(el('li', { className: 'muted' }, t('home.roomsUnavailable')));
       return;
     }
     if (!data.length) {
-      list.replaceChildren(el('li', { className: 'muted' }, 'brak otwartych pokojów — załóż własny'));
+      list.replaceChildren(el('li', { className: 'muted' }, t('home.roomsEmpty')));
       return;
     }
-    list.replaceChildren(...data.map((r) => roomCard(r, sprites, onJoin)));
+    list.replaceChildren(...data.map((r) => roomCard(r, sprites, onJoin, onWatch)));
   };
   if (!lan) setRooms(rooms);
 
@@ -237,61 +267,62 @@ export function showHome({ nick = '', lan = false, rooms = null, leaderboard = n
   const stat = (label, v) => el('div', { className: 'stat' }, el('b', {}, v == null ? '–' : String(v)), el('span', { className: 'muted' }, label));
   // Ustawienia (glosnosc, wyciszenie, pelny ekran) chowaja sie pod przyciskiem, zeby nie rozpychac wizytowki.
   const settings = el('div', { className: 'settings', hidden: true },
-    el('label', { className: 'muted' }, 'Głośność',
+    el('label', { className: 'muted' }, t('home.volume'),
       el('input', {
         type: 'range', min: '0', max: '100', step: '1', value: String(Math.round((audio?.volume ?? 0.7) * 100)),
         oninput: (ev) => onVolume?.(Number(ev.target.value) / 100),
       })),
     el('label', { className: 'muted' },
       el('input', { type: 'checkbox', checked: !!audio?.muted, onchange: (ev) => onMute?.(!!ev.target.checked) }),
-      ' Wycisz'),
-    el('button', { className: 'small', onclick: () => onFullscreen?.() }, 'Pełny ekran'));
+      t('home.mute')),
+    el('button', { className: 'small', onclick: () => onFullscreen?.() }, t('home.fullscreen')));
   const me = el('section', { className: 'card me' },
     el('div', { className: 'hero' }, spriteImg(sprites, `player_0@${color}`, 'hero-img', 4)),
     el('div', { className: 'nick', style: { color } }, nick),
-    el('a', { className: 'link', onclick: onChangeNick }, 'zmień nick'),
-    el('div', { className: 'stats' }, stat('najd. fala', mine?.bestWave), stat('zabójstw', mine?.kills), stat('partii', mine?.games)));
+    el('a', { className: 'link', onclick: onChangeNick }, t('home.changeNick')),
+    el('div', { className: 'stats' }, stat(t('home.statWave'), mine?.bestWave), stat(t('home.statKills'), mine?.kills), stat(t('home.statGames'), mine?.games)));
 
   const playBlock = el('div', { className: 'play' },
-    el('button', { className: 'big', onclick: play }, 'GRAJ'),
-    el('div', { className: 'muted small center' }, lan ? 'dołącza do gry na tym serwerze' : 'pierwszy pokój z miejscem albo nowy'),
+    el('button', { className: 'big', onclick: play }, t('home.play')),
+    el('div', { className: 'muted small center' }, lan ? t('home.playHintLan') : t('home.playHint')),
     el('div', { className: 'row' },
-      el('button', { onclick: onControls }, 'Sterowanie'),
-      el('button', { onclick: () => { settings.hidden = !settings.hidden; } }, 'Ustawienia')),
+      el('button', { onclick: onControls }, t('home.controls')),
+      el('button', { onclick: () => { settings.hidden = !settings.hidden; } }, t('home.settings'))),
     settings,
     note);
 
   const board = leaderboardPanel(leaderboard, { limit: 6, nick });
-  const boardCol = el('section', { className: 'card board' }, board ?? el('div', { className: 'muted' }, 'Leaderboard pojawi się po pierwszej partii.'));
+  const boardCol = el('section', { className: 'card board' }, board ?? el('div', { className: 'muted' }, t('home.noBoard')));
 
   // B2 (V3-K-08): POKOJE jako osobna sekcja w zlotej ramce: naglowek z licznikiem i "Nowy pokoj", siatka kart.
   const roomsSection = lan ? null : el('section', { className: 'card rooms-section' },
     el('div', { className: 'section-head' },
-      el('span', { className: 'title' }, 'POKOJE'), el('span', { className: 'rule' }), count,
-      el('button', { className: 'small', onclick: onNew }, '+ Nowy pokój')),
+      el('span', { className: 'title' }, t('home.rooms')), el('span', { className: 'rule' }), count,
+      el('button', { className: 'small', onclick: onNew }, t('home.newRoom'))),
     list);
 
   // Bestiariusz: sprite'y potworow, po najechaniu jedno zdanie.
-  const blurb = el('div', { className: 'muted blurb' }, 'Najedź na potwora.');
-  const beast = el('div', { className: 'bestiary' }, ...BESTIARY.map(([type, name, text]) => {
+  const blurb = el('div', { className: 'muted blurb' }, t('home.bestiaryHint'));
+  const beast = el('div', { className: 'bestiary' }, ...bestiary().map(([type, name, text]) => {
     const tile = el('div', { className: 'beast' }, spriteImg(sprites, `${type}_0`, 'beast-img', 2), el('div', { className: 'beast-name' }, name));
     tile.addEventListener('mouseenter', () => { blurb.textContent = `${name}: ${text}`; });
     return tile;
   }));
 
   // Stopka: porada (rotowana przez main.js przez tick()), puls serwera, wersja, co nowego.
-  let tipIdx = Math.floor(Math.random() * TIPS.length);
-  const tip = el('div', { className: 'tip' }, TIPS[tipIdx]);
+  const TIP_LIST = tips();
+  let tipIdx = Math.floor(Math.random() * TIP_LIST.length);
+  const tip = el('div', { className: 'tip' }, TIP_LIST[tipIdx]);
   const pulse = el('span', { className: 'muted' });
   const setOnline = (o) => {
-    pulse.textContent = o && Number.isFinite(o.players) ? `online: ${o.players} · pokoje: ${o.rooms ?? 0}` : '';
+    pulse.textContent = o && Number.isFinite(o.players) ? t('home.online', { players: o.players, rooms: o.rooms ?? 0 }) : '';
   };
   setOnline(online);
-  const news = el('div', { className: 'news', hidden: true }, ...NEWS.map(([v, text]) => el('div', {}, el('b', {}, `v${v}`), ` ${text}`)));
-  const newsLink = el('a', { className: 'link', onclick: () => { news.hidden = !news.hidden; } }, 'co nowego');
-  const foot = el('div', { className: 'home-foot' }, tip, el('div', { className: 'muted' }, pulse, version ? ` · v${version} · ` : ' · ', newsLink), news);
+  const newsBox = el('div', { className: 'news', hidden: true }, ...news().map(([v, text]) => el('div', {}, el('b', {}, `v${v}`), ` ${text}`)));
+  const newsLink = el('a', { className: 'link', onclick: () => { newsBox.hidden = !newsBox.hidden; } }, t('home.news'));
+  const foot = el('div', { className: 'home-foot' }, tip, el('div', { className: 'muted' }, pulse, version ? ` · v${version} · ` : ' · ', newsLink), newsBox);
 
-  const beastCard = el('section', { className: 'card beast-card' }, el('label', {}, 'Bestiariusz'), beast, blurb);
+  const beastCard = el('section', { className: 'card beast-card' }, el('label', {}, t('home.bestiary')), beast, blurb);
   show(el('div', { className: 'panel home' },
     el('div', { className: 'home-left' }, logoCanvas(), me, playBlock, boardCol, foot),
     el('div', { className: 'home-right' }, roomsSection, beastCard)));
@@ -299,7 +330,7 @@ export function showHome({ nick = '', lan = false, rooms = null, leaderboard = n
     setRooms,
     setOnline,
     message: (text) => { note.textContent = text ?? ''; },
-    tick: () => { tipIdx = (tipIdx + 1) % TIPS.length; tip.textContent = TIPS[tipIdx]; },
+    tick: () => { tipIdx = (tipIdx + 1) % TIP_LIST.length; tip.textContent = TIP_LIST[tipIdx]; },
   };
 }
 
@@ -317,10 +348,10 @@ export function showControls(onBack) {
   };
   if (ctx) drawControls(ctx);
   show(el('div', { className: 'panel range' },
-    el('h2', {}, 'STEROWANIE'),
-    el('p', { className: 'muted' }, 'Poligon: wypróbuj na żywo. Bohater po lewej reaguje na klawisze, ściana obok jest do podniesienia, ślimak do zestrzelenia.'),
+    el('h2', {}, t('controls.title')),
+    el('p', { className: 'muted' }, t('controls.note')),
     canvas,
-    el('div', {}, el('button', { onclick: onBack }, 'Wróć'), el('span', { className: 'muted' }, ' albo Esc'))), { side: true });
+    el('div', {}, el('button', { onclick: onBack }, t('controls.back')), el('span', { className: 'muted' }, t('controls.orEsc')))), { side: true });
   return { setPressed };
 }
 
@@ -328,17 +359,62 @@ export function showNickForm(onSubmit, initial = '') {
   return showJoinForm({ nick: initial }, (nick) => onSubmit(nick));
 }
 
-function tierLines(u) {
-  return u.tiers.map((t, i) => el('div', { className: 'ult-tier' }, el('b', {}, `${'I'.repeat(i + 1)}`), ` ${t.desc}`));
+
+// --- Czat --------------------------------------------------------------------------------------
+// Jeden panel obsluguje pokoj. Wiadomosci wstawiamy WYLACZNIE jako tekst (el() dokleja stringi jako
+// wezly tekstowe) - nigdy innerHTML, wiec nick ani tresc nie moga wstrzyknac znacznikow.
+// Wpisy systemowe przychodza z serwera jako KLUCZ i18n (`system` + `vars`), nie gotowe zdanie,
+// wiec kazdy widzi je w swoim jezyku.
+export function chatLine(entry) {
+  if (entry.system) return el('div', { className: 'chat-sys' }, t(entry.system, entry.vars ?? {}));
+  const spectator = entry.role === 'spectator';
+  return el('div', { className: `chat-msg${spectator ? ' spect' : ''}` },
+    spectator ? el('span', { className: 'chat-tag' }, t('chat.spectatorTag')) : null,
+    el('span', { className: 'chat-from' }, `${entry.from}: `),
+    el('span', { className: 'chat-text' }, entry.text));
 }
 
-export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, onDifficulty, onStart }) {
+// `onSend(text)` ma zwrocic true, gdy wiadomosc poszla (wtedy czyscimy pole).
+export function chatPanel({ log = [], onSend, title = true } = {}) {
+  const list = el('div', { className: 'chat-list' });
+  const empty = el('div', { className: 'chat-sys' }, t('chat.empty'));
+  const input = el('input', { type: 'text', maxLength: CHAT.maxLen, placeholder: t('chat.placeholder'), className: 'chat-input' });
+  const render = () => {
+    if (!log.length) { list.replaceChildren(empty); return; }
+    list.replaceChildren(...log.map(chatLine));
+    // nowe wiadomosci na dole: zjezdzamy, o ile przegladarka w ogole to obsluguje (atrapa w testach nie)
+    if (typeof list.scrollTop === 'number') list.scrollTop = 1e9;
+  };
+  render();
+  const submit = () => {
+    const text = input.value;
+    if (!text.trim()) return;
+    if (onSend?.(text) !== false) input.value = '';
+  };
+  const form = el('form', { className: 'chat-form', onsubmit: (e) => { e.preventDefault(); submit(); } },
+    input, el('button', { type: 'submit', className: 'small' }, t('chat.send')));
+  const node = el('section', { className: 'card chat' },
+    title ? el('div', { className: 'section-head' }, el('span', { className: 'title' }, t('chat.title')), el('span', { className: 'rule' })) : null,
+    list, form);
+  return {
+    node,
+    push: (entry) => { log.push(entry); render(); },
+    setLog: (entries) => { log = [...entries]; render(); },
+    focus: () => input.focus?.(),
+  };
+}
+
+function tierLines(kind, u) {
+  return u.tiers.map((tier, i) => el('div', { className: 'ult-tier' }, el('b', {}, `${'I'.repeat(i + 1)}`), ` ${ultTier(kind, i, tier.desc)}`));
+}
+
+export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, onDifficulty, onStart, onChat, onLeave = null, chatLog = [], spectator = false }) {
   const level = msg.difficulty;
   const name = el('div', { className: 'diff-name' });
   const desc = el('div', { className: 'muted' });
   const describe = (lv) => {
-    name.textContent = `${lv}. ${difficulties[lv - 1].name}`;
-    desc.textContent = difficulties[lv - 1].desc;
+    name.textContent = `${lv}. ${bn('difficulty', lv, 'name', difficulties[lv - 1].name)}`;
+    desc.textContent = bn('difficulty', lv, 'desc', difficulties[lv - 1].desc);
   };
   describe(level);
   const slider = el('input', {
@@ -347,23 +423,23 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
     onchange: (e) => onDifficulty(Number(e.target.value)),
   });
   const players = el('ul', {}, ...msg.players.map((p) => el('li', { style: { color: p.color } },
-    `${p.nick}${p.host ? ' (host)' : ''} · ${[p.ultKind, p.ultKind2].filter(Boolean).map((k) => ultimates[k].name).join(' + ') || 'wybiera ultimate…'}${p.ultKind && !p.ultKind2 ? ' + ?' : ''}`)));
+    `${p.nick}${p.host ? t('lobby.host') : ''} · ${[p.ultKind, p.ultKind2].filter(Boolean).map((k) => bn('ultimate', k, 'name', ultimates[k].name)).join(' + ') || t('lobby.choosing')}${p.ultKind && !p.ultKind2 ? ' + ?' : ''}`)));
   const link = msg.room ? roomLink(msg.room) : null;
   const copy = link
     ? el('button', {
       type: 'button', className: 'copy',
       onclick: (e) => {
         navigator.clipboard?.writeText(link);
-        e.target.textContent = 'skopiowano';
-        setTimeout(() => { e.target.textContent = 'kopiuj link'; }, 1500);
+        e.target.textContent = t('lobby.copied');
+        setTimeout(() => { e.target.textContent = t('lobby.copyLink'); }, 1500);
       },
-    }, 'kopiuj link')
+    }, t('lobby.copyLink'))
     : null;
   const addresses = link
     ? el('div', {}, el('div', { className: 'room-code' }, msg.room), el('div', { className: 'muted' }, link), copy)
     : msg.addresses?.length
       ? el('ul', {}, ...msg.addresses.map((a) => el('li', {}, a)))
-      : el('div', { className: 'muted' }, 'brak adresów LAN');
+      : el('div', { className: 'muted' }, t('lobby.noLan'));
   // Dwa sloty (V3-Q-08): klik w wolny = pierwszy pusty slot; klik w wybrany = zdjecie; oba pelne = podmiana slotu 2.
   const allChosen = msg.players.every((p) => p.ultKind && p.ultKind2);
   const meRow = msg.players.find((p) => p.id === myId);
@@ -378,11 +454,11 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
   const detail = el('div', { className: 'ult-detail' });
   const showDetail = (kind) => {
     if (!kind) {
-      detail.replaceChildren(el('div', { className: 'muted' }, 'Wybierz ultimate, najedź, żeby zobaczyć progi.'));
+      detail.replaceChildren(el('div', { className: 'muted' }, t('lobby.ultHint')));
       return;
     }
     const u = ultimates[kind];
-    detail.replaceChildren(el('div', { className: 'ult-name' }, u.name), ...tierLines(u));
+    detail.replaceChildren(el('div', { className: 'ult-name' }, bn('ultimate', kind, 'name', u.name)), ...tierLines(kind, u));
   };
   showDetail(mine);
   const row = el('div', { className: 'ult-row' }, ...Object.entries(ultimates).map(([kind, u]) =>
@@ -392,36 +468,43 @@ export function showLobby(msg, { difficulties, ultimates, icons, myId, onUlt, on
     },
     kind === mine ? el('span', { className: 'slot-badge' }, 'F') : kind === mine2 ? el('span', { className: 'slot-badge two' }, 'C') : null,
     icons[kind] ? el('img', { className: 'ult-icon', src: icons[kind], alt: '' }) : null,
-    el('div', { className: 'ult-name' }, u.name),
-    el('div', { className: 'ult-blurb' }, u.blurb))));
+    el('div', { className: 'ult-name' }, bn('ultimate', kind, 'name', u.name)),
+    el('div', { className: 'ult-blurb' }, bn('ultimate', kind, 'blurb', u.blurb)))));
+  const chat = chatPanel({ log: chatLog, onSend: onChat });
   show(el('div', { className: 'panel lobby' },
-    el('h2', {}, 'LOBBY'),
+    el('h2', {}, t('lobby.title')),
+    el('div', { className: 'lobby-banner' }, t('lobby.banner')),
     el('div', { className: 'lobby-top' },
-      el('div', {}, el('label', {}, 'Gracze'), players, el('label', {}, msg.room ? 'Zaproś' : 'Dołącz z sieci LAN'), addresses),
-      el('div', {}, el('label', {}, 'Trudność'), slider, name, desc)),
-    el('label', {}, 'Twoje DWA ULTIMATE: pierwszy [F], drugi [C] · jeden wspólny pasek'), row, detail,
-    msg.youAreHost
-      ? el('button', { onclick: onStart, disabled: !allChosen }, allChosen ? 'Start' : 'Start (każdy wybiera dwa ultimate)')
-      : el('p', { className: 'muted' }, 'Czekam na hosta…'),
+      el('div', {}, el('label', {}, t('lobby.players')), players,
+        el('label', {}, msg.room ? t('lobby.invite') : t('lobby.joinLan')), addresses),
+      el('div', {}, el('label', {}, t('lobby.difficulty')), slider, name, desc),
+      chat.node),
+    el('label', {}, t('lobby.ultLabel')), row, detail,
+    el('div', { className: 'lobby-actions' },
+      msg.youAreHost
+        ? el('button', { onclick: onStart, disabled: !allChosen }, allChosen ? t('lobby.start') : t('lobby.startBlocked'))
+        : el('p', { className: 'muted wait' }, t('lobby.waitHost')),
+      onLeave ? el('button', { className: 'leave', onclick: onLeave }, t('lobby.leave')) : null),
   ));
+  return chat;
 }
 
 export function showPause({ onResume, onFullscreen, onLeave, onControls, volume = 1, muted = false, onVolume, onMute }) {
   show(el('div', { className: 'panel' },
-    el('h2', {}, 'PAUZA'),
-    el('p', { className: 'muted' }, 'Gra trwa dalej.'),
-    el('label', { className: 'muted' }, 'Głośność',
+    el('h2', {}, t('pause.title')),
+    el('p', { className: 'muted' }, t('pause.note')),
+    el('label', { className: 'muted' }, t('home.volume'),
       el('input', {
         type: 'range', min: '0', max: '100', step: '1', value: String(Math.round(volume * 100)),
         oninput: (ev) => onVolume?.(Number(ev.target.value) / 100),
       })),
     el('label', { className: 'muted' },
       el('input', { type: 'checkbox', checked: muted, onchange: (ev) => onMute?.(!!ev.target.checked) }),
-      ' Wycisz'),
-    el('button', { onclick: onResume }, 'Wróć'),
-    el('button', { onclick: onFullscreen }, 'Pełny ekran'),
-    el('button', { onclick: onControls }, 'Sterowanie'),
-    el('button', { onclick: onLeave }, 'Wyjdź'),
+      t('home.mute')),
+    el('button', { onclick: onResume }, t('pause.resume')),
+    el('button', { onclick: onFullscreen }, t('home.fullscreen')),
+    el('button', { onclick: onControls }, t('home.controls')),
+    el('button', { onclick: onLeave }, t('pause.leave')),
   ));
 }
 
@@ -431,10 +514,10 @@ export function showResults(results, isHost, onLobby, leaderboard = null) {
     el('td', {}, String(p.kills)),
     el('td', {}, String(p.downs ?? 0))));
   show(el('div', { className: 'panel' },
-    el('h2', {}, 'KONIEC GRY'),
-    el('p', {}, `Fala: ${results.wave} · czas: ${formatTime(results.timeS)}`),
-    el('table', {}, el('tr', {}, el('th', {}, 'Gracz'), el('th', {}, 'Zabójstwa'), el('th', {}, 'Upadki')), ...rows),
+    el('h2', {}, t('results.title')),
+    el('p', {}, t('results.summary', { wave: results.wave, time: formatTime(results.timeS) })),
+    el('table', {}, el('tr', {}, el('th', {}, t('lb.player')), el('th', {}, t('results.kills')), el('th', {}, t('results.downs'))), ...rows),
     leaderboardPanel(leaderboard),
-    isHost ? el('button', { onclick: onLobby }, 'Do lobby') : el('p', { className: 'muted' }, 'Czekam na hosta…'),
+    isHost ? el('button', { onclick: onLobby }, t('results.toLobby')) : el('p', { className: 'muted' }, t('lobby.waitHost')),
   ));
 }

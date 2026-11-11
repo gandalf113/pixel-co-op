@@ -42,6 +42,36 @@ odłączonym Wi-Fi.
 - Pusty pokój znika po 90 s. Ten margines jest dłuższy niż 30-sekundowy grace na
   powrót po utracie połączenia, więc odświeżenie karty nie kasuje pokoju.
 
+## 3a. Czat pokoju
+
+- Wiadomość: `{t:'chat', text}` od klienta, rozgłaszana jako
+  `{t:'chat', n, from, id, role: 'player'|'spectator', text, at}` do **graczy i widzów**.
+- Nowy w pokoju dostaje `{t:'chatLog', list}` - ostatnie 50 wpisów, żeby nie wpadał w środek rozmowy.
+- Wejścia i wyjścia idą jako wpisy **systemowe**: `{system: 'chat.joined', vars: {nick}}` -
+  czyli **klucz i18n, nie gotowe zdanie**, bo każdy klient ma własny język.
+- Sanityzacja (`sanitizeChat` w `public/shared/protocol.js`) wycina znaki sterujące i formatujące
+  (w tym **spację zerowej szerokości**) oraz znaczniki kierunku pisma, zbija białe znaki i tnie do 160 znaków.
+  Pusty wynik = nie ma czego wysyłać.
+- Limit tempa po stronie serwera: 3 wiadomości pod rząd, potem 700 ms przerwy na wiadomość.
+  Przekroczenie jest **ciche** (bez odpowiedzi o błędzie).
+- Klient renderuje nick i treść wyłącznie jako **węzły tekstowe** (nigdy `innerHTML`),
+  a w trakcie gry rysuje je na canvasie HUD-u.
+
+## 3b. Widzowie (spectator)
+
+- Do **trwającej gry** albo **pełnego pokoju** da się wejść jako widz: `{t:'hello', ..., spectate: true}`.
+  Bez tego pola serwer odpowiada jak dotąd (`Gra w toku` / `Pokój pełny`) - klient sprzed tej
+  wersji nie zawiśnie na ekranie, którego nie umie narysować.
+- Widz **nie ma gracza w świecie** i **nie liczy się do limitu miejsc**. `GET /api/rooms` podaje
+  jego obecność osobnym polem `spectators`.
+- Dostaje `welcome` z `spectator: true`, `gore`, historię czatu, snapshoty i zdarzenia.
+  Snapshot liczy się z `snapshot(id)` dla nieznanego id, więc AoI bierze **środki wszystkich graczy**
+  (`centersFor` bez `me`) - widz widzi to, co drużyna.
+- Może **tylko pisać na czacie**. `input`, `act`, `difficulty`, `start`, `toLobby` są ignorowane.
+- Po powrocie do lobby widz **awansuje na gracza**, jeśli są wolne miejsca: dostaje nowe `id`
+  (gracz nie może mieć id widza), ten sam token i powtórne `welcome`. Brak miejsc = ogląda dalej.
+- Pokój z samym widzem nie jest od razu uznany za pusty, więc nie znika spod oglądającego.
+
 ## 4. Telemetria: co i po co
 
 Cel jest jeden: odróżnić **faktyczną rozgrywkę** od wejścia na stronę, skanera i bota.

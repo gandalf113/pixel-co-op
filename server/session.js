@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Game } from './game.js';
 import { LinkThrottle, THROTTLE } from './netmeter.js';
-import { COLORS, sanitizeNick } from '../public/shared/protocol.js';
+import { COLORS, sanitizeNick, sanitizeChat, CHAT } from '../public/shared/protocol.js';
 
 // Ile musi trwać partia i ile realnych inputów musi przyjść, żeby zaliczyć ją
 // jako FAKTYCZNĄ rozgrywkę, a nie wejście na stronę, skanera albo odbicie.
@@ -38,6 +38,12 @@ export class Session {
     this.gameId = null;
     this.gameInputs = 0;
     this.endEmitted = true;
+    // Czat pokoju (zgloszenie): historia idzie do kazdego, kto wchodzi, zeby nie wpadal w srodek rozmowy.
+    this.chatLog = [];
+    this.chatSeq = 0;
+    // Widzowie: wchodza do TRWAJACEJ gry, nie licza sie do limitu miejsc, nie maja gracza w swiecie,
+    // dostaja snapshoty i moga pisac na czacie. Po powrocie do lobby awansuja na graczy, jesli jest miejsce.
+    this.spectators = [];
   }
 
   connect() {}
@@ -53,6 +59,9 @@ export class Session {
     if (msg.t === 'hello') return this.#hello(conn, msg);
     const p = this.byConn.get(conn);
     if (!p) return;
+    // Czat wolno i graczom, i widzom - to jedyna rzecz, ktora widz moze zrobic.
+    if (msg.t === 'chat') return this.#chat(p, msg);
+    if (p.spectator) return;
     switch (msg.t) {
       case 'input': return this.#input(p, msg);
       case 'act': return this.#act(p, msg);
@@ -89,6 +98,7 @@ export class Session {
       players: this.players.length,
       maxPlayers: this.balance.session.maxPlayers,
       inGame: !!this.game,
+      spectators: this.spectators.length,
       wave: this.game?.world.wave ?? 0,
       ageS: Math.max(0, Math.round((this.now() - this.createdAt) / 1000)),
     };
@@ -115,6 +125,15 @@ export class Session {
     if (this.snapAcc >= interval - 1e-9) {
       this.snapAcc = Math.max(0, this.snapAcc - interval);
       const events = g.drainEvents();
+      // Widz nie ma gracza w swiecie: `snapshot(id)` z nieznanym id liczy AoI ze srodkow WSZYSTKICH
+      // graczy (centersFor bez `me`), czyli widzi to, co widzi druzyna. Throttlingu nie stosujemy -
+      // widz nie wysyla inputu, wiec opoznienie nic mu nie psuje.
+      for (const sp of this.spectators) {
+        if (!sp.conn) continue;
+        const snap = g.snapshot(sp.id);
+        sp.conn.send({ ...snap, time: snap.t, t: 'snap' });
+        if (events.length) sp.conn.send({ t: 'ev', list: events });
+      }
       for (const p of this.players) {
         if (!p.conn) continue;
         if (this.#skipSnapshot(p)) {
@@ -130,7 +149,8 @@ export class Session {
     if (g.phase === 'over' && !this.resultsSent) {
       this.resultsSent = true;
       this.#endGameTelemetry('over');
-      this.#broadcast({ t: 'results', ...g.results() });
+      // takze do widzow: inaczej konczyliby partie na zamrozonym obrazie, bez ekranu wynikow
+      this.#broadcastAll({ t: 'results', ...g.results() });
     }
   }
 
@@ -177,6 +197,14 @@ export class Session {
 
   #hello(conn, msg) {
     if (this.byConn.has(conn)) return;
+    const back = typeof msg.token === 'string' ? this.spectators.find((q) => q.token === msg.token) : null;
+    if (back) {
+      if (back.conn) { this.byConn.delete(back.conn); back.conn.close(1000, 'Zastąpiono'); }
+      back.conn = conn;
+      this.byConn.set(conn, back);
+      this.#welcome(back);
+      return;
+    }
     const existing = typeof msg.token === 'string' ? this.players.find((p) => p.token === msg.token) : null;
     if (existing) {
       if (existing.conn) {
@@ -191,20 +219,26 @@ export class Session {
       if (!this.game) this.#broadcastLobby();
       return;
     }
-    if (this.game) return this.#reject(conn, 'Gra w toku');
-    if (this.players.length >= this.balance.session.maxPlayers) return this.#reject(conn, this.code ? 'Pokój pełny' : 'Serwer pełny');
     const nick = sanitizeNick(msg.nick);
     if (nick === null) return this.#reject(conn, 'Nieprawidłowy nick');
+    // Widz: wchodzi do trwajacej gry albo do pelnego pokoju, ale TYLKO gdy sam o to poprosi.
+    // Klient sprzed tej wersji nie zna trybu widza, wiec dostaje stare odrzucenie i nie wisi na ekranie,
+    // ktorego nie umie narysowac.
+    const noRoom = !!this.game || this.players.length >= this.balance.session.maxPlayers;
+    if (noRoom && msg.spectate === true) return this.#addSpectator(conn, nick);
+    if (this.game) return this.#reject(conn, 'Gra w toku');
+    if (this.players.length >= this.balance.session.maxPlayers) return this.#reject(conn, this.code ? 'Pokój pełny' : 'Serwer pełny');
     const p = {
       id: `p${this.nextId++}`, token: this.makeToken(), nick, conn,
       isLocal: !!conn.isLocal, graceLeft: null,
-      pid: conn.pid ?? null, joinedAt: this.now(),
+      pid: conn.pid ?? null, joinedAt: this.now(), chatAt: [],
     };
     this.players.push(p);
     this.byConn.set(conn, p);
     if (this.hostToken === null && (this.hostPolicy === 'first' || p.isLocal)) this.hostToken = p.token;
     this.#emit('join', { pid: p.pid, nick: p.nick, ipHash: conn.ipHash ?? null, players: this.players.length });
     this.#welcome(p);
+    this.#system('chat.joined', { nick: p.nick });
     this.#broadcastLobby();
   }
 
@@ -214,8 +248,61 @@ export class Session {
   }
 
   #welcome(p) {
-    p.conn.send({ t: 'welcome', id: p.id, token: p.token, room: this.code, balance: this.balance, version: this.version });
+    p.conn.send({
+      t: 'welcome', id: p.id, token: p.token, room: this.code,
+      balance: this.balance, version: this.version, spectator: !!p.spectator,
+    });
     if (this.game) p.conn.send({ t: 'gore', ...this.game.world.gore });
+    // KOPIA, nie referencja: `chatLog` zmienia sie dalej (choćby wpis "wszedl X" tuz po tym welcome),
+    // a odbiorca, ktory trzyma tablice (test, kolejka, logger), zobaczylby pozniejsze wpisy wstecz.
+    if (this.chatLog.length) p.conn.send({ t: 'chatLog', list: [...this.chatLog] });
+  }
+
+  // --- Widzowie ---------------------------------------------------------------------------------
+  #addSpectator(conn, nick) {
+    const sp = {
+      id: `s${this.nextId++}`, token: this.makeToken(), nick, conn, spectator: true,
+      pid: conn.pid ?? null, joinedAt: this.now(), chatAt: [],
+    };
+    this.spectators.push(sp);
+    this.byConn.set(conn, sp);
+    this.#emit('spectate', { pid: sp.pid, nick: sp.nick, spectators: this.spectators.length });
+    this.#welcome(sp);
+    this.#system('chat.watching', { nick: sp.nick });
+    return sp;
+  }
+
+  // --- Czat -------------------------------------------------------------------------------------
+  // Limit tempa jest po stronie SERWERA, bo klient to tylko uprzejma prosba: `burst` wiadomosci
+  // pod rzad, potem minIntervalMs przerwy. Przekroczenie jest ciche - nie odsylamy bledu, zeby
+  // nie dac narzedzia do mierzenia, kiedy limit puszcza.
+  #chat(p, m) {
+    const text = sanitizeChat(m.text);
+    if (text === null) return;
+    const now = this.now();
+    p.chatAt = (p.chatAt ?? []).filter((at) => now - at < CHAT.minIntervalMs * CHAT.burst);
+    if (p.chatAt.length >= CHAT.burst) return;
+    p.chatAt.push(now);
+    this.#pushChat({
+      n: ++this.chatSeq, from: p.nick, id: p.id,
+      role: p.spectator ? 'spectator' : 'player', text, at: now,
+    });
+  }
+
+  // Wiadomosc systemowa: klucz i18n zamiast gotowego zdania, zeby kazdy zobaczyl ja w SWOIM jezyku.
+  #system(key, vars = {}) {
+    this.#pushChat({ n: ++this.chatSeq, system: key, vars, at: this.now() });
+  }
+
+  #pushChat(entry) {
+    this.chatLog.push(entry);
+    if (this.chatLog.length > CHAT.historyMax) this.chatLog.splice(0, this.chatLog.length - CHAT.historyMax);
+    this.#broadcastAll({ t: 'chat', ...entry });
+  }
+
+  #broadcastAll(obj) {
+    for (const p of this.players) p.conn?.send(obj);
+    for (const sp of this.spectators) sp.conn?.send(obj);
   }
 
   #isHost(p) {
@@ -297,8 +384,30 @@ export class Session {
     this.game = null;
     this.players = this.players.filter((q) => q.conn);
     for (const q of this.players) q.graceLeft = null;
+    this.#promoteSpectators();
     if (!this.players.some((q) => q.token === this.hostToken)) this.hostToken = this.#pickHost();
     this.#broadcastLobby();
+  }
+
+  // Po partii widz przestaje byc widzem i siada do gry - o ile sa wolne miejsca. Dostaje NOWE id
+  // (gracz w swiecie nie moze miec id widza) i powtorne `welcome`, zeby klient wiedzial, ze juz gra.
+  // Token zostaje ten sam, wiec powrot po zerwanym laczu dziala dalej.
+  #promoteSpectators() {
+    if (!this.spectators.length) return;
+    const free = Math.max(0, this.balance.session.maxPlayers - this.players.length);
+    const promoted = this.spectators.filter((sp) => sp.conn).slice(0, free);
+    for (const sp of promoted) {
+      this.game?.dropView(sp.id);
+      sp.id = `p${this.nextId++}`;
+      sp.spectator = false;
+      sp.graceLeft = null;
+      this.players.push(sp);
+      if (this.hostToken === null) this.hostToken = sp.token;
+      this.#emit('join', { pid: sp.pid, nick: sp.nick, players: this.players.length, fromSpectator: true });
+      if (sp.conn) this.#welcome(sp);
+      this.#system('chat.joined', { nick: sp.nick });
+    }
+    this.spectators = this.spectators.filter((sp) => !promoted.includes(sp));
   }
 
   #pickHost() {
@@ -311,6 +420,13 @@ export class Session {
     if (!p) return;
     this.byConn.delete(conn);
     p.conn = null;
+    if (p.spectator) {
+      this.spectators = this.spectators.filter((q) => q !== p);
+      this.game?.dropView(p.id);
+      this.#system('chat.stoppedWatching', { nick: p.nick });
+      this.#checkEmpty();
+      return;
+    }
     if (!this.game) {
       this.players = this.players.filter((q) => q !== p);
       this.#leaveTelemetry(p);
@@ -326,6 +442,7 @@ export class Session {
   }
 
   #leaveTelemetry(p) {
+    this.#system('chat.left', { nick: p.nick });
     this.#emit('leave', {
       pid: p.pid, nick: p.nick,
       playedS: Math.round((this.now() - p.joinedAt) / 1000),
@@ -358,14 +475,14 @@ export class Session {
     }
     if (wasHost) {
       this.hostToken = null;
-      this.#broadcast({ t: 'ended', reason: 'Host opuścił grę' });
+      this.#broadcastAll({ t: 'ended', reason: 'Host opuścił grę' });
       this.#backToLobby();
     }
     this.#checkEmpty();
   }
 
   #checkEmpty() {
-    if (this.players.length === 0) this.onEmpty?.(this);
+    if (this.players.length === 0 && this.spectators.length === 0) this.onEmpty?.(this);
   }
 
   #broadcast(obj) {

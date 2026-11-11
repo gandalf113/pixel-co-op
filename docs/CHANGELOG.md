@@ -1,5 +1,30 @@
 # Changelog dokumentacji
 
+## 0.45 - 2026-11-11
+- v0.26.0: **język PL / EN, czat w pokoju, widzowie i dwie poprawki interfejsu** (zgłoszenia właściciela).
+  - **Przełącznik POLSKI / ANGIELSKI na ekranie podawania nicku** (`public/client/i18n.js`): dwa słowniki
+    z identycznym zbiorem kluczy, `t(klucz, {podstawienia})`, wybór w `localStorage`, `document.documentElement.lang`,
+    `onLangChange` przerysowuje ekran menu. Przetłumaczony cały klient: panele, HUD, efekty, sterowanie,
+    bestiariusz, porady i "co nowego" (`content.js` dwujęzycznie) oraz nazwy z `balance.json` (przedmioty,
+    ultimate z progami, wydarzenia, trudności, modyfikatory broni) przez `BALANCE_EN` - plik balansu zostaje
+    JEDNYM źródłem nazw, tłumaczenie nakłada się dopiero przy wyświetlaniu. Testy pilnują parzystości kluczy,
+    zgodności podstawień `{x}`, kompletu nazw z balansu i tego, że w słowniku EN nie został polski tekst.
+  - **Czat w pokoju i w grze**: `{t:'chat'}` w obie strony, historia 50 wpisów dla wchodzącego, wpisy systemowe
+    jako KLUCZ i18n (każdy widzi je w swoim języku), limit tempa po stronie serwera (3 pod rząd, potem 700 ms),
+    `sanitizeChat` tnie znaki sterujące i formatujące (w tym spację zerowej szerokości) oraz znaczniki kierunku
+    pisma. Panel czatu to trzecia kolumna u góry pokoju - widać go bez przewijania. W trakcie gry ostatnie
+    wiadomości rysuje HUD na canvasie i gasną po 9 s. Nick i treść zawsze jako węzeł tekstowy, nigdy `innerHTML`.
+  - **Widzowie**: `{t:'hello', spectate:true}` wchodzi do trwającej gry albo pełnego pokoju. Widz nie zajmuje
+    miejsca (`spectators` w `/api/rooms`), nie ma gracza w świecie, dostaje snapshoty liczone ze środków
+    wszystkich graczy i **może pisać na czacie - jego wiadomości widzą grający na swoim ekranie**. Po partii
+    awansuje na gracza, jeśli jest miejsce. Stary klient (bez `spectate`) dostaje jak dotąd `Gra w toku`.
+  - **Wyraźny baner u góry pokoju**: "WYBIERZ DWA ULTIMATE I KLIKNIJ START".
+  - **Przycisk "OPUŚĆ POKÓJ"** w pokoju, po prawej stronie wiersza ze Startem (ta sama ścieżka co "Wyjdź" z pauzy).
+  - **Stopka ekranu głównego w pionie**: porada, puls serwera i "co nowego" jedno pod drugim - dwie kolumny
+    wciskały MOTD w kilkunastopikselowy pasek obok "online · pokoje · wersja".
+  - Przy okazji naprawione: `chatLog` szedł do klienta jako **żywa referencja** na tablicę, którą serwer
+    zmieniał dalej (złapał to test historii czatu); `Game.dropView(id)` sprząta widok AoI po rozłączonym widzu.
+
 ## 0.44 - 2026-11-11
 - v0.25.1: **Trzesienie ziemi - zapadnie przy krawedzi ekranu, mniejsza extra fala** (zgloszenie: "zapadnie sa za blisko, mobow z nich mniej"). `openPits` liczy srodki na elipsie `pitDistX` 15 x `pitDistY` 8 kafelkow zamiast kola `pitDist` 4 - elipsa, bo ekran ma 35 x 20 kafelkow (VIEW_W/VIEW_H), wiec kolo wypchneloby zapadnie z gory i z dolu poza ekran. Liczba zapadni bez zmian (8): zapadnia przy brzegu mapy jest **dosuwana** do srodka zamiast pomijanej, a gdy po dosunieciu nachodzi na inna (rog mapy), odsuwa sie styczna do kierunku, nigdy w strone graczy. `budgetMul` 1.0 -> **0.75**. Testy: balans sprawdza, ze zapadnie siedza przy krawedzi ekranu i ze budzet jest mniejszy niz pelna fala; nowy test rogow mapy pilnuje osmiu zapadni, ktore sie nie nakladaja i nie wychodza poza mape.
 
